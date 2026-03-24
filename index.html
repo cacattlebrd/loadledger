@@ -345,18 +345,10 @@ textarea { resize: vertical; min-height: 60px; }
             <label class="required">Driver</label>
             <select id="driver" required onchange="checkStep2()">
               <option value="">Select driver...</option>
-              <option>David</option>
-              <option>Juan</option>
-              <option>John</option>
-              <option>Carlos</option>
-              <option>Amalio</option>
-              <option>Arnulfo</option>
-              <option>Jose</option>
-              <option>Rebecca</option>
-              <option>Bryan</option>
-              <option>Moses</option>
+              <option>John Hightower</option>
+              <option>Juan Gutierrez</option>
               <option>James Gass</option>
-              <option>Chad Crocker</option>
+              <option>Other</option>
             </select>
           </div>
           <div class="field-row">
@@ -370,7 +362,7 @@ textarea { resize: vertical; min-height: 60px; }
             </div>
             <div class="field">
               <label>Trailer</label>
-              <select id="trailer" onchange="checkStep2()">
+              <select id="trailer" onchange="checkStep2(); toggleReconserveTrailer();">
                 <option value="">Select trailer...</option>
                 <optgroup label="Dry Vans">
                   <option>DV-1323</option>
@@ -396,7 +388,10 @@ textarea { resize: vertical; min-height: 60px; }
                   <option>FB-1641</option>
                   <option>FB-6572</option>
                 </optgroup>
+                <option value="ReConserve">ReConserve Trailer</option>
+                <option value="Other">Other</option>
               </select>
+              <input type="text" id="reconserveTrailerNum" placeholder="Enter ReConserve Trailer #" style="display:none; margin-top:8px;">
             </div>
           </div>
         </div>
@@ -504,18 +499,10 @@ textarea { resize: vertical; min-height: 60px; }
             <label class="required">Driver</label>
             <select id="fuelDriver" required>
               <option value="">Select driver...</option>
-              <option>David</option>
-              <option>Juan</option>
-              <option>John</option>
-              <option>Carlos</option>
-              <option>Amalio</option>
-              <option>Arnulfo</option>
-              <option>Jose</option>
-              <option>Rebecca</option>
-              <option>Bryan</option>
-              <option>Moses</option>
+              <option>John Hightower</option>
+              <option>Juan Gutierrez</option>
               <option>James Gass</option>
-              <option>Chad Crocker</option>
+              <option>Other</option>
             </select>
           </div>
           <div class="field">
@@ -581,7 +568,7 @@ textarea { resize: vertical; min-height: 60px; }
 const inboundSuppliers = [
   "Reconserve", "Maruchan Noodles", "Northstar", "Envirofeeds",
   "Sterling", "Pioneer Flour", "Bimbo", "Mission Tortillas",
-  "HEB Snacks", "HEB Bakery", "Other"
+  "HEB Snacks", "HEB Bakery", "Frito-Lay", "Other"
 ];
 const outboundCustomers = [
   "Live Oak Feeders", "Chaparral Feeders", "Mason County Feeders",
@@ -611,6 +598,18 @@ setFuelDate();
 
 // ==================== STEP WIZARD ====================
 let currentLoadType = '';
+
+function toggleReconserveTrailer() {
+  const trailer = document.getElementById('trailer').value;
+  const rcInput = document.getElementById('reconserveTrailerNum');
+  if (trailer === 'ReConserve') {
+    rcInput.style.display = 'block';
+    rcInput.focus();
+  } else {
+    rcInput.style.display = 'none';
+    rcInput.value = '';
+  }
+}
 
 function setLoadType(type) {
   currentLoadType = type;
@@ -692,7 +691,7 @@ document.getElementById('loadForm').addEventListener('submit', function(e) {
     productType: document.getElementById('productType').value,
     weight: document.getElementById('weight').value,
     truck: document.getElementById('truck').value,
-    trailer: document.getElementById('trailer').value,
+    trailer: document.getElementById('trailer').value === 'ReConserve' ? 'RC-' + document.getElementById('reconserveTrailerNum').value : document.getElementById('trailer').value,
     mileage: document.getElementById('mileage').value,
     departTime: document.getElementById('departTime').value,
     arriveTime: document.getElementById('arriveTime').value,
