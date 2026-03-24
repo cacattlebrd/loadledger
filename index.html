@@ -29,7 +29,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:#60a5fa;box-sh
 .toggle-row{display:flex;gap:8px;margin-bottom:12px}
 .toggle-btn{flex:1;padding:12px;text-align:center;font-size:14px;font-weight:700;border-radius:8px;cursor:pointer;border:2px solid #334155;background:#1e293b;color:#94a3b8;transition:all .2s}
 .toggle-btn.active-in{background:#1e3a2a;border-color:#22c55e;color:#22c55e}
-.toggle-btn.active-out{background:#3a1e1e;border-color:#ef4444;color:#ef4444}
+.toggle-btn.active-out{background:#1e2d3a;border-color:#60a5fa;color:#60a5fa}
 .weight-display{background:#0f172a;border:1px solid #334155;border-radius:8px;padding:12px;margin:8px 0;text-align:center}
 .weight-display .val{font-size:28px;font-weight:800;color:#fbbf24}
 .weight-display .lbl{font-size:11px;color:#94a3b8;margin-top:2px}
@@ -49,13 +49,13 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:#60a5fa;box-sh
 .dvir-item .status span.def{background:#3a1e1e;border-color:#ef4444;color:#ef4444}
 .history-item{background:#1e293b;border-radius:8px;padding:12px;margin-bottom:8px;border-left:4px solid #60a5fa}
 .history-item.inbound{border-left-color:#22c55e}
-.history-item.outbound{border-left-color:#ef4444}
+.history-item.outbound{border-left-color:#60a5fa}
 .history-item.fuel{border-left-color:#fbbf24}
 .history-item.dvir{border-left-color:#a78bfa}
 .history-item .h-top{display:flex;justify-content:space-between;margin-bottom:4px}
 .history-item .h-type{font-size:11px;font-weight:700;text-transform:uppercase;padding:2px 6px;border-radius:4px}
 .h-type.in{background:#1e3a2a;color:#22c55e}
-.h-type.out{background:#3a1e1e;color:#ef4444}
+.h-type.out{background:#1e2d3a;color:#60a5fa}
 .h-type.fl{background:#3a2e1e;color:#fbbf24}
 .h-type.dv{background:#2e1e3a;color:#a78bfa}
 .history-item .h-detail{font-size:13px;color:#cbd5e1}
@@ -82,9 +82,96 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:#60a5fa;box-sh
 .auto-calc{display:flex;align-items:center;gap:8px;background:#0f172a;border:1px solid #334155;border-radius:8px;padding:10px 12px;margin:4px 0}
 .auto-calc .calc-label{font-size:11px;color:#94a3b8;flex-shrink:0}
 .auto-calc .calc-value{font-size:18px;font-weight:800;color:#60a5fa}
+/* PIN Login Overlay */
+#pin-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:#1a1a2e;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:99999;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
+#pin-overlay.hidden{display:none}
+#pin-overlay h1{color:#e0e0e0;font-size:1.6rem;margin-bottom:0.2rem;letter-spacing:1px}
+#pin-overlay .pin-subtitle{color:#888;font-size:0.85rem;margin-bottom:2rem}
+#pin-overlay select{width:240px;padding:12px;font-size:1rem;border:2px solid #333;border-radius:8px;background:#2a2a3e;color:#e0e0e0;margin-bottom:1rem;text-align:center;appearance:none;-webkit-appearance:none}
+#pin-dots{display:flex;gap:14px;margin-bottom:1.5rem}
+#pin-dots .dot{width:16px;height:16px;border-radius:50%;border:2px solid #555;background:transparent;transition:background 0.15s}
+#pin-dots .dot.filled{background:#4fc3f7;border-color:#4fc3f7}
+#pin-keypad{display:grid;grid-template-columns:repeat(3,72px);gap:12px;margin-bottom:1rem}
+#pin-keypad button{width:72px;height:56px;font-size:1.5rem;font-weight:600;border:none;border-radius:10px;background:#2a2a3e;color:#e0e0e0;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:background 0.1s}
+#pin-keypad button:active{background:#4fc3f7;color:#1a1a2e}
+#pin-keypad button.pin-clear{font-size:0.9rem;color:#f44336}
+#pin-error{color:#f44336;font-size:0.9rem;height:1.2rem;margin-top:0.5rem}
+body.locked > *:not(#pin-overlay):not(.toast){display:none!important}
 </style>
 </head>
 <body>
+<div id="pin-overlay">
+  <h1>&#9878; LOADLEDGER</h1>
+  <div class="pin-subtitle">CA Cattle Co. â Bakery Recycling Division</div>
+  <select id="pin-user-select">
+    <option value="">Select your name...</option>
+    <option value="admin">Chad (Admin)</option>
+    <option value="john">John Hightower</option>
+    <option value="juan">Juan Gutierrez</option>
+    <option value="james">James Gass</option>
+  </select>
+  <div id="pin-dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+  </div>
+  <div id="pin-keypad">
+    <button onclick="pinPress('1')">1</button>
+    <button onclick="pinPress('2')">2</button>
+    <button onclick="pinPress('3')">3</button>
+    <button onclick="pinPress('4')">4</button>
+    <button onclick="pinPress('5')">5</button>
+    <button onclick="pinPress('6')">6</button>
+    <button onclick="pinPress('7')">7</button>
+    <button onclick="pinPress('8')">8</button>
+    <button onclick="pinPress('9')">9</button>
+    <button class="pin-clear" onclick="pinClear()">CLR</button>
+    <button onclick="pinPress('0')">0</button>
+    <button class="pin-clear" onclick="pinBack()">&#9003;</button>
+  </div>
+  <div id="pin-error"></div>
+</div>
+<script>
+const VALID_PINS = {admin:'2636',john:'5990',juan:'8258',james:'5796'};
+let pinEntry = '';
+let failCount = 0;
+const MAX_FAILS = 5;
+document.body.classList.add('locked');
+function updateDots(){
+  document.querySelectorAll('#pin-dots .dot').forEach((d,i)=>d.classList.toggle('filled',i<pinEntry.length));
+}
+function pinPress(digit){
+  document.getElementById('pin-error').textContent='';
+  if(pinEntry.length>=4)return;
+  pinEntry+=digit;updateDots();
+  if(pinEntry.length===4)setTimeout(checkPin,200);
+}
+function pinBack(){pinEntry=pinEntry.slice(0,-1);updateDots();document.getElementById('pin-error').textContent='';}
+function pinClear(){pinEntry='';updateDots();document.getElementById('pin-error').textContent='';}
+function checkPin(){
+  const user=document.getElementById('pin-user-select').value;
+  const err=document.getElementById('pin-error');
+  if(!user){err.textContent='Select your name first';pinEntry='';updateDots();return;}
+  if(failCount>=MAX_FAILS){err.textContent='Too many attempts. Reload page.';pinEntry='';updateDots();return;}
+  if(VALID_PINS[user]&&VALID_PINS[user]===pinEntry){
+    document.getElementById('pin-overlay').classList.add('hidden');
+    document.body.classList.remove('locked');
+    if(user!=='admin')autoSelectDriver(user);
+  }else{
+    failCount++;
+    const r=MAX_FAILS-failCount;
+    err.textContent=r>0?'Wrong PIN ('+r+' attempts left)':'Too many attempts. Reload page.';
+    pinEntry='';updateDots();
+  }
+}
+function autoSelectDriver(userId){
+  const names={john:'John Hightower',juan:'Juan Gutierrez',james:'James Gass'};
+  const name=names[userId];if(!name)return;
+  document.querySelectorAll('select').forEach(sel=>{
+    for(let i=0;i<sel.options.length;i++){
+      if(sel.options[i].text===name){sel.value=sel.options[i].value;sel.dispatchEvent(new Event('change'));break;}
+    }
+  });
+}
+</script>
 <div class="header">
   <h1>LOADLEDGER</h1>
   <div class="sub">CA Cattle Co. - Bakery Recycling Division</div>
@@ -120,15 +207,9 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:#60a5fa;box-sh
         <option>James Gass</option>
       </optgroup>
       <optgroup label="Contract Haulers">
-        <option>CA-Juan</option>
-        <option>Luckey</option>
         <option>Cuatro T</option>
         <option>Tres Hijos</option>
-        <option>David</option>
-        <option>Ray</option>
-        <option>RW</option>
-        <option>Gill</option>
-        <option>Luckey-RW</option>
+        <option>Luckey</option>
         <option>Rocking B</option>
       </optgroup>
       <option>Other</option>
@@ -189,20 +270,22 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:#60a5fa;box-sh
     </div>
   </div>
 
-  <!-- PRODUCT TYPE (multi-select) -->
-  <div class="section-title">Product Type</div>
-  <div class="form-group">
-    <label>Select all that apply</label>
-    <div class="product-grid" id="productGrid">
-      <label class="product-check"><input type="checkbox" value="Bread" onchange="toggleProduct(this)"> Bread</label>
-      <label class="product-check"><input type="checkbox" value="Snacks" onchange="toggleProduct(this)"> Snacks</label>
-      <label class="product-check"><input type="checkbox" value="Chips" onchange="toggleProduct(this)"> Chips</label>
-      <label class="product-check"><input type="checkbox" value="Tortillas" onchange="toggleProduct(this)"> Tortillas</label>
-      <label class="product-check"><input type="checkbox" value="Pasta/Noodles" onchange="toggleProduct(this)"> Pasta/Noodles</label>
-      <label class="product-check"><input type="checkbox" value="Flour" onchange="toggleProduct(this)"> Flour</label>
-      <label class="product-check"><input type="checkbox" value="Nut Mix" onchange="toggleProduct(this)"> Nut Mix</label>
-      <label class="product-check"><input type="checkbox" value="Wet Dough" onchange="toggleProduct(this)"> Wet Dough</label>
-      <label class="product-check"><input type="checkbox" value="Mixed" onchange="toggleProduct(this)"> Mixed</label>
+  <!-- PRODUCT TYPE (multi-select) â Inbound only -->
+  <div id="product-type-section">
+    <div class="section-title">Product Type</div>
+    <div class="form-group">
+      <label>Select all that apply</label>
+      <div class="product-grid" id="productGrid">
+        <label class="product-check"><input type="checkbox" value="Bread" onchange="toggleProduct(this)"> Bread</label>
+        <label class="product-check"><input type="checkbox" value="Snacks" onchange="toggleProduct(this)"> Snacks</label>
+        <label class="product-check"><input type="checkbox" value="Chips" onchange="toggleProduct(this)"> Chips</label>
+        <label class="product-check"><input type="checkbox" value="Tortillas" onchange="toggleProduct(this)"> Tortillas</label>
+        <label class="product-check"><input type="checkbox" value="Pasta/Noodles" onchange="toggleProduct(this)"> Pasta/Noodles</label>
+        <label class="product-check"><input type="checkbox" value="Flour" onchange="toggleProduct(this)"> Flour</label>
+        <label class="product-check"><input type="checkbox" value="Nut Mix" onchange="toggleProduct(this)"> Nut Mix</label>
+        <label class="product-check"><input type="checkbox" value="Wet Dough" onchange="toggleProduct(this)"> Wet Dough</label>
+        <label class="product-check"><input type="checkbox" value="Mixed" onchange="toggleProduct(this)"> Mixed</label>
+      </div>
     </div>
   </div>
 
@@ -211,12 +294,9 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:#60a5fa;box-sh
     <label>Truck</label>
     <select id="loadTruck" onchange="toggleTruckOther()">
       <option value="">Select truck...</option>
-      <option>TK-4268</option>
-      <option>TK-0786</option>
-      <option>TK-4901</option>
-      <option>TK-3948</option>
-      <option>TK-1988</option>
-      <option>TK-2013</option>
+      <option>881486</option>
+      <option>256533</option>
+      <option>Contract</option>
       <option>Other</option>
     </select>
     <input type="text" id="loadTruckOther" class="conditional-field hidden" placeholder="Enter truck #">
@@ -346,15 +426,9 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:#60a5fa;box-sh
         <option>James Gass</option>
       </optgroup>
       <optgroup label="Contract Haulers">
-        <option>CA-Juan</option>
-        <option>Luckey</option>
         <option>Cuatro T</option>
         <option>Tres Hijos</option>
-        <option>David</option>
-        <option>Ray</option>
-        <option>RW</option>
-        <option>Gill</option>
-        <option>Luckey-RW</option>
+        <option>Luckey</option>
         <option>Rocking B</option>
       </optgroup>
       <option>Other</option>
@@ -364,12 +438,9 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:#60a5fa;box-sh
     <label>Truck</label>
     <select id="fuelTruck">
       <option value="">Select truck...</option>
-      <option>TK-4268</option>
-      <option>TK-0786</option>
-      <option>TK-4901</option>
-      <option>TK-3948</option>
-      <option>TK-1988</option>
-      <option>TK-2013</option>
+      <option>881486</option>
+      <option>256533</option>
+      <option>Contract</option>
       <option>Other</option>
     </select>
   </div>
@@ -425,15 +496,9 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:#60a5fa;box-sh
         <option>James Gass</option>
       </optgroup>
       <optgroup label="Contract Haulers">
-        <option>CA-Juan</option>
-        <option>Luckey</option>
         <option>Cuatro T</option>
         <option>Tres Hijos</option>
-        <option>David</option>
-        <option>Ray</option>
-        <option>RW</option>
-        <option>Gill</option>
-        <option>Luckey-RW</option>
+        <option>Luckey</option>
         <option>Rocking B</option>
       </optgroup>
     </select>
@@ -443,12 +508,9 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:#60a5fa;box-sh
       <label>Truck</label>
       <select id="dvirTruck">
         <option value="">Select...</option>
-        <option>TK-4268</option>
-        <option>TK-0786</option>
-        <option>TK-4901</option>
-        <option>TK-3948</option>
-        <option>TK-1988</option>
-        <option>TK-2013</option>
+        <option>881486</option>
+        <option>256533</option>
+        <option>Contract</option>
         <option>Other</option>
       </select>
     </div>
@@ -631,6 +693,7 @@ function setDirection(dir) {
   document.getElementById('btn-out').className = 'toggle-btn' + (dir==='out' ? ' active-out' : '');
   document.getElementById('inbound-fields').classList.toggle('hidden', dir!=='in');
   document.getElementById('outbound-fields').classList.toggle('hidden', dir!=='out');
+  document.getElementById('product-type-section').classList.toggle('hidden', dir!=='in');
 }
 
 // ===== WEIGHT CALC =====
@@ -847,7 +910,7 @@ function exportCSV(type) {
   const blob = new Blob([csv], {type:'text/csv'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = url; a.download = 'loadledger_' + type + '_' + new Date().toISOString().slice(0,10) + '.csv';
+  a.href = url; a.download = 'loadledger_' + type + '_' + new Date().toISOString().slice(0,10) + '.csv;
   a.click(); URL.revokeObjectURL(url);
   showToast('CSV downloaded');
 }
