@@ -2,799 +2,877 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="mobile-web-app-capable" content="yes">
-<title>CA Cattle - LoadLedger</title>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>LoadLedger - BRD</title>
 <style>
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background: #f0f2f5;
-  color: #1a1a2e;
-  min-height: 100vh;
-}
-.header {
-  background: linear-gradient(135deg, #1F4E79 0%, #2d6a9f 100%);
-  color: white;
-  padding: 14px 20px;
-  text-align: center;
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-}
-.header h1 { font-size: 18px; font-weight: 700; letter-spacing: 0.5px; }
-.header p { font-size: 11px; opacity: 0.85; margin-top: 2px; }
-
-/* Tab Navigation */
-.tab-nav {
-  display: flex;
-  background: white;
-  border-bottom: 2px solid #e0e0e0;
-  position: sticky;
-  top: 56px;
-  z-index: 99;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-}
-.tab-btn {
-  flex: 1;
-  padding: 12px 8px;
-  border: none;
-  background: white;
-  font-size: 13px;
-  font-weight: 600;
-  color: #888;
-  cursor: pointer;
-  border-bottom: 3px solid transparent;
-  transition: all 0.2s;
-}
-.tab-btn.active {
-  color: #1F4E79;
-  border-bottom-color: #1F4E79;
-  background: #f0f6ff;
-}
-.tab-btn svg { display: block; margin: 0 auto 3px; }
-.tab-content { display: none; }
-.tab-content.active { display: block; }
-
-.form-container {
-  max-width: 480px;
-  margin: 0 auto;
-  padding: 16px;
-}
-
-/* Step Cards */
-.step-card {
-  background: white;
-  border-radius: 12px;
-  padding: 18px;
-  margin-bottom: 14px;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
-  border-left: 4px solid #e0e0e0;
-  transition: all 0.3s ease;
-}
-.step-card.active {
-  border-left-color: #1F4E79;
-  box-shadow: 0 2px 8px rgba(31,78,121,0.15);
-}
-.step-card.completed {
-  border-left-color: #2e7d32;
-}
-.step-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 12px;
-}
-.step-number {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background: #e0e0e0;
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 13px;
-  font-weight: 700;
-  flex-shrink: 0;
-}
-.step-card.active .step-number { background: #1F4E79; }
-.step-card.completed .step-number { background: #2e7d32; }
-.step-title { font-size: 15px; font-weight: 700; color: #333; }
-.step-subtitle { font-size: 12px; color: #888; }
-.step-body { display: none; }
-.step-card.active .step-body,
-.step-card.completed .step-body { display: block; }
-
-.field { margin-bottom: 14px; }
-.field:last-child { margin-bottom: 0; }
-label {
-  display: block;
-  font-size: 13px;
-  font-weight: 600;
-  color: #555;
-  margin-bottom: 5px;
-}
-select, input, textarea {
-  width: 100%;
-  padding: 12px 14px;
-  border: 2px solid #dde3ea;
-  border-radius: 8px;
-  font-size: 16px;
-  font-family: inherit;
-  background: #fafbfc;
-  transition: border-color 0.2s;
-  -webkit-appearance: none;
-}
-select { background: #fafbfc url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M6 8L1 3h10z' fill='%23666'/%3E%3C/svg%3E") no-repeat right 14px center; padding-right: 36px; }
-select:focus, input:focus, textarea:focus {
-  outline: none;
-  border-color: #1F4E79;
-  background: white;
-}
-textarea { resize: vertical; min-height: 60px; }
-
-/* Load Type Cards */
-.type-cards {
-  display: flex;
-  gap: 10px;
-}
-.type-card {
-  flex: 1;
-  padding: 20px 12px;
-  border: 2px solid #dde3ea;
-  border-radius: 12px;
-  background: #fafbfc;
-  text-align: center;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-.type-card:active { transform: scale(0.97); }
-.type-card .icon { font-size: 28px; margin-bottom: 6px; }
-.type-card .label { font-size: 15px; font-weight: 700; }
-.type-card .sublabel { font-size: 11px; color: #888; margin-top: 2px; }
-.type-card.selected-inbound {
-  background: #e8f5e9;
-  border-color: #2e7d32;
-  color: #2e7d32;
-}
-.type-card.selected-outbound {
-  background: #e3ecf9;
-  border-color: #1F4E79;
-  color: #1F4E79;
-}
-
-.field-row { display: flex; gap: 10px; }
-.field-row .field { flex: 1; }
-
-.submit-btn {
-  width: 100%;
-  padding: 16px;
-  background: linear-gradient(135deg, #1F4E79 0%, #2d6a9f 100%);
-  color: white;
-  border: none;
-  border-radius: 12px;
-  font-size: 18px;
-  font-weight: 700;
-  cursor: pointer;
-  margin-top: 4px;
-  margin-bottom: 24px;
-  box-shadow: 0 4px 12px rgba(31,78,121,0.3);
-  transition: transform 0.1s;
-  letter-spacing: 0.5px;
-}
-.submit-btn:active { transform: scale(0.98); }
-.submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.clear-btn {
-  width: 100%;
-  padding: 14px;
-  background: white;
-  color: #888;
-  border: 2px solid #dde3ea;
-  border-radius: 12px;
-  font-size: 15px;
-  font-weight: 600;
-  cursor: pointer;
-  margin-bottom: 24px;
-}
-
-.success-msg {
-  display: none;
-  background: #e8f5e9;
-  color: #2e7d32;
-  padding: 16px;
-  border-radius: 12px;
-  text-align: center;
-  font-weight: 600;
-  font-size: 15px;
-  margin-bottom: 12px;
-  animation: fadeIn 0.3s ease;
-}
-.success-msg.show { display: block; }
-@keyframes fadeIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
-
-.required::after { content: " *"; color: #d32f2f; }
-
-/* Recent Loads Mini Table */
-.recent-header {
-  font-size: 14px;
-  font-weight: 700;
-  color: #1F4E79;
-  margin-bottom: 8px;
-}
-.recent-table {
-  width: 100%;
-  font-size: 12px;
-  border-collapse: collapse;
-}
-.recent-table th {
-  background: #f0f6ff;
-  color: #1F4E79;
-  padding: 6px 8px;
-  text-align: left;
-  font-weight: 700;
-}
-.recent-table td {
-  padding: 6px 8px;
-  border-bottom: 1px solid #eee;
-}
-.recent-table tr:nth-child(even) { background: #fafbfc; }
-.badge {
-  display: inline-block;
-  padding: 2px 8px;
-  border-radius: 10px;
-  font-size: 10px;
-  font-weight: 700;
-}
-.badge-in { background: #e8f5e9; color: #2e7d32; }
-.badge-out { background: #e3ecf9; color: #1F4E79; }
-
-.empty-state {
-  text-align: center;
-  padding: 40px 20px;
-  color: #aaa;
-}
-.empty-state .icon { font-size: 48px; margin-bottom: 8px; }
-
-/* Fuel Log Styles */
-.fuel-section {
-  background: white;
-  border-radius: 12px;
-  padding: 18px;
-  margin-bottom: 14px;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
-}
-.fuel-section .section-title {
-  font-size: 14px;
-  font-weight: 700;
-  color: #1F4E79;
-  margin-bottom: 14px;
-  padding-bottom: 6px;
-  border-bottom: 2px solid #e8f0fe;
-}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0f172a;color:#e2e8f0;min-height:100vh;padding-bottom:80px}
+.header{background:linear-gradient(135deg,#1e3a5f,#2d5a3f);padding:16px;text-align:center;position:sticky;top:0;z-index:100}
+.header h1{font-size:20px;font-weight:700;color:#fff;letter-spacing:1px}
+.header .sub{font-size:11px;color:#94a3b8;margin-top:2px}
+.tabs{display:flex;background:#1e293b;border-bottom:2px solid #334155;overflow-x:auto;position:sticky;top:56px;z-index:99}
+.tab{flex:1;padding:10px 4px;text-align:center;font-size:11px;font-weight:600;color:#64748b;cursor:pointer;border-bottom:3px solid transparent;min-width:70px;transition:all .2s}
+.tab.active{color:#60a5fa;border-bottom-color:#60a5fa;background:#1e293b}
+.tab-icon{font-size:18px;display:block;margin-bottom:2px}
+.panel{display:none;padding:16px;max-width:500px;margin:0 auto}
+.panel.active{display:block}
+.section-title{font-size:14px;font-weight:700;color:#60a5fa;margin:16px 0 8px;text-transform:uppercase;letter-spacing:.5px}
+.section-title:first-child{margin-top:0}
+.form-group{margin-bottom:12px}
+.form-group label{display:block;font-size:12px;font-weight:600;color:#94a3b8;margin-bottom:4px}
+select,input[type="text"],input[type="number"],input[type="date"],input[type="time"],input[type="file"],textarea{width:100%;padding:12px;background:#1e293b;border:1px solid #334155;border-radius:8px;color:#e2e8f0;font-size:16px;-webkit-appearance:none}
+select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%2394a3b8' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center}
+textarea{min-height:60px;resize:vertical}
+input:focus,select:focus,textarea:focus{outline:none;border-color:#60a5fa;box-shadow:0 0 0 2px rgba(96,165,250,.3)}
+.toggle-row{display:flex;gap:8px;margin-bottom:12px}
+.toggle-btn{flex:1;padding:12px;text-align:center;font-size:14px;font-weight:700;border-radius:8px;cursor:pointer;border:2px solid #334155;background:#1e293b;color:#94a3b8;transition:all .2s}
+.toggle-btn.active-in{background:#1e3a2a;border-color:#22c55e;color:#22c55e}
+.toggle-btn.active-out{background:#3a1e1e;border-color:#ef4444;color:#ef4444}
+.weight-display{background:#0f172a;border:1px solid #334155;border-radius:8px;padding:12px;margin:8px 0;text-align:center}
+.weight-display .val{font-size:28px;font-weight:800;color:#fbbf24}
+.weight-display .lbl{font-size:11px;color:#94a3b8;margin-top:2px}
+.calc-row{display:flex;gap:8px}
+.calc-row .form-group{flex:1}
+.btn-submit{width:100%;padding:14px;border:none;border-radius:8px;font-size:16px;font-weight:700;cursor:pointer;margin-top:12px;transition:all .2s}
+.btn-submit.green{background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff}
+.btn-submit.blue{background:linear-gradient(135deg,#3b82f6,#2563eb);color:#fff}
+.btn-submit.amber{background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff}
+.btn-submit:active{transform:scale(.98);opacity:.9}
+.btn-submit:disabled{opacity:.4;cursor:not-allowed}
+.dvir-grid{display:grid;grid-template-columns:1fr auto;gap:4px;margin:8px 0}
+.dvir-item{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:#1e293b;border-radius:6px;font-size:13px}
+.dvir-item .status{display:flex;gap:8px}
+.dvir-item .status span{padding:4px 10px;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;border:1px solid #334155}
+.dvir-item .status span.ok{background:#1e3a2a;border-color:#22c55e;color:#22c55e}
+.dvir-item .status span.def{background:#3a1e1e;border-color:#ef4444;color:#ef4444}
+.history-item{background:#1e293b;border-radius:8px;padding:12px;margin-bottom:8px;border-left:4px solid #60a5fa}
+.history-item.inbound{border-left-color:#22c55e}
+.history-item.outbound{border-left-color:#ef4444}
+.history-item.fuel{border-left-color:#fbbf24}
+.history-item.dvir{border-left-color:#a78bfa}
+.history-item .h-top{display:flex;justify-content:space-between;margin-bottom:4px}
+.history-item .h-type{font-size:11px;font-weight:700;text-transform:uppercase;padding:2px 6px;border-radius:4px}
+.h-type.in{background:#1e3a2a;color:#22c55e}
+.h-type.out{background:#3a1e1e;color:#ef4444}
+.h-type.fl{background:#3a2e1e;color:#fbbf24}
+.h-type.dv{background:#2e1e3a;color:#a78bfa}
+.history-item .h-detail{font-size:13px;color:#cbd5e1}
+.history-item .h-tons{font-size:18px;font-weight:800;color:#fbbf24}
+.export-bar{display:flex;gap:8px;margin-bottom:12px}
+.export-bar button{flex:1;padding:10px;background:#334155;border:none;border-radius:8px;color:#e2e8f0;font-size:12px;font-weight:600;cursor:pointer}
+.toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#22c55e;color:#fff;padding:12px 24px;border-radius:8px;font-weight:600;z-index:200;display:none;animation:fadeup .3s ease}
+@keyframes fadeup{from{opacity:0;transform:translateX(-50%) translateY(10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+.hidden{display:none!important}
+.conditional-field{margin-top:8px}
+/* Product checkboxes */
+.product-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:4px 0}
+.product-check{display:flex;align-items:center;gap:8px;padding:10px;background:#1e293b;border:1px solid #334155;border-radius:6px;cursor:pointer;font-size:13px;transition:all .15s}
+.product-check.selected{background:#1e3a2a;border-color:#22c55e;color:#22c55e}
+.product-check input[type="checkbox"]{width:18px;height:18px;accent-color:#22c55e;flex-shrink:0}
+/* Ticket photo */
+.photo-upload{border:2px dashed #334155;border-radius:8px;padding:20px;text-align:center;cursor:pointer;transition:all .2s;position:relative;overflow:hidden}
+.photo-upload:hover,.photo-upload.dragover{border-color:#60a5fa;background:#1e293b}
+.photo-upload img{max-width:100%;max-height:200px;border-radius:4px;margin-top:8px}
+.photo-upload .upload-text{color:#64748b;font-size:13px}
+.photo-upload .upload-icon{font-size:32px;color:#64748b;margin-bottom:4px}
+.photo-upload input[type="file"]{display:none}
+/* Auto-calc display */
+.auto-calc{display:flex;align-items:center;gap:8px;background:#0f172a;border:1px solid #334155;border-radius:8px;padding:10px 12px;margin:4px 0}
+.auto-calc .calc-label{font-size:11px;color:#94a3b8;flex-shrink:0}
+.auto-calc .calc-value{font-size:18px;font-weight:800;color:#60a5fa}
 </style>
 </head>
 <body>
-
 <div class="header">
-  <h1>CA Daily DRIVER</h1>
-  <p>CA Cattle Co. &bull; Bakery Recycling Division</p>
+  <h1>LOADLEDGER</h1>
+  <div class="sub">CA Cattle Co. - Bakery Recycling Division</div>
 </div>
 
-<!-- Tab Navigation -->
-<div class="tab-nav">
-  <button class="tab-btn active" onclick="switchTab('loadEntry')">
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-    Load Entry
-  </button>
-  <button class="tab-btn" onclick="switchTab('fuelLog')">
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 22V6l5-4 5 4v16"/><path d="M13 22V10l4-3 4 3v12"/><line x1="7" y1="10" x2="9" y2="10"/><line x1="7" y1="14" x2="9" y2="14"/></svg>
-    Fuel Log
-  </button>
-  <button class="tab-btn" onclick="switchTab('recentLoads')">
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
-    My Loads
-  </button>
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('load')"><span class="tab-icon">&#9878;</span>Load</div>
+  <div class="tab" onclick="switchTab('fuel')"><span class="tab-icon">&#9981;</span>Fuel/DEF</div>
+  <div class="tab" onclick="switchTab('dvir')"><span class="tab-icon">&#9874;</span>DVIR</div>
+  <div class="tab" onclick="switchTab('history')"><span class="tab-icon">&#128203;</span>History</div>
 </div>
 
-<!-- ==================== LOAD ENTRY TAB ==================== -->
-<div id="tab-loadEntry" class="tab-content active">
-  <div class="form-container">
-    <div id="loadSuccessMsg" class="success-msg">Load submitted successfully!</div>
-
-    <form id="loadForm">
-      <!-- STEP 1: Load Type -->
-      <div class="step-card active" id="step1">
-        <div class="step-header">
-          <div class="step-number">1</div>
-          <div>
-            <div class="step-title">Load Type</div>
-            <div class="step-subtitle">Is this an inbound pickup or outbound delivery?</div>
-          </div>
-        </div>
-        <div class="step-body">
-          <div class="type-cards">
-            <div class="type-card" id="cardInbound" onclick="setLoadType('Inbound')">
-              <div class="icon">&#x2199;&#xFE0E;</div>
-              <div class="label">Inbound</div>
-              <div class="sublabel">Pickup from supplier</div>
-            </div>
-            <div class="type-card" id="cardOutbound" onclick="setLoadType('Outbound')">
-              <div class="icon">&#x2197;&#xFE0E;</div>
-              <div class="label">Outbound</div>
-              <div class="sublabel">Delivery to customer</div>
-            </div>
-          </div>
-          <input type="hidden" id="loadType" required>
-        </div>
-      </div>
-
-      <!-- STEP 2: Driver & Equipment -->
-      <div class="step-card" id="step2">
-        <div class="step-header">
-          <div class="step-number">2</div>
-          <div>
-            <div class="step-title">Driver & Equipment</div>
-            <div class="step-subtitle">Select driver, truck, and trailer</div>
-          </div>
-        </div>
-        <div class="step-body">
-          <div class="field">
-            <label class="required">Driver</label>
-            <select id="driver" required onchange="checkStep2()">
-              <option value="">Select driver...</option>
-              <option>John Hightower</option>
-              <option>Juan Gutierrez</option>
-              <option>James Gass</option>
-              <option>Other</option>
-            </select>
-          </div>
-          <div class="field-row">
-            <div class="field">
-              <label>Truck</label>
-              <select id="truck" onchange="checkStep2()">
-                <option value="">Select truck...</option>
-                <option>TK-881486 Freightliner</option>
-                <option>TK-256533 International</option>
-              </select>
-            </div>
-            <div class="field">
-              <label>Trailer</label>
-              <select id="trailer" onchange="checkStep2(); toggleReconserveTrailer();">
-                <option value="">Select trailer...</option>
-                <optgroup label="Dry Vans">
-                  <option>DV-1323</option>
-                  <option>DV-2452</option>
-                  <option>DV-3921</option>
-                  <option>DV-3106</option>
-                  <option>DV-O880</option>
-                  <option>DV-7938</option>
-                  <option>DV-7660</option>
-                  <option>DV-888</option>
-                  <option>DV-2399</option>
-                  <option>DV-5613</option>
-                  <option>DV-5620</option>
-                  <option>DV-1881</option>
-                  <option>DV-58</option>
-                </optgroup>
-                <optgroup label="End Dumps">
-                  <option>ED-6657</option>
-                  <option>ED-4505</option>
-                </optgroup>
-                <optgroup label="Flatbeds">
-                  <option>FB-6709</option>
-                  <option>FB-1641</option>
-                  <option>FB-6572</option>
-                </optgroup>
-                <option value="ReConserve">ReConserve Trailer</option>
-                <option value="Other">Other</option>
-              </select>
-              <input type="text" id="reconserveTrailerNum" placeholder="Enter ReConserve Trailer #" style="display:none; margin-top:8px;">
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- STEP 3: Pickup / Delivery Details -->
-      <div class="step-card" id="step3">
-        <div class="step-header">
-          <div class="step-number">3</div>
-          <div>
-            <div class="step-title" id="step3Title">Pickup Details</div>
-            <div class="step-subtitle" id="step3Sub">Supplier, product, and weight</div>
-          </div>
-        </div>
-        <div class="step-body">
-          <div class="field">
-            <label class="required" id="custLabel">Supplier</label>
-            <select id="customer" required>
-              <option value="">Select supplier...</option>
-            </select>
-          </div>
-          <div class="field">
-            <label>Product Type</label>
-            <select id="productType">
-              <option value="">Select product...</option>
-              <option>Bakery Waste</option>
-              <option>Tortilla Waste</option>
-              <option>Snack Waste</option>
-              <option>Noodle Waste</option>
-              <option>Flour Waste</option>
-              <option>Mixed Feed</option>
-              <option>Processed Feed</option>
-              <option>Other</option>
-            </select>
-          </div>
-          <div class="field-row">
-            <div class="field">
-              <label class="required">Weight (tons)</label>
-              <input type="number" id="weight" step="0.01" min="0" placeholder="0.00" inputmode="decimal" required>
-            </div>
-            <div class="field">
-              <label>Ticket #</label>
-              <input type="text" id="ticketNum" placeholder="Ticket #" inputmode="numeric">
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- STEP 4: Trip Info -->
-      <div class="step-card" id="step4">
-        <div class="step-header">
-          <div class="step-number">4</div>
-          <div>
-            <div class="step-title">Trip Info</div>
-            <div class="step-subtitle">Mileage and timing (optional)</div>
-          </div>
-        </div>
-        <div class="step-body">
-          <div class="field">
-            <label>Date</label>
-            <input type="date" id="loadDate">
-          </div>
-          <div class="field">
-            <label>Mileage</label>
-            <input type="number" id="mileage" min="0" placeholder="Round trip miles" inputmode="numeric">
-          </div>
-          <div class="field-row">
-            <div class="field">
-              <label>Departure</label>
-              <input type="time" id="departTime">
-            </div>
-            <div class="field">
-              <label>Arrival</label>
-              <input type="time" id="arriveTime">
-            </div>
-          </div>
-          <div class="field">
-            <label>Notes</label>
-            <textarea id="notes" placeholder="Any issues, delays, or comments..."></textarea>
-          </div>
-        </div>
-      </div>
-
-      <button type="submit" class="submit-btn" id="submitBtn" disabled>SUBMIT LOAD</button>
-      <button type="button" class="clear-btn" onclick="clearForm()">Clear</button>
-    </form>
+<!-- ===== LOAD ENTRY TAB ===== -->
+<div id="panel-load" class="panel active">
+  <div class="section-title">Direction</div>
+  <div class="toggle-row">
+    <div class="toggle-btn active-in" id="btn-in" onclick="setDirection('in')">&#11015; INBOUND<br><span style="font-size:10px;font-weight:400">Pickup from Supplier</span></div>
+    <div class="toggle-btn" id="btn-out" onclick="setDirection('out')">&#11014; OUTBOUND<br><span style="font-size:10px;font-weight:400">Deliver to Customer</span></div>
   </div>
-</div>
 
-<!-- ==================== FUEL LOG TAB ==================== -->
-<div id="tab-fuelLog" class="tab-content">
-  <div class="form-container">
-    <div id="fuelSuccessMsg" class="success-msg">Fuel log saved!</div>
+  <div class="section-title">Load Details</div>
+  <div class="form-group">
+    <label>Date</label>
+    <input type="date" id="loadDate">
+  </div>
+  <div class="form-group">
+    <label>Driver</label>
+    <select id="loadDriver">
+      <option value="">Select driver...</option>
+      <optgroup label="BRD Drivers">
+        <option>John Hightower</option>
+        <option>Juan Gutierrez</option>
+        <option>James Gass</option>
+      </optgroup>
+      <optgroup label="Contract Haulers">
+        <option>CA-Juan</option>
+        <option>Luckey</option>
+        <option>Cuatro T</option>
+        <option>Tres Hijos</option>
+        <option>David</option>
+        <option>Ray</option>
+        <option>RW</option>
+        <option>Gill</option>
+        <option>Luckey-RW</option>
+        <option>Rocking B</option>
+      </optgroup>
+      <option>Other</option>
+    </select>
+    <input type="text" id="loadDriverOther" class="conditional-field hidden" placeholder="Enter driver name">
+  </div>
 
-    <div class="fuel-section">
-      <div class="section-title">New Entry</div>
-      <p style="font-size:12px;color:#888;margin-bottom:14px;">Log today's fuel usage and mileage</p>
-      <form id="fuelForm">
-        <div class="field">
-          <label>Date</label>
-          <input type="date" id="fuelDate">
-        </div>
-        <div class="field-row">
-          <div class="field">
-            <label class="required">Driver</label>
-            <select id="fuelDriver" required>
-              <option value="">Select driver...</option>
-              <option>John Hightower</option>
-              <option>Juan Gutierrez</option>
-              <option>James Gass</option>
-              <option>Other</option>
-            </select>
-          </div>
-          <div class="field">
-            <label class="required">Truck</label>
-            <select id="fuelTruck" required>
-              <option value="">Select truck...</option>
-              <option>TK-881486 Freightliner</option>
-              <option>TK-256533 International</option>
-            </select>
-          </div>
-        </div>
-        <div class="field-row">
-          <div class="field">
-            <label class="required">Fuel Added (Gallons)</label>
-            <input type="number" id="fuelGallons" step="0.1" min="0" placeholder="e.g., 55" inputmode="decimal" required>
-          </div>
-          <div class="field">
-            <label>DEF Added (Gallons)</label>
-            <input type="number" id="defGallons" step="0.1" min="0" placeholder="e.g., 5" inputmode="decimal">
-          </div>
-        </div>
-        <div class="field">
-          <label>Ending Mileage</label>
-          <input type="number" id="endingMileage" min="0" placeholder="e.g., 125430" inputmode="numeric">
-        </div>
-        <div style="display:flex;gap:10px;margin-top:8px;">
-          <button type="button" class="clear-btn" style="margin:0;flex:1;" onclick="document.getElementById('fuelForm').reset(); setFuelDate();">Clear</button>
-          <button type="submit" class="submit-btn" style="margin:0;flex:1;">Save Log</button>
-        </div>
-      </form>
+  <!-- INBOUND FIELDS -->
+  <div id="inbound-fields">
+    <div class="form-group">
+      <label>Supplier (Pickup From)</label>
+      <select id="loadSupplier">
+        <option value="">Select supplier...</option>
+        <option>Maruchan Noodles</option>
+        <option>Envirofeeds</option>
+        <option>Sterling</option>
+        <option>Pioneer Flour</option>
+        <option>Bimbo ATX1</option>
+        <option>Bimbo ATX2 Wall</option>
+        <option>Bimbo SATX</option>
+        <option>Mission Tortillas</option>
+        <option>HEB Snacks</option>
+        <option>HEB Bakery SA</option>
+        <option>Frito-Lay</option>
+        <option>Other</option>
+      </select>
+      <input type="text" id="loadSupplierOther" class="conditional-field hidden" placeholder="Enter supplier name">
     </div>
+  </div>
 
-    <!-- Recent Fuel Logs -->
-    <div class="fuel-section">
-      <div class="section-title">Recent Logs</div>
-      <div id="fuelLogsTable">
-        <div class="empty-state">
-          <div class="icon">&#x26FD;&#xFE0E;</div>
-          <p>No fuel logs yet</p>
-        </div>
+  <!-- OUTBOUND FIELDS -->
+  <div id="outbound-fields" class="hidden">
+    <div class="form-group">
+      <label>Customer (Deliver To)</label>
+      <select id="loadCustomer">
+        <option value="">Select customer...</option>
+        <option value="LOF">LOF - Liveoak Feedlots</option>
+        <option value="CHAP">CHAP - Chaparral Feeders</option>
+        <option value="MCF">MCF - Mason County Feeders</option>
+        <option value="LABA">LABA - La Babia Cattle</option>
+        <option value="Taylor">Taylor Ranch</option>
+        <option value="Clampit">Clampit Ranches</option>
+        <option value="Poncho">Poncho Properties</option>
+        <option>Other</option>
+      </select>
+      <input type="text" id="loadCustomerOther" class="conditional-field hidden" placeholder="Enter customer name">
+    </div>
+    <div class="form-group">
+      <label>Commodity</label>
+      <select id="loadCommodity">
+        <option value="">Select commodity...</option>
+        <option value="BKF">BKF - Bakery Feed Mix</option>
+        <option value="Ramen">Ramen Noodles</option>
+        <option value="BKF-Fob">BKF Fob SaTX</option>
+        <option value="Ramen-Fob">Ramen Fob SaTX</option>
+        <option>Other</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- PRODUCT TYPE (multi-select) -->
+  <div class="section-title">Product Type</div>
+  <div class="form-group">
+    <label>Select all that apply</label>
+    <div class="product-grid" id="productGrid">
+      <label class="product-check"><input type="checkbox" value="Bread" onchange="toggleProduct(this)"> Bread</label>
+      <label class="product-check"><input type="checkbox" value="Snacks" onchange="toggleProduct(this)"> Snacks</label>
+      <label class="product-check"><input type="checkbox" value="Chips" onchange="toggleProduct(this)"> Chips</label>
+      <label class="product-check"><input type="checkbox" value="Tortillas" onchange="toggleProduct(this)"> Tortillas</label>
+      <label class="product-check"><input type="checkbox" value="Pasta/Noodles" onchange="toggleProduct(this)"> Pasta/Noodles</label>
+      <label class="product-check"><input type="checkbox" value="Flour" onchange="toggleProduct(this)"> Flour</label>
+      <label class="product-check"><input type="checkbox" value="Nut Mix" onchange="toggleProduct(this)"> Nut Mix</label>
+      <label class="product-check"><input type="checkbox" value="Wet Dough" onchange="toggleProduct(this)"> Wet Dough</label>
+      <label class="product-check"><input type="checkbox" value="Mixed" onchange="toggleProduct(this)"> Mixed</label>
+    </div>
+  </div>
+
+  <div class="section-title">Equipment</div>
+  <div class="form-group">
+    <label>Truck</label>
+    <select id="loadTruck" onchange="toggleTruckOther()">
+      <option value="">Select truck...</option>
+      <option>TK-4268</option>
+      <option>TK-0786</option>
+      <option>TK-4901</option>
+      <option>TK-3948</option>
+      <option>TK-1988</option>
+      <option>TK-2013</option>
+      <option>Other</option>
+    </select>
+    <input type="text" id="loadTruckOther" class="conditional-field hidden" placeholder="Enter truck #">
+  </div>
+  <div class="form-group">
+    <label>Trailer</label>
+    <select id="loadTrailer">
+      <option value="">Select trailer...</option>
+      <optgroup label="Dry Vans">
+        <option>DV-1323</option>
+        <option>DV-2452</option>
+        <option>DV-3921</option>
+        <option>DV-3106</option>
+        <option>DV-O880</option>
+        <option>DV-7938</option>
+        <option>DV-7660</option>
+        <option>DV-888</option>
+        <option>DV-2399</option>
+        <option>DV-5613</option>
+        <option>DV-5620</option>
+        <option>DV-1881</option>
+        <option>DV-58</option>
+      </optgroup>
+      <optgroup label="End Dumps">
+        <option>ED-6657</option>
+        <option>ED-4505</option>
+      </optgroup>
+      <optgroup label="Flatbeds">
+        <option>FB-6709</option>
+        <option>FB-1641</option>
+        <option>FB-6572</option>
+      </optgroup>
+      <option value="ReConserve">ReConserve Trailer</option>
+      <option value="Other">Other</option>
+    </select>
+    <input type="text" id="loadTrailerOther" class="conditional-field hidden" placeholder="Enter trailer #">
+  </div>
+
+  <div class="section-title">Time &amp; Mileage</div>
+  <div class="calc-row">
+    <div class="form-group">
+      <label>Start Time</label>
+      <input type="time" id="loadTimeStart" onchange="calcTime()">
+    </div>
+    <div class="form-group">
+      <label>End Time</label>
+      <input type="time" id="loadTimeEnd" onchange="calcTime()">
+    </div>
+  </div>
+  <div class="auto-calc">
+    <span class="calc-label">TOTAL TIME:</span>
+    <span class="calc-value" id="totalTimeDisplay">--:--</span>
+  </div>
+  <div class="calc-row">
+    <div class="form-group">
+      <label>Start Miles</label>
+      <input type="number" id="loadMileStart" placeholder="0" oninput="calcMiles()">
+    </div>
+    <div class="form-group">
+      <label>End Miles</label>
+      <input type="number" id="loadMileEnd" placeholder="0" oninput="calcMiles()">
+    </div>
+  </div>
+  <div class="auto-calc">
+    <span class="calc-label">TOTAL MILES:</span>
+    <span class="calc-value" id="totalMilesDisplay">0</span>
+  </div>
+
+  <div class="section-title">Scale Ticket</div>
+  <div class="form-group">
+    <label>Ticket #</label>
+    <input type="text" id="loadTicket" placeholder="Scale ticket number">
+  </div>
+  <div class="calc-row">
+    <div class="form-group">
+      <label>Gross (lbs)</label>
+      <input type="number" id="loadGross" placeholder="0" oninput="calcNet()">
+    </div>
+    <div class="form-group">
+      <label>Tare (lbs)</label>
+      <input type="number" id="loadTare" placeholder="0" oninput="calcNet()">
+    </div>
+  </div>
+  <div class="weight-display">
+    <div class="val" id="netDisplay">0</div>
+    <div class="lbl">NET (lbs)</div>
+  </div>
+  <div class="weight-display">
+    <div class="val" id="tonsDisplay">0.00</div>
+    <div class="lbl">TONS</div>
+  </div>
+
+  <!-- Ticket Photo Upload -->
+  <div class="section-title">Ticket Photo</div>
+  <div class="form-group">
+    <div class="photo-upload" id="photoUpload" onclick="document.getElementById('ticketPhoto').click()" ondragover="event.preventDefault();this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')" ondrop="handlePhotoDrop(event)">
+      <input type="file" id="ticketPhoto" accept="image/*" capture="environment" onchange="handlePhotoSelect(event)">
+      <div id="photoPreview">
+        <div class="upload-icon">&#128247;</div>
+        <div class="upload-text">Tap to take photo or upload ticket image</div>
       </div>
     </div>
   </div>
+
+  <div class="form-group">
+    <label>Notes</label>
+    <textarea id="loadNotes" placeholder="Optional notes..."></textarea>
+  </div>
+
+  <button class="btn-submit green" onclick="submitLoad()">SUBMIT LOAD</button>
 </div>
 
-<!-- ==================== MY LOADS TAB ==================== -->
-<div id="tab-recentLoads" class="tab-content">
-  <div class="form-container">
-    <div class="fuel-section">
-      <div class="section-title">My Recent Loads</div>
-      <div id="recentLoadsTable">
-        <div class="empty-state">
-          <div class="icon">&#x1F69A;</div>
-          <p>No loads submitted yet</p>
-        </div>
-      </div>
+<!-- ===== FUEL/DEF TAB ===== -->
+<div id="panel-fuel" class="panel">
+  <div class="section-title">Fuel / DEF Entry</div>
+  <div class="form-group">
+    <label>Date</label>
+    <input type="date" id="fuelDate">
+  </div>
+  <div class="form-group">
+    <label>Driver</label>
+    <select id="fuelDriver">
+      <option value="">Select driver...</option>
+      <optgroup label="BRD Drivers">
+        <option>John Hightower</option>
+        <option>Juan Gutierrez</option>
+        <option>James Gass</option>
+      </optgroup>
+      <optgroup label="Contract Haulers">
+        <option>CA-Juan</option>
+        <option>Luckey</option>
+        <option>Cuatro T</option>
+        <option>Tres Hijos</option>
+        <option>David</option>
+        <option>Ray</option>
+        <option>RW</option>
+        <option>Gill</option>
+        <option>Luckey-RW</option>
+        <option>Rocking B</option>
+      </optgroup>
+      <option>Other</option>
+    </select>
+  </div>
+  <div class="form-group">
+    <label>Truck</label>
+    <select id="fuelTruck">
+      <option value="">Select truck...</option>
+      <option>TK-4268</option>
+      <option>TK-0786</option>
+      <option>TK-4901</option>
+      <option>TK-3948</option>
+      <option>TK-1988</option>
+      <option>TK-2013</option>
+      <option>Other</option>
+    </select>
+  </div>
+  <div class="calc-row">
+    <div class="form-group">
+      <label>Diesel (gal)</label>
+      <input type="number" id="fuelGal" placeholder="0" step="0.1">
+    </div>
+    <div class="form-group">
+      <label>DEF (gal)</label>
+      <input type="number" id="defGal" placeholder="0" step="0.1">
     </div>
   </div>
+  <div class="calc-row">
+    <div class="form-group">
+      <label>Diesel Cost ($)</label>
+      <input type="number" id="fuelCost" placeholder="0.00" step="0.01">
+    </div>
+    <div class="form-group">
+      <label>DEF Cost ($)</label>
+      <input type="number" id="defCost" placeholder="0.00" step="0.01">
+    </div>
+  </div>
+  <div class="form-group">
+    <label>Odometer</label>
+    <input type="number" id="fuelOdo" placeholder="Current mileage">
+  </div>
+  <div class="form-group">
+    <label>Station / Location</label>
+    <input type="text" id="fuelStation" placeholder="e.g. Stripes Mason">
+  </div>
+  <div class="form-group">
+    <label>Notes</label>
+    <textarea id="fuelNotes" placeholder="Optional..."></textarea>
+  </div>
+  <button class="btn-submit amber" onclick="submitFuel()">SUBMIT FUEL LOG</button>
 </div>
+
+<!-- ===== DVIR TAB ===== -->
+<div id="panel-dvir" class="panel">
+  <div class="section-title">Driver Vehicle Inspection Report</div>
+  <div class="form-group">
+    <label>Date</label>
+    <input type="date" id="dvirDate">
+  </div>
+  <div class="form-group">
+    <label>Driver</label>
+    <select id="dvirDriver">
+      <option value="">Select driver...</option>
+      <optgroup label="BRD Drivers">
+        <option>John Hightower</option>
+        <option>Juan Gutierrez</option>
+        <option>James Gass</option>
+      </optgroup>
+      <optgroup label="Contract Haulers">
+        <option>CA-Juan</option>
+        <option>Luckey</option>
+        <option>Cuatro T</option>
+        <option>Tres Hijos</option>
+        <option>David</option>
+        <option>Ray</option>
+        <option>RW</option>
+        <option>Gill</option>
+        <option>Luckey-RW</option>
+        <option>Rocking B</option>
+      </optgroup>
+    </select>
+  </div>
+  <div class="calc-row">
+    <div class="form-group">
+      <label>Truck</label>
+      <select id="dvirTruck">
+        <option value="">Select...</option>
+        <option>TK-4268</option>
+        <option>TK-0786</option>
+        <option>TK-4901</option>
+        <option>TK-3948</option>
+        <option>TK-1988</option>
+        <option>TK-2013</option>
+        <option>Other</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Trailer</label>
+      <select id="dvirTrailer">
+        <option value="">Select...</option>
+        <option>DV-1323</option><option>DV-2452</option><option>DV-3921</option><option>DV-3106</option>
+        <option>DV-O880</option><option>DV-7938</option><option>DV-7660</option><option>DV-888</option>
+        <option>DV-2399</option><option>DV-5613</option><option>DV-5620</option><option>DV-1881</option><option>DV-58</option>
+        <option>ED-6657</option><option>ED-4505</option>
+        <option>FB-6709</option><option>FB-1641</option><option>FB-6572</option>
+        <option>N/A</option>
+      </select>
+    </div>
+  </div>
+  <div class="form-group">
+    <label>Inspection Type</label>
+    <div class="toggle-row">
+      <div class="toggle-btn active-in" id="btn-pre" onclick="setDvirType('pre')">Pre-Trip</div>
+      <div class="toggle-btn" id="btn-post" onclick="setDvirType('post')">Post-Trip</div>
+    </div>
+  </div>
+  <div class="form-group">
+    <label>Odometer</label>
+    <input type="number" id="dvirOdo" placeholder="Current mileage">
+  </div>
+
+  <div class="section-title">Inspection Items</div>
+  <div id="dvirChecklist"></div>
+
+  <div class="form-group" style="margin-top:12px">
+    <label>Defects / Notes</label>
+    <textarea id="dvirNotes" placeholder="Describe any defects found..."></textarea>
+  </div>
+  <button class="btn-submit blue" onclick="submitDvir()">SUBMIT DVIR</button>
+</div>
+
+<!-- ===== HISTORY TAB ===== -->
+<div id="panel-history" class="panel">
+  <div class="section-title">Export Data</div>
+  <div class="export-bar">
+    <button onclick="exportCSV('loads')">&#128229; Loads CSV</button>
+    <button onclick="exportCSV('fuel')">&#128229; Fuel CSV</button>
+    <button onclick="exportCSV('dvir')">&#128229; DVIR CSV</button>
+    <button onclick="emailExport()">&#9993; Email All</button>
+  </div>
+  <div class="section-title">Recent Entries</div>
+  <div id="historyList"></div>
+</div>
+
+<div class="toast" id="toast">Saved!</div>
 
 <script>
-// ==================== DATA ====================
-const inboundSuppliers = [
-  "Reconserve", "Maruchan Noodles", "Northstar", "Envirofeeds",
-  "Sterling", "Pioneer Flour", "Bimbo", "Mission Tortillas",
-  "HEB Snacks", "HEB Bakery", "Frito-Lay", "Other"
+// ===== STATE =====
+let direction = 'in';
+let dvirType = 'pre';
+let ticketPhotoData = null; // base64 of uploaded photo
+const dvirItems = [
+  'Air Brakes','Tires/Wheels','Lights/Reflectors','Horn','Mirrors','Windshield/Wipers',
+  'Steering','Coupling Devices','Suspension','Frame/Body','Exhaust','Emergency Equipment',
+  'Fluid Levels','Trailer Body/Doors','Trailer Brakes','Trailer Lights'
 ];
-const outboundCustomers = [
-  "Live Oak Feeders", "Chaparral Feeders", "Mason County Feeders",
-  "La Babia Feeders", "Hudson", "Taylor Farms", "Other"
-];
+const dvirState = {};
+dvirItems.forEach(i => dvirState[i] = 'ok');
 
-// ==================== TAB SWITCHING ====================
-function switchTab(tab) {
-  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById('tab-' + tab).classList.add('active');
-  // Find the clicked button
-  const btns = document.querySelectorAll('.tab-btn');
-  if (tab === 'loadEntry') btns[0].classList.add('active');
-  else if (tab === 'fuelLog') btns[1].classList.add('active');
-  else if (tab === 'recentLoads') { btns[2].classList.add('active'); renderRecentLoads(); }
-}
-
-// ==================== DATES ====================
-function setToday(id) {
-  const today = new Date();
-  document.getElementById(id).value = today.toISOString().split('T')[0];
-}
-setToday('loadDate');
-function setFuelDate() { setToday('fuelDate'); }
-setFuelDate();
-
-// ==================== STEP WIZARD ====================
-let currentLoadType = '';
-
-function toggleReconserveTrailer() {
-  const trailer = document.getElementById('trailer').value;
-  const rcInput = document.getElementById('reconserveTrailerNum');
-  if (trailer === 'ReConserve') {
-    rcInput.style.display = 'block';
-    rcInput.focus();
-  } else {
-    rcInput.style.display = 'none';
-    rcInput.value = '';
-  }
-}
-
-function setLoadType(type) {
-  currentLoadType = type;
-  document.getElementById('loadType').value = type;
-
-  // Update cards
-  document.getElementById('cardInbound').className = 'type-card' + (type === 'Inbound' ? ' selected-inbound' : '');
-  document.getElementById('cardOutbound').className = 'type-card' + (type === 'Outbound' ? ' selected-outbound' : '');
-
-  // Mark step 1 completed, activate step 2
-  document.getElementById('step1').className = 'step-card completed';
-  document.getElementById('step2').className = 'step-card active';
-
-  // Update step 3 labels
-  const isIn = type === 'Inbound';
-  document.getElementById('step3Title').textContent = isIn ? 'Pickup Details' : 'Delivery Details';
-  document.getElementById('step3Sub').textContent = isIn ? 'Supplier, product, and weight' : 'Customer, product, and weight';
-  document.getElementById('custLabel').textContent = isIn ? 'Supplier' : 'Customer';
-
-  // Populate customer/supplier dropdown
-  const list = isIn ? inboundSuppliers : outboundCustomers;
-  const sel = document.getElementById('customer');
-  sel.innerHTML = '<option value="">Select ' + (isIn ? 'supplier' : 'customer') + '...</option>';
-  list.forEach(item => {
-    const opt = document.createElement('option');
-    opt.textContent = item;
-    opt.value = item;
-    sel.appendChild(opt);
-  });
-
-  updateSubmitState();
-}
-
-function checkStep2() {
-  const driver = document.getElementById('driver').value;
-  if (driver && currentLoadType) {
-    document.getElementById('step2').className = 'step-card completed';
-    document.getElementById('step3').className = 'step-card active';
-    document.getElementById('step4').className = 'step-card active';
-  }
-  updateSubmitState();
-}
-
-function updateSubmitState() {
-  const hasType = !!document.getElementById('loadType').value;
-  const hasDriver = !!document.getElementById('driver').value;
-  document.getElementById('submitBtn').disabled = !(hasType && hasDriver);
-}
-
-function clearForm() {
-  document.getElementById('loadForm').reset();
-  currentLoadType = '';
-  document.getElementById('cardInbound').className = 'type-card';
-  document.getElementById('cardOutbound').className = 'type-card';
-  document.getElementById('step1').className = 'step-card active';
-  document.getElementById('step2').className = 'step-card';
-  document.getElementById('step3').className = 'step-card';
-  document.getElementById('step4').className = 'step-card';
-  document.getElementById('customer').innerHTML = '<option value="">Select supplier...</option>';
-  document.getElementById('submitBtn').disabled = true;
-  setToday('loadDate');
-}
-
-// ==================== LOAD FORM SUBMIT ====================
-document.getElementById('loadForm').addEventListener('submit', function(e) {
-  e.preventDefault();
-
-  if (!document.getElementById('loadType').value) {
-    alert('Please select Inbound or Outbound');
-    return;
-  }
-
-  const entry = {
-    date: document.getElementById('loadDate').value,
-    driver: document.getElementById('driver').value,
-    loadType: document.getElementById('loadType').value,
-    customer: document.getElementById('customer').value,
-    ticketNum: document.getElementById('ticketNum').value,
-    productType: document.getElementById('productType').value,
-    weight: document.getElementById('weight').value,
-    truck: document.getElementById('truck').value,
-    trailer: document.getElementById('trailer').value === 'ReConserve' ? 'RC-' + document.getElementById('reconserveTrailerNum').value : document.getElementById('trailer').value,
-    mileage: document.getElementById('mileage').value,
-    departTime: document.getElementById('departTime').value,
-    arriveTime: document.getElementById('arriveTime').value,
-    notes: document.getElementById('notes').value,
-    submitted: new Date().toISOString()
-  };
-
-  // Save to localStorage
-  let entries = JSON.parse(localStorage.getItem('ll_entries') || '[]');
-  entries.push(entry);
-  localStorage.setItem('ll_entries', JSON.stringify(entries));
-
-  // Show success
-  const msg = document.getElementById('loadSuccessMsg');
-  msg.classList.add('show');
-  setTimeout(() => msg.classList.remove('show'), 3000);
-
-  // Remember driver for next entry
-  const savedDriver = document.getElementById('driver').value;
-  const savedTruck = document.getElementById('truck').value;
-
-  clearForm();
-  document.getElementById('driver').value = savedDriver;
-  document.getElementById('truck').value = savedTruck;
-
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+// ===== INIT =====
+document.addEventListener('DOMContentLoaded', () => {
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('loadDate').value = today;
+  document.getElementById('fuelDate').value = today;
+  document.getElementById('dvirDate').value = today;
+  buildDvirChecklist();
+  renderHistory();
+  setupOtherToggle('loadDriver','loadDriverOther');
+  setupOtherToggle('loadSupplier','loadSupplierOther');
+  setupOtherToggle('loadCustomer','loadCustomerOther');
+  setupOtherToggle('loadTrailer','loadTrailerOther',['ReConserve','Other']);
 });
 
-// ==================== FUEL LOG SUBMIT ====================
-document.getElementById('fuelForm').addEventListener('submit', function(e) {
-  e.preventDefault();
+function setupOtherToggle(selectId, inputId, triggers) {
+  const sel = document.getElementById(selectId);
+  const inp = document.getElementById(inputId);
+  if(!sel||!inp) return;
+  sel.addEventListener('change', () => {
+    const trigs = triggers || ['Other'];
+    if(trigs.includes(sel.value)) { inp.classList.remove('hidden'); inp.focus(); }
+    else { inp.classList.add('hidden'); inp.value=''; }
+  });
+}
 
-  const fuelEntry = {
+// ===== TRUCK OTHER TOGGLE =====
+function toggleTruckOther() {
+  const sel = document.getElementById('loadTruck');
+  const inp = document.getElementById('loadTruckOther');
+  if(sel.value === 'Other') { inp.classList.remove('hidden'); inp.focus(); }
+  else { inp.classList.add('hidden'); inp.value = ''; }
+}
+
+// ===== PRODUCT TOGGLE =====
+function toggleProduct(cb) {
+  cb.closest('.product-check').classList.toggle('selected', cb.checked);
+}
+function getSelectedProducts() {
+  const checks = document.querySelectorAll('#productGrid input[type="checkbox"]:checked');
+  return Array.from(checks).map(c => c.value);
+}
+function clearProducts() {
+  document.querySelectorAll('#productGrid input[type="checkbox"]').forEach(c => {
+    c.checked = false;
+    c.closest('.product-check').classList.remove('selected');
+  });
+}
+
+// ===== PHOTO HANDLING =====
+function handlePhotoSelect(e) {
+  const file = e.target.files[0];
+  if(file) processPhoto(file);
+}
+function handlePhotoDrop(e) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('dragover');
+  const file = e.dataTransfer.files[0];
+  if(file && file.type.startsWith('image/')) processPhoto(file);
+}
+function processPhoto(file) {
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    ticketPhotoData = e.target.result;
+    document.getElementById('photoPreview').innerHTML =
+      '<img src="' + ticketPhotoData + '" alt="Ticket photo">' +
+      '<div class="upload-text" style="margin-top:8px">Tap to replace photo</div>';
+  };
+  reader.readAsDataURL(file);
+}
+function clearPhoto() {
+  ticketPhotoData = null;
+  document.getElementById('ticketPhoto').value = '';
+  document.getElementById('photoPreview').innerHTML =
+    '<div class="upload-icon">&#128247;</div>' +
+    '<div class="upload-text">Tap to take photo or upload ticket image</div>';
+}
+
+// ===== TIME CALC =====
+function calcTime() {
+  const s = document.getElementById('loadTimeStart').value;
+  const e = document.getElementById('loadTimeEnd').value;
+  const disp = document.getElementById('totalTimeDisplay');
+  if(!s || !e) { disp.textContent = '--:--'; return; }
+  const [sh,sm] = s.split(':').map(Number);
+  const [eh,em] = e.split(':').map(Number);
+  let diff = (eh * 60 + em) - (sh * 60 + sm);
+  if(diff < 0) diff += 24 * 60; // crossed midnight
+  const h = Math.floor(diff / 60);
+  const m = diff % 60;
+  disp.textContent = h + 'h ' + (m < 10 ? '0' : '') + m + 'm';
+}
+
+// ===== MILEAGE CALC =====
+function calcMiles() {
+  const s = parseFloat(document.getElementById('loadMileStart').value) || 0;
+  const e = parseFloat(document.getElementById('loadMileEnd').value) || 0;
+  const diff = e - s;
+  document.getElementById('totalMilesDisplay').textContent = diff > 0 ? diff.toLocaleString() : '0';
+}
+
+// ===== TABS =====
+function switchTab(name) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('panel-'+name).classList.add('active');
+  event.currentTarget.classList.add('active');
+  if(name==='history') renderHistory();
+}
+
+// ===== DIRECTION =====
+function setDirection(dir) {
+  direction = dir;
+  document.getElementById('btn-in').className = 'toggle-btn' + (dir==='in' ? ' active-in' : '');
+  document.getElementById('btn-out').className = 'toggle-btn' + (dir==='out' ? ' active-out' : '');
+  document.getElementById('inbound-fields').classList.toggle('hidden', dir!=='in');
+  document.getElementById('outbound-fields').classList.toggle('hidden', dir!=='out');
+}
+
+// ===== WEIGHT CALC =====
+function calcNet() {
+  const g = parseFloat(document.getElementById('loadGross').value) || 0;
+  const t = parseFloat(document.getElementById('loadTare').value) || 0;
+  const net = g - t;
+  const tons = net / 2000;
+  document.getElementById('netDisplay').textContent = net > 0 ? net.toLocaleString() : '0';
+  document.getElementById('tonsDisplay').textContent = tons > 0 ? tons.toFixed(2) : '0.00';
+}
+
+// ===== DVIR CHECKLIST =====
+function buildDvirChecklist() {
+  const el = document.getElementById('dvirChecklist');
+  el.innerHTML = dvirItems.map(item => `
+    <div class="dvir-item">
+      <span>${item}</span>
+      <div class="status">
+        <span class="${dvirState[item]==='ok'?'ok':''}" onclick="setDvirItem('${item}','ok',this)">OK</span>
+        <span class="${dvirState[item]==='def'?'def':''}" onclick="setDvirItem('${item}','def',this)">DEF</span>
+      </div>
+    </div>
+  `).join('');
+}
+function setDvirItem(item, status, el) {
+  dvirState[item] = status;
+  const row = el.parentElement;
+  row.querySelectorAll('span').forEach(s => s.className='');
+  el.className = status;
+}
+function setDvirType(type) {
+  dvirType = type;
+  document.getElementById('btn-pre').className = 'toggle-btn' + (type==='pre' ? ' active-in' : '');
+  document.getElementById('btn-post').className = 'toggle-btn' + (type==='post' ? ' active-out' : '');
+}
+
+// ===== STORAGE =====
+function getStore(key) { try { return JSON.parse(localStorage.getItem('ll_'+key)) || []; } catch(e) { return []; } }
+function addStore(key, obj) { const arr = getStore(key); arr.unshift(obj); localStorage.setItem('ll_'+key, JSON.stringify(arr)); }
+
+// ===== SUBMIT LOAD =====
+function submitLoad() {
+  const driver = document.getElementById('loadDriver').value === 'Other' ?
+    document.getElementById('loadDriverOther').value : document.getElementById('loadDriver').value;
+  const date = document.getElementById('loadDate').value;
+  const gross = parseFloat(document.getElementById('loadGross').value) || 0;
+  const tare = parseFloat(document.getElementById('loadTare').value) || 0;
+  const products = getSelectedProducts();
+
+  if(!driver || !date || gross === 0) { showToast('Please fill required fields'); return; }
+
+  let source = '';
+  if(direction === 'in') {
+    source = document.getElementById('loadSupplier').value === 'Other' ?
+      document.getElementById('loadSupplierOther').value : document.getElementById('loadSupplier').value;
+  } else {
+    source = document.getElementById('loadCustomer').value === 'Other' ?
+      document.getElementById('loadCustomerOther').value : document.getElementById('loadCustomer').value;
+  }
+
+  const truckVal = document.getElementById('loadTruck').value;
+  const truck = truckVal === 'Other' ? document.getElementById('loadTruckOther').value : truckVal;
+
+  const trailer = ['ReConserve','Other'].includes(document.getElementById('loadTrailer').value) ?
+    (document.getElementById('loadTrailer').value === 'ReConserve' ? 'RC-' : '') +
+    document.getElementById('loadTrailerOther').value : document.getElementById('loadTrailer').value;
+
+  // Time calc
+  const timeStart = document.getElementById('loadTimeStart').value;
+  const timeEnd = document.getElementById('loadTimeEnd').value;
+  let totalTime = '';
+  if(timeStart && timeEnd) {
+    const [sh,sm] = timeStart.split(':').map(Number);
+    const [eh,em] = timeEnd.split(':').map(Number);
+    let diff = (eh*60+em) - (sh*60+sm);
+    if(diff < 0) diff += 1440;
+    totalTime = Math.floor(diff/60) + 'h ' + (diff%60 < 10 ? '0' : '') + (diff%60) + 'm';
+  }
+
+  // Mileage calc
+  const mileStart = parseFloat(document.getElementById('loadMileStart').value) || 0;
+  const mileEnd = parseFloat(document.getElementById('loadMileEnd').value) || 0;
+  const totalMiles = mileEnd > mileStart ? mileEnd - mileStart : 0;
+
+  const entry = {
+    type: direction === 'in' ? 'Inbound' : 'Outbound',
+    date, driver, source,
+    products: products.join(', '),
+    commodity: direction === 'out' ? document.getElementById('loadCommodity').value : '',
+    truck, trailer,
+    ticket: document.getElementById('loadTicket').value,
+    gross, tare, net: gross - tare, tons: ((gross - tare) / 2000).toFixed(2),
+    timeStart, timeEnd, totalTime,
+    mileStart, mileEnd, totalMiles,
+    hasPhoto: !!ticketPhotoData,
+    photoData: ticketPhotoData || '',
+    notes: document.getElementById('loadNotes').value,
+    timestamp: new Date().toISOString()
+  };
+
+  addStore('loads', entry);
+  showToast(entry.type + ' load saved - ' + entry.tons + ' tons');
+  // Reset fields
+  ['loadGross','loadTare','loadTicket','loadNotes','loadMileStart','loadMileEnd','loadTimeStart','loadTimeEnd','loadTruckOther'].forEach(id => {
+    const el = document.getElementById(id);
+    if(el) el.value = '';
+  });
+  calcNet();
+  calcMiles();
+  document.getElementById('totalTimeDisplay').textContent = '--:--';
+  clearProducts();
+  clearPhoto();
+}
+
+// ===== SUBMIT FUEL =====
+function submitFuel() {
+  const entry = {
     date: document.getElementById('fuelDate').value,
     driver: document.getElementById('fuelDriver').value,
     truck: document.getElementById('fuelTruck').value,
-    fuel: document.getElementById('fuelGallons').value,
-    def: document.getElementById('defGallons').value || '0',
-    mileage: document.getElementById('endingMileage').value,
-    submitted: new Date().toISOString()
+    fuelGal: parseFloat(document.getElementById('fuelGal').value) || 0,
+    defGal: parseFloat(document.getElementById('defGal').value) || 0,
+    fuelCost: parseFloat(document.getElementById('fuelCost').value) || 0,
+    defCost: parseFloat(document.getElementById('defCost').value) || 0,
+    odometer: document.getElementById('fuelOdo').value,
+    station: document.getElementById('fuelStation').value,
+    notes: document.getElementById('fuelNotes').value,
+    timestamp: new Date().toISOString()
   };
-
-  let fuelLogs = JSON.parse(localStorage.getItem('ll_fuel') || '[]');
-  fuelLogs.push(fuelEntry);
-  localStorage.setItem('ll_fuel', JSON.stringify(fuelLogs));
-
-  const msg = document.getElementById('fuelSuccessMsg');
-  msg.classList.add('show');
-  setTimeout(() => msg.classList.remove('show'), 3000);
-
-  const savedDriver = document.getElementById('fuelDriver').value;
-  const savedTruck = document.getElementById('fuelTruck').value;
-  document.getElementById('fuelForm').reset();
-  setFuelDate();
-  document.getElementById('fuelDriver').value = savedDriver;
-  document.getElementById('fuelTruck').value = savedTruck;
-
-  renderFuelLogs();
-});
-
-// ==================== RENDER RECENT LOADS ====================
-function renderRecentLoads() {
-  const entries = JSON.parse(localStorage.getItem('ll_entries') || '[]');
-  const container = document.getElementById('recentLoadsTable');
-
-  if (entries.length === 0) {
-    container.innerHTML = '<div class="empty-state"><div class="icon">&#x1F69A;</div><p>No loads submitted yet</p></div>';
-    return;
-  }
-
-  const recent = entries.slice(-10).reverse();
-  let html = '<table class="recent-table"><thead><tr><th>Date</th><th>Type</th><th>Customer</th><th>Tons</th></tr></thead><tbody>';
-  recent.forEach(e => {
-    const badge = e.loadType === 'Inbound' ? 'badge-in' : 'badge-out';
-    const shortDate = e.date ? e.date.substring(5) : '--';
-    html += '<tr><td>' + shortDate + '</td><td><span class="badge ' + badge + '">' + (e.loadType === 'Inbound' ? 'IN' : 'OUT') + '</span></td><td>' + (e.customer || '--') + '</td><td>' + (e.weight || '--') + '</td></tr>';
-  });
-  html += '</tbody></table>';
-  container.innerHTML = html;
+  if(!entry.driver || !entry.date) { showToast('Please fill required fields'); return; }
+  addStore('fuel', entry);
+  showToast('Fuel log saved');
+  ['fuelGal','defGal','fuelCost','defCost','fuelOdo','fuelStation','fuelNotes'].forEach(id => document.getElementById(id).value = '');
 }
 
-// ==================== RENDER FUEL LOGS ====================
-function renderFuelLogs() {
-  const logs = JSON.parse(localStorage.getItem('ll_fuel') || '[]');
-  const container = document.getElementById('fuelLogsTable');
-
-  if (logs.length === 0) {
-    container.innerHTML = '<div class="empty-state"><div class="icon">&#x26FD;&#xFE0E;</div><p>No fuel logs yet</p></div>';
-    return;
-  }
-
-  const recent = logs.slice(-10).reverse();
-  let html = '<table class="recent-table"><thead><tr><th>Date</th><th>Driver</th><th>Truck</th><th>Fuel</th><th>DEF</th><th>Miles</th></tr></thead><tbody>';
-  recent.forEach(e => {
-    const shortDate = e.date ? e.date.substring(5) : '--';
-    html += '<tr><td>' + shortDate + '</td><td>' + (e.driver || '--') + '</td><td>' + (e.truck || '--') + '</td><td>' + e.fuel + ' gal</td><td>' + e.def + ' gal</td><td>' + (e.mileage || '--') + '</td></tr>';
-  });
-  html += '</tbody></table>';
-  container.innerHTML = html;
+// ===== SUBMIT DVIR =====
+function submitDvir() {
+  const defects = dvirItems.filter(i => dvirState[i] === 'def');
+  const entry = {
+    date: document.getElementById('dvirDate').value,
+    driver: document.getElementById('dvirDriver').value,
+    truck: document.getElementById('dvirTruck').value,
+    trailer: document.getElementById('dvirTrailer').value,
+    type: dvirType === 'pre' ? 'Pre-Trip' : 'Post-Trip',
+    odometer: document.getElementById('dvirOdo').value,
+    items: {...dvirState},
+    defects,
+    notes: document.getElementById('dvirNotes').value,
+    allClear: defects.length === 0,
+    timestamp: new Date().toISOString()
+  };
+  if(!entry.driver || !entry.date || !entry.truck) { showToast('Please fill required fields'); return; }
+  addStore('dvir', entry);
+  showToast('DVIR saved' + (defects.length > 0 ? ' - ' + defects.length + ' defect(s)' : ' - All Clear'));
+  document.getElementById('dvirNotes').value = '';
+  dvirItems.forEach(i => dvirState[i] = 'ok');
+  buildDvirChecklist();
 }
 
-// Initial renders
-renderFuelLogs();
+// ===== HISTORY =====
+function renderHistory() {
+  const loads = getStore('loads').map(e => ({...e, _cat: 'load'}));
+  const fuel = getStore('fuel').map(e => ({...e, _cat: 'fuel'}));
+  const dvirs = getStore('dvir').map(e => ({...e, _cat: 'dvir'}));
+  const all = [...loads, ...fuel, ...dvirs].sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
+  const el = document.getElementById('historyList');
+  if(all.length === 0) { el.innerHTML = '<div style="text-align:center;color:#64748b;padding:40px">No entries yet</div>'; return; }
+  el.innerHTML = all.slice(0, 50).map(e => {
+    if(e._cat === 'load') {
+      const cls = e.type === 'Inbound' ? 'inbound' : 'outbound';
+      const badge = e.type === 'Inbound' ? '<span class="h-type in">IN</span>' : '<span class="h-type out">OUT</span>';
+      const photoIcon = e.hasPhoto ? ' &#128247;' : '';
+      return `<div class="history-item ${cls}">
+        <div class="h-top">${badge}<span style="color:#64748b;font-size:12px">${e.date}</span></div>
+        <div class="h-detail">${e.source} | ${e.driver} | Tkt: ${e.ticket}${photoIcon}</div>
+        <div class="h-detail" style="font-size:11px;color:#94a3b8">${e.products || 'N/A'} | ${e.totalMiles||0} mi | ${e.totalTime||'N/A'}</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px">
+          <span class="h-detail">${e.truck} / ${e.trailer}</span>
+          <span class="h-tons">${e.tons} T</span>
+        </div>
+      </div>`;
+    } else if(e._cat === 'fuel') {
+      return `<div class="history-item fuel">
+        <div class="h-top"><span class="h-type fl">FUEL</span><span style="color:#64748b;font-size:12px">${e.date}</span></div>
+        <div class="h-detail">${e.driver} | ${e.truck} | ${e.station||'N/A'}</div>
+        <div class="h-detail">Diesel: ${e.fuelGal}gal ($${e.fuelCost}) | DEF: ${e.defGal}gal ($${e.defCost})</div>
+      </div>`;
+    } else {
+      return `<div class="history-item dvir">
+        <div class="h-top"><span class="h-type dv">${e.type}</span><span style="color:#64748b;font-size:12px">${e.date}</span></div>
+        <div class="h-detail">${e.driver} | ${e.truck} / ${e.trailer}</div>
+        <div class="h-detail">${e.allClear ? 'All Clear' : 'Defects: ' + e.defects.join(', ')}</div>
+      </div>`;
+    }
+  }).join('');
+}
+
+// ===== EXPORT =====
+function exportCSV(type) {
+  const data = getStore(type === 'loads' ? 'loads' : type);
+  if(data.length === 0) { showToast('No data to export'); return; }
+  let csv = '';
+  if(type === 'loads') {
+    csv = 'Type,Date,Driver,Source,Products,Commodity,Truck,Trailer,Ticket,Gross,Tare,Net,Tons,TimeStart,TimeEnd,TotalTime,MileStart,MileEnd,TotalMiles,HasPhoto,Notes\n';
+    data.forEach(r => csv += [r.type,r.date,r.driver,r.source,'"'+(r.products||'')+'"',r.commodity,r.truck,r.trailer,r.ticket,r.gross,r.tare,r.net,r.tons,r.timeStart||'',r.timeEnd||'',r.totalTime||'',r.mileStart||'',r.mileEnd||'',r.totalMiles||'',r.hasPhoto?'Y':'N','"'+(r.notes||'')+'"'].join(',') + '\n');
+  } else if(type === 'fuel') {
+    csv = 'Date,Driver,Truck,Diesel_Gal,DEF_Gal,Diesel_Cost,DEF_Cost,Odometer,Station,Notes\n';
+    data.forEach(r => csv += [r.date,r.driver,r.truck,r.fuelGal,r.defGal,r.fuelCost,r.defCost,r.odometer,r.station,'"'+(r.notes||'')+'"'].join(',') + '\n');
+  } else {
+    csv = 'Date,Driver,Truck,Trailer,Type,Odometer,AllClear,Defects,Notes\n';
+    data.forEach(r => csv += [r.date,r.driver,r.truck,r.trailer,r.type,r.odometer,r.allClear,'"'+(r.defects||[]).join('; ')+'"','"'+(r.notes||'')+'"'].join(',') + '\n');
+  }
+  const blob = new Blob([csv], {type:'text/csv'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'loadledger_' + type + '_' + new Date().toISOString().slice(0,10) + '.csv';
+  a.click(); URL.revokeObjectURL(url);
+  showToast('CSV downloaded');
+}
+
+function emailExport() {
+  const loads = getStore('loads');
+  const fuel = getStore('fuel');
+  const dvirs = getStore('dvir');
+  let body = 'LOADLEDGER DATA EXPORT\n' + new Date().toLocaleDateString() + '\n\n';
+  body += '=== LOADS (' + loads.length + ') ===\n';
+  loads.forEach(r => body += r.date + ' | ' + r.type + ' | ' + r.source + ' | ' + r.driver + ' | ' + r.tons + 'T | Tkt:' + r.ticket + ' | ' + (r.products||'') + ' | ' + (r.totalMiles||0) + 'mi | ' + (r.totalTime||'') + '\n');
+  body += '\n=== FUEL (' + fuel.length + ') ===\n';
+  fuel.forEach(r => body += r.date + ' | ' + r.driver + ' | ' + r.fuelGal + 'gal $' + r.fuelCost + ' | ' + r.station + '\n');
+  body += '\n=== DVIR (' + dvirs.length + ') ===\n';
+  dvirs.forEach(r => body += r.date + ' | ' + r.driver + ' | ' + r.type + ' | ' + (r.allClear?'All Clear':'DEFECTS: '+r.defects.join(', ')) + '\n');
+  window.location.href = 'mailto:chadcrocker@cacattlebrd.com?subject=LoadLedger%20Export%20' +
+    encodeURIComponent(new Date().toLocaleDateString()) + '&body=' + encodeURIComponent(body);
+}
+
+// ===== TOAST =====
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.style.display = 'block';
+  setTimeout(() => t.style.display = 'none', 2500);
+}
 </script>
 </body>
 </html>
