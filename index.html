@@ -6,11 +6,12 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>LoadLedger - BRD</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0f172a;color:#e2e8f0;min-height:100vh;padding-bottom:80px}
 .header{background:linear-gradient(135deg,#1e3a5f,#2d5a3f);padding:16px;text-align:center;position:sticky;top:0;z-index:100}
-.header h1{font-size:20px;font-weight:700;color:#fff;letter-spacihhng:1px}
+.header h1{font-size:20px;font-weight:700;color:#fff;letter-spacing:1px}
 .header .sub{font-size:11px;color:#94a3b8;margin-top:2px}
 .tabs{display:flex;background:#1e293b;border-bottom:2px solid #334155;overflow-x:auto;position:sticky;top:56px;z-index:99}
 .tab{flex:1;padding:10px 4px;text-align:center;font-size:11px;font-weight:600;color:#64748b;cursor:pointer;border-bottom:3px solid transparent;min-width:70px;transition:all .2s}
@@ -152,8 +153,14 @@ function checkPin(){
   if(!user){err.textContent='Select your name first';pinEntry='';updateDots();return;}
   if(failCount>=MAX_FAILS){err.textContent='Too many attempts. Reload page.';pinEntry='';updateDots();return;}
   if(VALID_PINS[user]&&VALID_PINS[user]===pinEntry){
+    window.currentUser = user;
+    const admins = JSON.parse(localStorage.getItem('ll_admins') || '["admin"]');
+    window.isAdmin = admins.includes(user);
     document.getElementById('pin-overlay').classList.add('hidden');
     document.body.classList.remove('locked');
+    if(window.isAdmin) {
+      document.getElementById('sync-section').classList.remove('hidden');
+    }
     if(user!=='admin')autoSelectDriver(user);
   }else{
     failCount++;
@@ -551,7 +558,26 @@ function autoSelectDriver(userId){
 
 <!-- ===== HISTORY TAB ===== -->
 <div id="panel-history" class="panel">
-  <div class="section-title">Export Data</div>
+  <!-- Admin-Only: Sync to Workbook -->
+  <div id="sync-section" class="hidden">
+    <div class="section-title" style="color:#22c55e">&#9889; Sync to Workbook</div>
+    <p style="font-size:12px;color:#94a3b8;margin-bottom:8px">Import LoadLedger data directly into your master workbook. Select the workbook file below — data will be auto-placed into the correct rows.</p>
+    <div style="position:relative">
+      <button id="syncBtn" onclick="document.getElementById('wbFileInput').click()" style="width:100%;padding:14px;border:none;border-radius:8px;font-size:16px;font-weight:700;cursor:pointer;background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;margin-bottom:8px">&#128218; Sync to Workbook</button>
+      <input type="file" id="wbFileInput" accept=".xlsx,.xlsm" style="display:none" onchange="syncToWorkbook(this)">
+    </div>
+    <div id="syncStatus" style="display:none;background:#1e293b;border-radius:8px;padding:12px;margin-bottom:12px;font-size:13px"></div>
+    <div style="display:flex;gap:8px;margin-bottom:12px">
+      <button onclick="markAllSynced()" style="flex:1;padding:8px;background:#334155;border:none;border-radius:6px;color:#94a3b8;font-size:11px;cursor:pointer">Mark All as Synced</button>
+      <button onclick="clearSyncStatus()" style="flex:1;padding:8px;background:#334155;border:none;border-radius:6px;color:#94a3b8;font-size:11px;cursor:pointer">Reset Sync Status</button>
+    </div>
+  </div>
+
+  <div class="section-title">Export to Excel</div>
+  <div class="export-bar">
+    <button onclick="exportExcel()" style="background:linear-gradient(135deg,#217346,#2d8a56);color:#fff;font-weight:700;flex:2;font-size:14px">&#128218; Download Excel Workbook</button>
+  </div>
+  <div class="section-title" style="margin-top:12px">Export CSV / Email</div>
   <div class="export-bar">
     <button onclick="exportCSV('loads')">&#128229; Loads CSV</button>
     <button onclick="exportCSV('fuel')">&#128229; Fuel CSV</button>
@@ -856,6 +882,18 @@ function submitDvir() {
 
 // ===== HISTORY =====
 function renderHistory() {
+  // Admin UI toggle and unsynced count
+  if(window.isAdmin) {
+    document.getElementById('sync-section').classList.remove('hidden');
+    const unsynced = getUnsyncedLoads();
+    const syncBtn = document.getElementById('syncBtn');
+    if(unsynced.length > 0) {
+      syncBtn.textContent = '📚 Sync ' + unsynced.length + ' Load' + (unsynced.length>1?'s':'') + ' to Workbook';
+    } else {
+      syncBtn.textContent = '✅ All Loads Synced';
+    }
+  }
+
   const loads = getStore('loads').map(e => ({...e, _cat: 'load'}));
   const fuel = getStore('fuel').map(e => ({...e, _cat: 'fuel'}));
   const dvirs = getStore('dvir').map(e => ({...e, _cat: 'dvir'}));
@@ -892,7 +930,346 @@ function renderHistory() {
   }).join('');
 }
 
-// ===== EXPORT =====
+// ===== EXCEL EXPORT =====
+function exportExcel() {
+  const loads = getStore('loads');
+  const fuel = getStore('fuel');
+  const dvirs = getStore('dvir');
+  if(loads.length === 0 && fuel.length === 0 && dvirs.length === 0) {
+    showToast('No data to export'); return;
+  }
+
+  // Name mappings (LoadLedger → Workbook)
+  const supplierMap = {
+    'Maruchan Noodles':'MARUCHAN','Envirofeeds':'ENVIRO FEEDS','Sterling':'Sterling',
+    'Pioneer Flour':'Pioneer Flour Mills','Bimbo ATX1':'BIMBO ATX1','Bimbo ATX2 Wall':'BIMBO ATX2 WALL',
+    'Bimbo SATX':'BIMBO SATX','Mission Tortillas':'Mission Foods','HEB Snacks':'HEB SNACKS',
+    'HEB Bakery SA':'HEB BAKERY SA','Frito-Lay':'Frito-Lay'
+  };
+  const driverMap = {
+    'Juan Gutierrez':'CA-Juan','John Hightower':'CA-John','James Gass':'CA-James',
+    'Cuatro T':'Cuatro T','Tres Hijos':'Tres Hijos','Luckey':'Luckey','Rocking B':'Rocking B'
+  };
+  const commodityMap = {'BKF':'BKF','Ramen':'Ramen','BKF-Fob':'BKF- Fob','Ramen-Fob':'Ramen-Fob'};
+
+  const wb = XLSX.utils.book_new();
+
+  // === INBOUND LOG SHEET ===
+  const inboundLoads = loads.filter(r => r.type === 'Inbound');
+  if(inboundLoads.length > 0) {
+    const inData = [['','DATE','SCALE TICKET','GROSS','TARE','NET','Tons 1-15','Tons 16-eom','TONS']];
+    inboundLoads.forEach(r => {
+      const src = supplierMap[r.source] || r.source;
+      const dt = new Date(r.date + 'T00:00:00');
+      const gross = parseFloat(r.gross) || 0;
+      const tare = parseFloat(r.tare) || 0;
+      const net = gross - tare;
+      const tons = net / 2000;
+      const day = dt.getDate();
+      inData.push([
+        src, dt, r.ticket, gross, tare, net,
+        day <= 15 ? tons : null,
+        day > 15 ? tons : null,
+        tons
+      ]);
+    });
+    const wsIn = XLSX.utils.aoa_to_sheet(inData);
+    // Format date column
+    for(let i = 1; i < inData.length; i++) {
+      const cell = wsIn[XLSX.utils.encode_cell({r:i,c:1})];
+      if(cell) cell.z = 'm/d/yyyy';
+    }
+    // Column widths
+    wsIn['!cols'] = [{wch:20},{wch:12},{wch:14},{wch:10},{wch:10},{wch:10},{wch:12},{wch:12},{wch:10}];
+    XLSX.utils.book_append_sheet(wb, wsIn, 'Inbound Log');
+  }
+
+  // === OUTBOUND LOG SHEET ===
+  const outboundLoads = loads.filter(r => r.type === 'Outbound');
+  if(outboundLoads.length > 0) {
+    const outData = [['CUSTOMER','COMMODITY','DATE','SCALE TICKET','GROSS','TARE','NET','Tons 1-15','Tons 16-eom','TONS','Driver']];
+    outboundLoads.forEach(r => {
+      const cust = r.source;
+      const comm = commodityMap[r.commodity] || r.commodity;
+      const drv = driverMap[r.driver] || r.driver;
+      const dt = new Date(r.date + 'T00:00:00');
+      const gross = parseFloat(r.gross) || 0;
+      const tare = parseFloat(r.tare) || 0;
+      const net = gross - tare;
+      const tons = net / 2000;
+      const day = dt.getDate();
+      outData.push([
+        cust, comm, dt, r.ticket, gross, tare, net,
+        day <= 15 ? tons : null,
+        day > 15 ? tons : null,
+        tons, drv
+      ]);
+    });
+    const wsOut = XLSX.utils.aoa_to_sheet(outData);
+    for(let i = 1; i < outData.length; i++) {
+      const cell = wsOut[XLSX.utils.encode_cell({r:i,c:2})];
+      if(cell) cell.z = 'm/d/yyyy';
+    }
+    wsOut['!cols'] = [{wch:12},{wch:12},{wch:12},{wch:14},{wch:10},{wch:10},{wch:10},{wch:12},{wch:12},{wch:10},{wch:14}];
+    XLSX.utils.book_append_sheet(wb, wsOut, 'Daily Outbound Log');
+  }
+
+  // === FUEL LOG SHEET ===
+  if(fuel.length > 0) {
+    const fuelData = [['Date','Driver','Truck','Diesel (gal)','DEF (gal)','Diesel Cost','DEF Cost','Odometer','Station','Notes']];
+    fuel.forEach(r => {
+      const drv = driverMap[r.driver] || r.driver;
+      fuelData.push([
+        new Date(r.date + 'T00:00:00'), drv, r.truck,
+        parseFloat(r.fuelGal)||0, parseFloat(r.defGal)||0,
+        parseFloat(r.fuelCost)||0, parseFloat(r.defCost)||0,
+        r.odometer, r.station||'', r.notes||''
+      ]);
+    });
+    const wsFuel = XLSX.utils.aoa_to_sheet(fuelData);
+    for(let i = 1; i < fuelData.length; i++) {
+      const cell = wsFuel[XLSX.utils.encode_cell({r:i,c:0})];
+      if(cell) cell.z = 'm/d/yyyy';
+    }
+    wsFuel['!cols'] = [{wch:12},{wch:16},{wch:10},{wch:12},{wch:10},{wch:12},{wch:10},{wch:12},{wch:18},{wch:25}];
+    XLSX.utils.book_append_sheet(wb, wsFuel, 'Fuel Log');
+  }
+
+  // === DVIR LOG SHEET ===
+  if(dvirs.length > 0) {
+    const dvirData = [['Date','Driver','Truck','Trailer','Type','Odometer','All Clear','Defects','Notes']];
+    dvirs.forEach(r => {
+      const drv = driverMap[r.driver] || r.driver;
+      dvirData.push([
+        new Date(r.date + 'T00:00:00'), drv, r.truck, r.trailer, r.type,
+        r.odometer, r.allClear ? 'Yes' : 'No',
+        (r.defects||[]).join('; '), r.notes||''
+      ]);
+    });
+    const wsDvir = XLSX.utils.aoa_to_sheet(dvirData);
+    for(let i = 1; i < dvirData.length; i++) {
+      const cell = wsDvir[XLSX.utils.encode_cell({r:i,c:0})];
+      if(cell) cell.z = 'm/d/yyyy';
+    }
+    wsDvir['!cols'] = [{wch:12},{wch:16},{wch:10},{wch:10},{wch:10},{wch:12},{wch:10},{wch:30},{wch:25}];
+    XLSX.utils.book_append_sheet(wb, wsDvir, 'DVIR Log');
+  }
+
+  // Download
+  XLSX.writeFile(wb, 'LoadLedger_' + new Date().toISOString().slice(0,10) + '.xlsx');
+  showToast('Excel workbook downloaded!');
+}
+
+// ===== SYNC TO WORKBOOK =====
+async function syncToWorkbook(input) {
+  const file = input.files[0];
+  if (!file) return;
+  input.value = ''; // reset for re-use
+
+  const statusEl = document.getElementById('syncStatus');
+  statusEl.style.display = 'block';
+  statusEl.innerHTML = '<span style="color:#fbbf24">Reading workbook...</span>';
+
+  try {
+    const data = await file.arrayBuffer();
+    const wb = XLSX.read(data, {cellFormula: true, cellStyles: true, bookVBA: true});
+
+    // Name mappings (same as exportExcel)
+    const supplierMap = {
+      'Maruchan Noodles':'MARUCHAN','Envirofeeds':'ENVIRO FEEDS','Sterling':'Sterling',
+      'Pioneer Flour':'Pioneer Flour Mills','Bimbo ATX1':'BIMBO ATX1','Bimbo ATX2 Wall':'BIMBO ATX2 WALL',
+      'Bimbo SATX':'BIMBO SATX','Mission Tortillas':'Mission Foods','HEB Snacks':'HEB SNACKS',
+      'HEB Bakery SA':'HEB BAKERY SA','Frito-Lay':'Frito-Lay'
+    };
+    const driverMap = {
+      'Juan Gutierrez':'CA-Juan','John Hightower':'CA-John','James Gass':'CA-James',
+      'Cuatro T':'Cuatro T','Tres Hijos':'Tres Hijos','Luckey':'Luckey','Rocking B':'Rocking B'
+    };
+    const commodityMap = {'BKF':'BKF','Ramen':'Ramen','BKF-Fob':'BKF- Fob','Ramen-Fob':'Ramen-Fob'};
+
+    const unsyncedLoads = getUnsyncedLoads();
+    if (unsyncedLoads.length === 0) {
+      statusEl.innerHTML = '<span style="color:#60a5fa">No new loads to sync. All data is up to date!</span>';
+      return;
+    }
+
+    const inboundLoads = unsyncedLoads.filter(r => r.type === 'Inbound');
+    const outboundLoads = unsyncedLoads.filter(r => r.type === 'Outbound');
+
+    let inCount = 0, outCount = 0, dupCount = 0;
+
+    // === INBOUND LOG ===
+    if (inboundLoads.length > 0 && wb.SheetNames.includes('Inbound Log')) {
+      const ws = wb.Sheets['Inbound Log'];
+      // Find existing ticket numbers to check duplicates (column C, starting row 5)
+      const existingTickets = new Set();
+      for (let r = 5; r <= 200; r++) {
+        const cell = ws[XLSX.utils.encode_cell({r: r-1, c: 2})]; // Column C (0-indexed)
+        if (cell && cell.v) existingTickets.add(String(cell.v));
+      }
+
+      // Find next empty row (column A, starting from row 5)
+      let nextRow = 5;
+      for (let r = 5; r <= 200; r++) {
+        const cell = ws[XLSX.utils.encode_cell({r: r-1, c: 0})]; // Column A
+        if (!cell || !cell.v) { nextRow = r; break; }
+        if (r === 200) { nextRow = 201; break; } // workbook full
+      }
+
+      inboundLoads.forEach(load => {
+        if (existingTickets.has(String(load.ticket))) { dupCount++; return; }
+        if (nextRow > 200) return; // no more template rows
+
+        const rowIdx = nextRow - 1; // 0-indexed
+        const src = supplierMap[load.source] || load.source;
+        const dt = new Date(load.date + 'T00:00:00');
+        const gross = parseFloat(load.gross) || 0;
+        const tare = parseFloat(load.tare) || 0;
+
+        // Write ONLY the data columns (A=Source, B=Date, C=Ticket, D=Gross, E=Tare)
+        // Columns F-K have formulas in template rows - DON'T TOUCH THEM
+        ws[XLSX.utils.encode_cell({r: rowIdx, c: 0})] = {t: 's', v: src};
+        ws[XLSX.utils.encode_cell({r: rowIdx, c: 1})] = {t: 'd', v: dt, z: 'm/d/yyyy'};
+        ws[XLSX.utils.encode_cell({r: rowIdx, c: 2})] = {t: 'n', v: parseInt(load.ticket) || load.ticket};
+        ws[XLSX.utils.encode_cell({r: rowIdx, c: 3})] = {t: 'n', v: gross};
+        ws[XLSX.utils.encode_cell({r: rowIdx, c: 4})] = {t: 'n', v: tare};
+
+        // For rows that DON'T have template formulas (rows 5-57 in current workbook),
+        // we need to write the calculated values too
+        const existingF = ws[XLSX.utils.encode_cell({r: rowIdx, c: 5})];
+        if (!existingF || (!existingF.f && !existingF.v)) {
+          // No formula exists, write calculated values
+          const net = gross - tare;
+          const tons = net / 2000;
+          const day = dt.getDate();
+          ws[XLSX.utils.encode_cell({r: rowIdx, c: 5})] = {t: 'n', v: net}; // NET
+          if (day <= 15) {
+            ws[XLSX.utils.encode_cell({r: rowIdx, c: 6})] = {t: 'n', v: tons}; // Tons 1-15
+          } else {
+            ws[XLSX.utils.encode_cell({r: rowIdx, c: 7})] = {t: 'n', v: tons}; // Tons 16-eom
+          }
+          ws[XLSX.utils.encode_cell({r: rowIdx, c: 8})] = {t: 'n', v: tons}; // TONS
+        }
+
+        nextRow++;
+        inCount++;
+      });
+    }
+
+    // === DAILY OUTBOUND LOG ===
+    if (outboundLoads.length > 0 && wb.SheetNames.includes('Daily Outbound Log')) {
+      const ws = wb.Sheets['Daily Outbound Log'];
+      // Find existing tickets (column D, starting row 5)
+      const existingTickets = new Set();
+      for (let r = 5; r <= 104; r++) {
+        const cell = ws[XLSX.utils.encode_cell({r: r-1, c: 3})]; // Column D
+        if (cell && cell.v) existingTickets.add(String(cell.v));
+      }
+
+      // Find next empty row (column A)
+      let nextRow = 5;
+      for (let r = 5; r <= 104; r++) {
+        const cell = ws[XLSX.utils.encode_cell({r: r-1, c: 0})]; // Column A
+        if (!cell || !cell.v) { nextRow = r; break; }
+        if (r === 104) { nextRow = 105; break; }
+      }
+
+      outboundLoads.forEach(load => {
+        if (existingTickets.has(String(load.ticket))) { dupCount++; return; }
+        if (nextRow > 104) return;
+
+        const rowIdx = nextRow - 1;
+        const cust = load.source;
+        const comm = commodityMap[load.commodity] || load.commodity;
+        const drv = driverMap[load.driver] || load.driver;
+        const dt = new Date(load.date + 'T00:00:00');
+        const gross = parseFloat(load.gross) || 0;
+        const tare = parseFloat(load.tare) || 0;
+
+        // Outbound columns: A=Customer, B=Commodity, C=Date, D=Ticket, E=Gross, F=Tare
+        // Columns G-L have formulas
+        ws[XLSX.utils.encode_cell({r: rowIdx, c: 0})] = {t: 's', v: cust};
+        ws[XLSX.utils.encode_cell({r: rowIdx, c: 1})] = {t: 's', v: comm};
+        ws[XLSX.utils.encode_cell({r: rowIdx, c: 2})] = {t: 'd', v: dt, z: 'm/d/yyyy'};
+        ws[XLSX.utils.encode_cell({r: rowIdx, c: 3})] = {t: 'n', v: parseInt(load.ticket) || load.ticket};
+        ws[XLSX.utils.encode_cell({r: rowIdx, c: 4})] = {t: 'n', v: gross};
+        ws[XLSX.utils.encode_cell({r: rowIdx, c: 5})] = {t: 'n', v: tare};
+
+        // Check if formulas exist in template
+        const existingG = ws[XLSX.utils.encode_cell({r: rowIdx, c: 6})];
+        if (!existingG || (!existingG.f && !existingG.v)) {
+          const net = gross - tare;
+          const tons = net / 2000;
+          const day = dt.getDate();
+          ws[XLSX.utils.encode_cell({r: rowIdx, c: 6})] = {t: 'n', v: net}; // NET
+          if (day <= 15) {
+            ws[XLSX.utils.encode_cell({r: rowIdx, c: 7})] = {t: 'n', v: tons};
+          } else {
+            ws[XLSX.utils.encode_cell({r: rowIdx, c: 8})] = {t: 'n', v: tons};
+          }
+          ws[XLSX.utils.encode_cell({r: rowIdx, c: 9})] = {t: 'n', v: tons}; // TONS
+          ws[XLSX.utils.encode_cell({r: rowIdx, c: 10})] = {t: 's', v: drv}; // Driver
+        } else {
+          // Template row has formulas for G-J, but K (Driver) might need to be written
+          ws[XLSX.utils.encode_cell({r: rowIdx, c: 10})] = {t: 's', v: drv};
+        }
+
+        nextRow++;
+        outCount++;
+      });
+    }
+
+    // Mark synced
+    const syncedTimestamps = JSON.parse(localStorage.getItem('ll_synced_loads') || '[]');
+    unsyncedLoads.forEach(l => {
+      if (!syncedTimestamps.includes(l.timestamp)) syncedTimestamps.push(l.timestamp);
+    });
+    localStorage.setItem('ll_synced_loads', JSON.stringify(syncedTimestamps));
+
+    // Download updated workbook
+    const outName = file.name.replace(/\.xlsx?$/i, '') + '_updated.xlsx';
+    XLSX.writeFile(wb, outName, {bookVBA: true, cellStyles: true});
+
+    // Show results
+    let msg = '<div style="color:#22c55e;font-weight:700;font-size:15px;margin-bottom:6px">&#9989; Sync Complete!</div>';
+    msg += '<div style="color:#e2e8f0">';
+    if (inCount > 0) msg += '&#8226; ' + inCount + ' inbound load' + (inCount>1?'s':'') + ' added to Inbound Log<br>';
+    if (outCount > 0) msg += '&#8226; ' + outCount + ' outbound load' + (outCount>1?'s':'') + ' added to Daily Outbound Log<br>';
+    if (dupCount > 0) msg += '&#8226; ' + dupCount + ' duplicate' + (dupCount>1?'s':'') + ' skipped (already in workbook)<br>';
+    if (inCount === 0 && outCount === 0) msg += 'No new data was added.';
+    msg += '</div>';
+    msg += '<div style="color:#94a3b8;font-size:11px;margin-top:6px">Updated file saved as: ' + outName + '</div>';
+    statusEl.innerHTML = msg;
+
+    renderHistory();
+
+  } catch(err) {
+    statusEl.innerHTML = '<span style="color:#ef4444">Error: ' + err.message + '</span>';
+    console.error('Sync error:', err);
+  }
+}
+
+function getUnsyncedLoads() {
+  const loads = getStore('loads');
+  const synced = JSON.parse(localStorage.getItem('ll_synced_loads') || '[]');
+  return loads.filter(l => !synced.includes(l.timestamp));
+}
+
+function markAllSynced() {
+  const loads = getStore('loads');
+  const timestamps = loads.map(l => l.timestamp);
+  localStorage.setItem('ll_synced_loads', JSON.stringify(timestamps));
+  showToast('All loads marked as synced');
+  renderHistory();
+}
+
+function clearSyncStatus() {
+  localStorage.removeItem('ll_synced_loads');
+  showToast('Sync status cleared — all loads will sync next time');
+  renderHistory();
+}
+
+// ===== CSV EXPORT =====
 function exportCSV(type) {
   const data = getStore(type === 'loads' ? 'loads' : type);
   if(data.length === 0) { showToast('No data to export'); return; }
