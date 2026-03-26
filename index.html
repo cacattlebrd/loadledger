@@ -1421,16 +1421,19 @@ function deleteDriver(id) {
   showToast('Driver deleted');
 }
 
+let editingTruck = null;
+
 function renderAdminTrucks() {
   const trucks = getConfig('trucks');
   const container = document.getElementById('adminTrucksList');
   container.innerHTML = '';
-  trucks.forEach(t => {
+  trucks.forEach((t, i) => {
     const item = document.createElement('div');
     item.className = 'admin-list-item';
     item.innerHTML = `
       <div class="item-info">${t}</div>
       <div class="item-actions">
+        <button class="admin-btn-edit" onclick="editTruck(${i})">Edit</button>
         <button class="admin-btn-delete" onclick="deleteTruck('${t}')">Delete</button>
       </div>
     `;
@@ -1438,26 +1441,41 @@ function renderAdminTrucks() {
   });
 }
 
+function editTruck(idx) {
+  const trucks = getConfig('trucks');
+  editingTruck = idx;
+  document.getElementById('adminTruckName').value = trucks[idx];
+  document.getElementById('adminAddTruckForm').style.display = 'block';
+}
+
 function showAddTruckForm() {
+  editingTruck = null;
   document.getElementById('adminTruckName').value = '';
   document.getElementById('adminAddTruckForm').style.display = 'block';
 }
 
 function hideAddTruckForm() {
   document.getElementById('adminAddTruckForm').style.display = 'none';
+  editingTruck = null;
 }
 
 function saveTruck() {
   const name = document.getElementById('adminTruckName').value.trim();
   if (!name) { showToast('Truck number is required'); return; }
   let trucks = getConfig('trucks');
-  if (trucks.includes(name)) { showToast('Truck already exists'); return; }
-  trucks.push(name);
+  if (editingTruck !== null) {
+    if (trucks.includes(name) && trucks[editingTruck] !== name) { showToast('Truck already exists'); return; }
+    trucks[editingTruck] = name;
+  } else {
+    if (trucks.includes(name)) { showToast('Truck already exists'); return; }
+    trucks.push(name);
+  }
+  const wasEditing = editingTruck !== null;
   setConfig('trucks', trucks);
   populateDropdowns();
   renderAdminTrucks();
   hideAddTruckForm();
-  showToast('Truck added');
+  showToast(wasEditing ? 'Truck updated' : 'Truck added');
 }
 
 function deleteTruck(name) {
@@ -1490,6 +1508,7 @@ function renderAdminTrailers() {
       item.innerHTML = `
         <div class="item-info">${t.id}</div>
         <div class="item-actions">
+          <button class="admin-btn-edit" onclick="editTrailer('${t.id}')">Edit</button>
           <button class="admin-btn-delete" onclick="deleteTrailer('${t.id}')">Delete</button>
         </div>
       `;
@@ -1498,7 +1517,20 @@ function renderAdminTrailers() {
   });
 }
 
+let editingTrailer = null;
+
+function editTrailer(id) {
+  const trailers = getConfig('trailers');
+  const trailer = trailers.find(t => t.id === id);
+  if (!trailer) return;
+  editingTrailer = id;
+  document.getElementById('adminTrailerId').value = trailer.id;
+  document.getElementById('adminTrailerGroup').value = trailer.group;
+  document.getElementById('adminAddTrailerForm').style.display = 'block';
+}
+
 function showAddTrailerForm() {
+  editingTrailer = null;
   document.getElementById('adminTrailerId').value = '';
   document.getElementById('adminTrailerGroup').value = 'Dry Vans';
   document.getElementById('adminAddTrailerForm').style.display = 'block';
@@ -1506,6 +1538,7 @@ function showAddTrailerForm() {
 
 function hideAddTrailerForm() {
   document.getElementById('adminAddTrailerForm').style.display = 'none';
+  editingTrailer = null;
 }
 
 function saveTrailer() {
@@ -1513,13 +1546,22 @@ function saveTrailer() {
   const group = document.getElementById('adminTrailerGroup').value;
   if (!id) { showToast('Trailer ID is required'); return; }
   let trailers = getConfig('trailers');
-  if (trailers.find(t => t.id === id)) { showToast('Trailer already exists'); return; }
-  trailers.push({id, group});
+  if (editingTrailer) {
+    const idx = trailers.findIndex(t => t.id === editingTrailer);
+    if (idx >= 0) {
+      if (id !== editingTrailer && trailers.find(t => t.id === id)) { showToast('Trailer ID already exists'); return; }
+      trailers[idx] = {id, group};
+    }
+  } else {
+    if (trailers.find(t => t.id === id)) { showToast('Trailer already exists'); return; }
+    trailers.push({id, group});
+  }
+  const wasEditingT = !!editingTrailer;
   setConfig('trailers', trailers);
   populateDropdowns();
   renderAdminTrailers();
   hideAddTrailerForm();
-  showToast('Trailer added');
+  showToast(wasEditingT ? 'Trailer updated' : 'Trailer added');
 }
 
 function deleteTrailer(id) {
@@ -1532,16 +1574,19 @@ function deleteTrailer(id) {
   showToast('Trailer deleted');
 }
 
+let editingSupplier = null;
+
 function renderAdminSuppliers() {
   const suppliers = getConfig('suppliers');
   const container = document.getElementById('adminSuppliersList');
   container.innerHTML = '';
-  suppliers.forEach(s => {
+  suppliers.forEach((s, i) => {
     const item = document.createElement('div');
     item.className = 'admin-list-item';
     item.innerHTML = `
       <div class="item-info">${s}</div>
       <div class="item-actions">
+        <button class="admin-btn-edit" onclick="editSupplier(${i})">Edit</button>
         <button class="admin-btn-delete" onclick="deleteSupplier('${s}')">Delete</button>
       </div>
     `;
@@ -1549,26 +1594,41 @@ function renderAdminSuppliers() {
   });
 }
 
+function editSupplier(idx) {
+  const suppliers = getConfig('suppliers');
+  editingSupplier = idx;
+  document.getElementById('adminSupplierName').value = suppliers[idx];
+  document.getElementById('adminAddSupplierForm').style.display = 'block';
+}
+
 function showAddSupplierForm() {
+  editingSupplier = null;
   document.getElementById('adminSupplierName').value = '';
   document.getElementById('adminAddSupplierForm').style.display = 'block';
 }
 
 function hideAddSupplierForm() {
   document.getElementById('adminAddSupplierForm').style.display = 'none';
+  editingSupplier = null;
 }
 
 function saveSupplier() {
   const name = document.getElementById('adminSupplierName').value.trim();
   if (!name) { showToast('Supplier name is required'); return; }
   let suppliers = getConfig('suppliers');
-  if (suppliers.includes(name)) { showToast('Supplier already exists'); return; }
-  suppliers.push(name);
+  if (editingSupplier !== null) {
+    if (suppliers.includes(name) && suppliers[editingSupplier] !== name) { showToast('Supplier already exists'); return; }
+    suppliers[editingSupplier] = name;
+  } else {
+    if (suppliers.includes(name)) { showToast('Supplier already exists'); return; }
+    suppliers.push(name);
+  }
+  const wasEditingS = editingSupplier !== null;
   setConfig('suppliers', suppliers);
   populateDropdowns();
   renderAdminSuppliers();
   hideAddSupplierForm();
-  showToast('Supplier added');
+  showToast(wasEditingS ? 'Supplier updated' : 'Supplier added');
 }
 
 function deleteSupplier(name) {
@@ -1580,6 +1640,8 @@ function deleteSupplier(name) {
   renderAdminSuppliers();
   showToast('Supplier deleted');
 }
+
+let editingCustomer = null;
 
 function renderAdminCustomers() {
   const customers = getConfig('customers');
@@ -1594,6 +1656,7 @@ function renderAdminCustomers() {
         <div style="font-size:12px;color:#94a3b8">${c.name}</div>
       </div>
       <div class="item-actions">
+        <button class="admin-btn-edit" onclick="editCustomer('${c.id}')">Edit</button>
         <button class="admin-btn-delete" onclick="deleteCustomer('${c.id}')">Delete</button>
       </div>
     `;
@@ -1601,7 +1664,18 @@ function renderAdminCustomers() {
   });
 }
 
+function editCustomer(id) {
+  const customers = getConfig('customers');
+  const cust = customers.find(c => c.id === id);
+  if (!cust) return;
+  editingCustomer = id;
+  document.getElementById('adminCustomerId').value = cust.id;
+  document.getElementById('adminCustomerName').value = cust.name;
+  document.getElementById('adminAddCustomerForm').style.display = 'block';
+}
+
 function showAddCustomerForm() {
+  editingCustomer = null;
   document.getElementById('adminCustomerId').value = '';
   document.getElementById('adminCustomerName').value = '';
   document.getElementById('adminAddCustomerForm').style.display = 'block';
@@ -1609,6 +1683,7 @@ function showAddCustomerForm() {
 
 function hideAddCustomerForm() {
   document.getElementById('adminAddCustomerForm').style.display = 'none';
+  editingCustomer = null;
 }
 
 function saveCustomer() {
@@ -1616,13 +1691,22 @@ function saveCustomer() {
   const name = document.getElementById('adminCustomerName').value.trim();
   if (!id || !name) { showToast('Both ID and name are required'); return; }
   let customers = getConfig('customers');
-  if (customers.find(c => c.id === id)) { showToast('Customer ID already exists'); return; }
-  customers.push({id, name});
+  if (editingCustomer) {
+    const idx = customers.findIndex(c => c.id === editingCustomer);
+    if (idx >= 0) {
+      if (id !== editingCustomer && customers.find(c => c.id === id)) { showToast('Customer ID already exists'); return; }
+      customers[idx] = {id, name};
+    }
+  } else {
+    if (customers.find(c => c.id === id)) { showToast('Customer ID already exists'); return; }
+    customers.push({id, name});
+  }
+  const wasEditingC = !!editingCustomer;
   setConfig('customers', customers);
   populateDropdowns();
   renderAdminCustomers();
   hideAddCustomerForm();
-  showToast('Customer added');
+  showToast(wasEditingC ? 'Customer updated' : 'Customer added');
 }
 
 function deleteCustomer(id) {
@@ -1635,16 +1719,19 @@ function deleteCustomer(id) {
   showToast('Customer deleted');
 }
 
+let editingProduct = null;
+
 function renderAdminProducts() {
   const products = getConfig('products');
   const container = document.getElementById('adminProductsList');
   container.innerHTML = '';
-  products.forEach(p => {
+  products.forEach((p, i) => {
     const item = document.createElement('div');
     item.className = 'admin-list-item';
     item.innerHTML = `
       <div class="item-info">${p}</div>
       <div class="item-actions">
+        <button class="admin-btn-edit" onclick="editProduct(${i})">Edit</button>
         <button class="admin-btn-delete" onclick="deleteProduct('${p}')">Delete</button>
       </div>
     `;
@@ -1652,26 +1739,41 @@ function renderAdminProducts() {
   });
 }
 
+function editProduct(idx) {
+  const products = getConfig('products');
+  editingProduct = idx;
+  document.getElementById('adminProductName').value = products[idx];
+  document.getElementById('adminAddProductForm').style.display = 'block';
+}
+
 function showAddProductForm() {
+  editingProduct = null;
   document.getElementById('adminProductName').value = '';
   document.getElementById('adminAddProductForm').style.display = 'block';
 }
 
 function hideAddProductForm() {
   document.getElementById('adminAddProductForm').style.display = 'none';
+  editingProduct = null;
 }
 
 function saveProduct() {
   const name = document.getElementById('adminProductName').value.trim();
   if (!name) { showToast('Product name is required'); return; }
   let products = getConfig('products');
-  if (products.includes(name)) { showToast('Product already exists'); return; }
-  products.push(name);
+  if (editingProduct !== null) {
+    if (products.includes(name) && products[editingProduct] !== name) { showToast('Product already exists'); return; }
+    products[editingProduct] = name;
+  } else {
+    if (products.includes(name)) { showToast('Product already exists'); return; }
+    products.push(name);
+  }
+  const wasEditingP = editingProduct !== null;
   setConfig('products', products);
   populateDropdowns();
   renderAdminProducts();
   hideAddProductForm();
-  showToast('Product added');
+  showToast(wasEditingP ? 'Product updated' : 'Product added');
 }
 
 function deleteProduct(name) {
@@ -1683,6 +1785,8 @@ function deleteProduct(name) {
   renderAdminProducts();
   showToast('Product deleted');
 }
+
+let editingCommodity = null;
 
 function renderAdminCommodities() {
   const commodities = getConfig('commodities');
@@ -1697,6 +1801,7 @@ function renderAdminCommodities() {
         <div style="font-size:12px;color:#94a3b8">${c.name}</div>
       </div>
       <div class="item-actions">
+        <button class="admin-btn-edit" onclick="editCommodity('${c.id}')">Edit</button>
         <button class="admin-btn-delete" onclick="deleteCommodity('${c.id}')">Delete</button>
       </div>
     `;
@@ -1704,7 +1809,18 @@ function renderAdminCommodities() {
   });
 }
 
+function editCommodity(id) {
+  const commodities = getConfig('commodities');
+  const comm = commodities.find(c => c.id === id);
+  if (!comm) return;
+  editingCommodity = id;
+  document.getElementById('adminCommodityId').value = comm.id;
+  document.getElementById('adminCommodityName').value = comm.name;
+  document.getElementById('adminAddCommodityForm').style.display = 'block';
+}
+
 function showAddCommodityForm() {
+  editingCommodity = null;
   document.getElementById('adminCommodityId').value = '';
   document.getElementById('adminCommodityName').value = '';
   document.getElementById('adminAddCommodityForm').style.display = 'block';
@@ -1712,6 +1828,7 @@ function showAddCommodityForm() {
 
 function hideAddCommodityForm() {
   document.getElementById('adminAddCommodityForm').style.display = 'none';
+  editingCommodity = null;
 }
 
 function saveCommodity() {
@@ -1719,13 +1836,22 @@ function saveCommodity() {
   const name = document.getElementById('adminCommodityName').value.trim();
   if (!id || !name) { showToast('Both ID and name are required'); return; }
   let commodities = getConfig('commodities');
-  if (commodities.find(c => c.id === id)) { showToast('Commodity ID already exists'); return; }
-  commodities.push({id, name});
+  if (editingCommodity) {
+    const idx = commodities.findIndex(c => c.id === editingCommodity);
+    if (idx >= 0) {
+      if (id !== editingCommodity && commodities.find(c => c.id === id)) { showToast('Commodity ID already exists'); return; }
+      commodities[idx] = {id, name};
+    }
+  } else {
+    if (commodities.find(c => c.id === id)) { showToast('Commodity ID already exists'); return; }
+    commodities.push({id, name});
+  }
+  const wasEditingCo = !!editingCommodity;
   setConfig('commodities', commodities);
   populateDropdowns();
   renderAdminCommodities();
   hideAddCommodityForm();
-  showToast('Commodity added');
+  showToast(wasEditingCo ? 'Commodity updated' : 'Commodity added');
 }
 
 function deleteCommodity(id) {
