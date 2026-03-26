@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>LoadLedger - BRD</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/fhirebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -1239,7 +1239,7 @@ function validateLoadForm() {
   const tare = parseFloat(document.getElementById('loadTare').value) || 0;
   if(tare === 0) errors.push({id:'loadTare', msg:'Tare weight is required'});
 
-  if(!ticketPhotoData) errors.push({id:'photoUpload', msg:'Ticket photo is required'});
+    // Ticket photo is optional — drivers can submit without one
 
   if(errors.length > 0) {
     errors.forEach(e => markError(e.id));
