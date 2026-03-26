@@ -7,6 +7,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>LoadLedger - BRD</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0f172a;color:#e2e8f0;min-height:100vh;padding-bottom:80px}
@@ -217,52 +219,141 @@ function autoSelectDriver(userId){
   });
 }
 
-// Config functions
-function getConfig(key) {
-  const defaults = {
-    drivers: [
-      {"id":"admin","name":"Chad (Admin)","pin":"2636","role":"admin","group":"Admin"},
-      {"id":"john","name":"John Hightower","pin":"5990","role":"driver","group":"BRD Drivers"},
-      {"id":"juan","name":"Juan Gutierrez","pin":"8258","role":"driver","group":"BRD Drivers"},
-      {"id":"james","name":"James Gass","pin":"5796","role":"driver","group":"BRD Drivers"},
-      {"id":"cuatrot","name":"Cuatro T","pin":"","role":"driver","group":"Contract Haulers"},
-      {"id":"treshijos","name":"Tres Hijos","pin":"","role":"driver","group":"Contract Haulers"},
-      {"id":"luckey","name":"Luckey","pin":"","role":"driver","group":"Contract Haulers"},
-      {"id":"rockingb","name":"Rocking B","pin":"","role":"driver","group":"Contract Haulers"}
-    ],
-    trucks: ["881486","256533"],
-    trailers: [
-      {"id":"DV-1323","group":"Dry Vans"},{"id":"DV-2452","group":"Dry Vans"},{"id":"DV-3921","group":"Dry Vans"},{"id":"DV-3106","group":"Dry Vans"},
-      {"id":"DV-O880","group":"Dry Vans"},{"id":"DV-7938","group":"Dry Vans"},{"id":"DV-7660","group":"Dry Vans"},{"id":"DV-888","group":"Dry Vans"},
-      {"id":"DV-2399","group":"Dry Vans"},{"id":"DV-5613","group":"Dry Vans"},{"id":"DV-5620","group":"Dry Vans"},{"id":"DV-1881","group":"Dry Vans"},{"id":"DV-58","group":"Dry Vans"},
-      {"id":"ED-6657","group":"End Dumps"},{"id":"ED-4505","group":"End Dumps"},
-      {"id":"FB-6709","group":"Flatbeds"},{"id":"FB-1641","group":"Flatbeds"},{"id":"FB-6572","group":"Flatbeds"}
-    ],
-    suppliers: ["Maruchan Noodles","Envirofeeds","Sterling","Pioneer Flour","Bimbo ATX1","Bimbo ATX2 Wall","Bimbo SATX","Mission Tortillas","HEB Snacks","HEB Bakery SA","Frito-Lay"],
-    customers: [
-      {"id":"LOF","name":"LOF - Liveoak Feedlots"},{"id":"CHAP","name":"CHAP - Chaparral Feeders"},
-      {"id":"MCF","name":"MCF - Mason County Feeders"},{"id":"LABA","name":"LABA - La Babia Cattle"},
-      {"id":"Taylor","name":"Taylor Ranch"},{"id":"Clampit","name":"Clampit Ranches"},{"id":"Poncho","name":"Poncho Properties"}
-    ],
-    products: ["Bread","Snacks","Chips","Tortillas","Pasta/Noodles","Flour","Nut Mix","Wet Dough","Mixed"],
-    commodities: [
-      {"id":"BKF","name":"BKF - Bakery Feed Mix"},{"id":"Ramen","name":"Ramen Noodles"},
-      {"id":"BKF-Fob","name":"BKF Fob SaTX"},{"id":"Ramen-Fob","name":"Ramen Fob SaTX"}
-    ]
-  };
+// ===== FIREBASE INIT =====
+const firebaseConfig = {
+  apiKey: "AIzaSyCaLAw_OoWT3aNK4tVSsLSenSnVhTWTaV0",
+  authDomain: "loadledger-7007e.firebaseapp.com",
+  databaseURL: "https://loadledger-7007e-default-rtdb.firebaseio.com",
+  projectId: "loadledger-7007e",
+  storageBucket: "loadledger-7007e.firebasestorage.app",
+  messagingSenderId: "953441361412",
+  appId: "1:953441361412:web:22a8487caeb4237d109f51"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
 
-  const stored = localStorage.getItem('ll_cfg_'+key);
-  return stored ? JSON.parse(stored) : defaults[key] || defaults;
+// ===== CONFIG DEFAULTS =====
+const CONFIG_DEFAULTS = {
+  drivers: [
+    {"id":"admin","name":"Chad (Admin)","pin":"2636","role":"admin","group":"Admin"},
+    {"id":"john","name":"John Hightower","pin":"5990","role":"driver","group":"BRD Drivers"},
+    {"id":"juan","name":"Juan Gutierrez","pin":"8258","role":"driver","group":"BRD Drivers"},
+    {"id":"james","name":"James Gass","pin":"5796","role":"driver","group":"BRD Drivers"},
+    {"id":"cuatrot","name":"Cuatro T","pin":"","role":"driver","group":"Contract Haulers"},
+    {"id":"treshijos","name":"Tres Hijos","pin":"","role":"driver","group":"Contract Haulers"},
+    {"id":"luckey","name":"Luckey","pin":"","role":"driver","group":"Contract Haulers"},
+    {"id":"rockingb","name":"Rocking B","pin":"","role":"driver","group":"Contract Haulers"}
+  ],
+  trucks: ["881486","256533"],
+  trailers: [
+    {"id":"DV-1323","group":"Dry Vans"},{"id":"DV-2452","group":"Dry Vans"},{"id":"DV-3921","group":"Dry Vans"},{"id":"DV-3106","group":"Dry Vans"},
+    {"id":"DV-O880","group":"Dry Vans"},{"id":"DV-7938","group":"Dry Vans"},{"id":"DV-7660","group":"Dry Vans"},{"id":"DV-888","group":"Dry Vans"},
+    {"id":"DV-2399","group":"Dry Vans"},{"id":"DV-5613","group":"Dry Vans"},{"id":"DV-5620","group":"Dry Vans"},{"id":"DV-1881","group":"Dry Vans"},{"id":"DV-58","group":"Dry Vans"},
+    {"id":"ED-6657","group":"End Dumps"},{"id":"ED-4505","group":"End Dumps"},
+    {"id":"FB-6709","group":"Flatbeds"},{"id":"FB-1641","group":"Flatbeds"},{"id":"FB-6572","group":"Flatbeds"}
+  ],
+  suppliers: ["Maruchan Noodles","Envirofeeds","Sterling","Pioneer Flour","Bimbo ATX1","Bimbo ATX2 Wall","Bimbo SATX","Mission Tortillas","HEB Snacks","HEB Bakery SA","Frito-Lay"],
+  customers: [
+    {"id":"LOF","name":"LOF - Liveoak Feedlots"},{"id":"CHAP","name":"CHAP - Chaparral Feeders"},
+    {"id":"MCF","name":"MCF - Mason County Feeders"},{"id":"LABA","name":"LABA - La Babia Cattle"},
+    {"id":"Taylor","name":"Taylor Ranch"},{"id":"Clampit","name":"Clampit Ranches"},{"id":"Poncho","name":"Poncho Properties"}
+  ],
+  products: ["Bread","Snacks","Chips","Tortillas","Pasta/Noodles","Flour","Nut Mix","Wet Dough","Mixed"],
+  commodities: [
+    {"id":"BKF","name":"BKF - Bakery Feed Mix"},{"id":"Ramen","name":"Ramen Noodles"},
+    {"id":"BKF-Fob","name":"BKF Fob SaTX"},{"id":"Ramen-Fob","name":"Ramen Fob SaTX"}
+  ]
+};
+
+// In-memory config cache (synced from Firebase)
+const configCache = {};
+let firebaseReady = false;
+
+// Load all config from Firebase on startup, seed defaults if empty
+function initFirebaseConfig() {
+  return db.ref('config').once('value').then(snap => {
+    const data = snap.val();
+    if (!data) {
+      // First run — seed Firebase with defaults
+      return db.ref('config').set(CONFIG_DEFAULTS).then(() => {
+        Object.assign(configCache, JSON.parse(JSON.stringify(CONFIG_DEFAULTS)));
+        firebaseReady = true;
+      });
+    } else {
+      // Load from Firebase
+      Object.keys(CONFIG_DEFAULTS).forEach(key => {
+        configCache[key] = data[key] || CONFIG_DEFAULTS[key];
+      });
+      firebaseReady = true;
+    }
+  }).catch(err => {
+    console.warn('Firebase load failed, using defaults:', err);
+    Object.assign(configCache, JSON.parse(JSON.stringify(CONFIG_DEFAULTS)));
+    firebaseReady = true;
+  });
+}
+
+// Config functions — reads from cache, writes to Firebase + cache
+function getConfig(key) {
+  if (firebaseReady && configCache[key]) return configCache[key];
+  return CONFIG_DEFAULTS[key] || CONFIG_DEFAULTS;
 }
 
 function setConfig(key, arr) {
-  localStorage.setItem('ll_cfg_'+key, JSON.stringify(arr));
+  configCache[key] = arr;
+  db.ref('config/' + key).set(arr).catch(err => console.error('Firebase write error:', err));
+}
+
+// ===== REAL-TIME SYNC =====
+// Listen for changes from Firebase and refresh UI automatically
+function startRealtimeSync() {
+  db.ref('config').on('value', snap => {
+    const data = snap.val();
+    if (!data) return;
+    let changed = false;
+    Object.keys(CONFIG_DEFAULTS).forEach(key => {
+      const newVal = data[key];
+      if (newVal && JSON.stringify(newVal) !== JSON.stringify(configCache[key])) {
+        configCache[key] = newVal;
+        changed = true;
+      }
+    });
+    if (changed && firebaseReady) {
+      // Refresh all dropdowns and admin panel
+      if (typeof populateDropdowns === 'function') populateDropdowns();
+      if (typeof renderAdminPanel === 'function' && document.getElementById('panel-admin')) renderAdminPanel();
+      // Re-populate pin select for login screen
+      const pinSel = document.getElementById('pin-user-select');
+      if (pinSel && document.getElementById('pin-overlay') && !document.getElementById('pin-overlay').classList.contains('hidden')) {
+        const drivers = configCache.drivers || [];
+        const currentVal = pinSel.value;
+        pinSel.innerHTML = '<option value="">Select your name...</option>';
+        drivers.forEach(d => {
+          const opt = document.createElement('option');
+          opt.value = d.id;
+          opt.textContent = d.name;
+          pinSel.appendChild(opt);
+        });
+        if (currentVal) pinSel.value = currentVal;
+      }
+    }
+  });
+}
+
+// Also sync load history to Firebase
+function getHistory() {
+  const stored = localStorage.getItem('ll_history');
+  return stored ? JSON.parse(stored) : [];
+}
+function saveHistory(arr) {
+  localStorage.setItem('ll_history', JSON.stringify(arr));
 }
 
 // Initialize pin-user-select
 function initPinSelect() {
   const drivers = getConfig('drivers');
   const sel = document.getElementById('pin-user-select');
+  sel.innerHTML = '<option value="">Select your name...</option>';
   drivers.forEach(d => {
     const opt = document.createElement('option');
     opt.value = d.id;
@@ -271,8 +362,13 @@ function initPinSelect() {
   });
 }
 
-// Call after DOM is ready
-document.addEventListener('DOMContentLoaded', initPinSelect);
+// Call after DOM is ready — wait for Firebase first
+document.addEventListener('DOMContentLoaded', () => {
+  initFirebaseConfig().then(() => {
+    initPinSelect();
+    startRealtimeSync();
+  });
+});
 </script>
 
 <div class="header">
@@ -1888,7 +1984,7 @@ function confirmResetDefaults() {
 function resetDefaults() {
   const keys = ['drivers', 'trucks', 'trailers', 'suppliers', 'customers', 'products', 'commodities'];
   keys.forEach(key => {
-    localStorage.removeItem('ll_cfg_' + key);
+    setConfig(key, CONFIG_DEFAULTS[key]);
   });
   populateDropdowns();
   renderAdminPanel();
