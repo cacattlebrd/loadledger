@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-styhle" content="black-translucent">
 <title>LoadLedger - BRD</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -65,7 +65,8 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:#60a5fa;box-sh
 .history-item .h-tons{font-size:18px;font-weight:800;color:#fbbf24}
 .export-bar{display:flex;gap:8px;margin-bottom:12px}
 .export-bar button{flex:1;padding:10px;background:#334155;border:none;border-radius:8px;color:#e2e8f0;font-size:12px;font-weight:600;cursor:pointer}
-.toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#22c55e;color:#fff;padding:12px 24px;border-radius:8px;font-weight:600;z-index:200;display:none;animation:fadeup .3s ease}
+.toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#22c55e;color:#fff;padding:16px 28px;border-radius:10px;font-weight:700;font-size:16px;z-index:9999;display:none;animation:fadeup .3s ease;max-width:90vw;text-align:center;box-shadow:0 4px 20px rgba(0,0,0,.4)}
+.toast.toast-error{background:#dc2626;font-size:18px;padding:18px 28px}
 @keyframes fadeup{from{opacity:0;transform:translateX(-50%) translateY(10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
 .hidden{display:none!important}
 .conditional-field{margin-top:8px}
@@ -227,7 +228,7 @@ function checkPin(){
       document.querySelectorAll('.btn-submit').forEach(b => { b.disabled = true; b.title = 'Observer mode \u2014 read only'; });
     }
     logActivity('login', 'logged in (' + driver.role + ')', driver.name);
-    if(driver.role === 'driver' || driver.role === 'observer') autoSelectDriver(user);
+    autoSelectDriver(user);
   }else{
     failCount++;
     const r=MAX_FAILS-failCount;
@@ -1514,7 +1515,7 @@ function submitFuel() {
     notes: document.getElementById('fuelNotes').value,
     timestamp: new Date().toISOString()
   };
-  if(!entry.driver || !entry.date) { showToast('Please fill required fields'); return; }
+  if(!entry.driver || !entry.date) { showToast('Please fill required fields', true); return; }
   addStore('fuel', entry);
   pushToFirebase('fuel', entry);
 
@@ -1546,7 +1547,7 @@ function submitDvir() {
     allClear: defects.length === 0,
     timestamp: new Date().toISOString()
   };
-  if(!entry.driver || !entry.date || !entry.truck) { showToast('Please fill required fields'); return; }
+  if(!entry.driver || !entry.date || !entry.truck) { showToast('Please fill required fields', true); return; }
   addStore('dvir', entry);
   pushToFirebase('dvir', entry);
 
@@ -2549,10 +2550,12 @@ function emailExport() {
 }
 
 // ===== TOAST =====
-function showToast(msg) {
+function showToast(msg, isError) {
   const t = document.getElementById('toast');
-  t.textContent = msg; t.style.display = 'block';
-  setTimeout(() => t.style.display = 'none', 2500);
+  t.textContent = msg;
+  if(isError){t.classList.add('toast-error');}else{t.classList.remove('toast-error');}
+  t.style.display = 'block';
+  setTimeout(() => t.style.display = 'none', isError ? 4000 : 2500);
 }
 </script>
 </body>
