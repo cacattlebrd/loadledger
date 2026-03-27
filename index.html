@@ -368,6 +368,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initFirebaseConfig().then(() => {
     initPinSelect();
     startRealtimeSync();
+    initEntriesSync();
   });
 });
 </script>
@@ -1168,6 +1169,44 @@ function setDvirType(type) {
 function getStore(key) { try { return JSON.parse(localStorage.getItem('ll_'+key)) || []; } catch(e) { return []; } }
 function addStore(key, obj) { const arr = getStore(key); arr.unshift(obj); localStorage.setItem('ll_'+key, JSON.stringify(arr)); }
 
+// ===== FIREBASE ENTRIES SYNC =====
+const firebaseEntries = { loads: [], fuel: [], dvir: [] };
+let entriesReady = false;
+function pushToFirebase(collection, entry) {
+  if (!firebaseReady) { console.warn('Firebase not ready, saved locally only'); return; }
+  const clean = {...entry};
+  if (clean.photoData) { clean.hasPhoto = true; delete clean.photoData; }
+  db.ref(collection).push(clean).catch(err => console.error('Firebase push error:', err));
+}
+function initEntriesSync() {
+  ['loads','fuel','dvir'].forEach(collection => {
+    db.ref(collection).orderByChild('timestamp').on('value', snap => {
+      const data = snap.val();
+      if (data) {
+        firebaseEntries[collection] = Object.values(data).sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
+      } else { firebaseEntries[collection] = []; }
+      entriesReady = true;
+      const hp = document.getElementById('panel-history');
+      if (hp && hp.classList.contains('active')) renderHistory();
+    });
+  });
+  if (!localStorage.getItem('ll_migrated_to_firebase')) {
+    setTimeout(() => {
+      ['loads','fuel','dvir'].forEach(col => {
+        const local = getStore(col);
+        if (local.length > 0) {
+          local.forEach(e => { const cl = {...e}; if(cl.photoData){cl.hasPhoto=true;delete cl.photoData;} db.ref(col).push(cl).catch(()=>{}); });
+        }
+      });
+      localStorage.setItem('ll_migrated_to_firebase','true');
+    }, 2000);
+  }
+}
+function getAllEntries(collection) {
+  if (entriesReady && firebaseEntries[collection].length > 0) return firebaseEntries[collection];
+  return getStore(collection);
+}
+
 // ===== ADMIN OVERRIDE =====
 function toggleOverrideUI() {
   const on = document.getElementById('overrideValidation').checked;
@@ -1309,6 +1348,7 @@ function submitLoad() {
   };
 
   addStore('loads', entry);
+  pushToFirebase('loads', entry);
   showToast(entry.type + ' load saved - ' + entry.tons + ' tons');
   clearFieldErrors();
   ['loadGross','loadTare','loadTicket','loadNotes','loadMileStart','loadMileEnd','loadTimeStart','loadTimeEnd','loadTruckOther'].forEach(id => {
@@ -1341,6 +1381,7 @@ function submitFuel() {
   };
   if(!entry.driver || !entry.date) { showToast('Please fill required fields'); return; }
   addStore('fuel', entry);
+  pushToFirebase('fuel', entry);
   showToast('Fuel log saved');
   ['fuelGal','defGal','fuelCost','defCost','fuelOdo','fuelStation','fuelNotes'].forEach(id => document.getElementById(id).value = '');
 }
@@ -1363,6 +1404,7 @@ function submitDvir() {
   };
   if(!entry.driver || !entry.date || !entry.truck) { showToast('Please fill required fields'); return; }
   addStore('dvir', entry);
+  pushToFirebase('dvir', entry);
   showToast('DVIR saved' + (defects.length > 0 ? ' - ' + defects.length + ' defect(s)' : ' - All Clear'));
   document.getElementById('dvirNotes').value = '';
   dvirItems.forEach(i => dvirState[i] = 'ok');
@@ -1382,9 +1424,9 @@ function renderHistory() {
     }
   }
 
-  const loads = getStore('loads').map(e => ({...e, _cat: 'load'}));
-  const fuel = getStore('fuel').map(e => ({...e, _cat: 'fuel'}));
-  const dvirs = getStore('dvir').map(e => ({...e, _cat: 'dvir'}));
+  const loads = getAllEntries('loads').map(e => ({...e, _cat: 'load'}));
+  const fuel = getAllEntries('fuel').map(e => ({...e, _cat: 'fuel'}));
+  const dvirs = getAllEntries('dvir').map(e => ({...e, _cat: 'dvir'}));
   const all = [...loads, ...fuel, ...dvirs].sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
   const el = document.getElementById('historyList');
   if(all.length === 0) { el.innerHTML = '<div style="text-align:center;color:#64748b;padding:40px">No entries yet</div>'; return; }
@@ -2285,7 +2327,7 @@ async function syncToWorkbook(input) {
 }
 
 function getUnsyncedLoads() {
-  const loads = getStore('loads');
+  const loads = getAllEntries('loads');
   const synced = JSON.parse(localStorage.getItem('ll_synced_loads') || '[]');
   return loads.filter(l => !synced.includes(l.timestamp));
 }
