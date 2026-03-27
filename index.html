@@ -1236,7 +1236,7 @@ function pushToGoogleSheets(sheetName, rowArray) {
   fetch(SHEETS_WEBAPP_URL, {
     method: 'POST',
     mode: 'no-cors',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'text/plain' },
     body: JSON.stringify({ sheet: sheetName, row: rowArray })
   }).then(() => {
     console.log('Sheets sync: row sent to ' + sheetName);
