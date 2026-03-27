@@ -1226,9 +1226,17 @@ const firebaseEntries = { loads: [], fuel: [], dvir: [] };
 let entriesReady = false;
 function pushToFirebase(collection, entry) {
   if (!firebaseReady) { console.warn('Firebase not ready, saved locally only'); return; }
-  const clean = {...entry};
+  const clean = JSON.parse(JSON.stringify(entry));
   if (clean.photoData) { clean.hasPhoto = true; delete clean.photoData; }
-  db.ref(collection).push(clean).catch(err => console.error('Firebase push error:', err));
+  function sanitizeKeys(obj) {
+    if (typeof obj !== 'object' || obj === null || Array.isArray(obj)) return obj;
+    const out = {};
+    for (const k in obj) { out[k.replace(/[.#$\/\[\]]/g, '-')] = sanitizeKeys(obj[k]); }
+    return out;
+  }
+  try {
+    db.ref(collection).push(sanitizeKeys(clean)).catch(err => console.error('Firebase push error:', err));
+  } catch(e) { console.error('Firebase push exception:', e); }
 }
 // ===== GOOGLE SHEETS INTEGRATION =====
 const SHEETS_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbzDa0LRR8JkMbCc52vzuGklM6vEjf-sN5mVekSvEFp-Nvmt_pxq1Fb6IeuqALRMeuFF/exec';
