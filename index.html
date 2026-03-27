@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-styhle" content="black-translucent">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0f172a">
 <title>LoadLedger - BRD</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -67,6 +69,23 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:#60a5fa;box-sh
 .export-bar button{flex:1;padding:10px;background:#334155;border:none;border-radius:8px;color:#e2e8f0;font-size:12px;font-weight:600;cursor:pointer}
 .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#22c55e;color:#fff;padding:16px 28px;border-radius:10px;font-weight:700;font-size:16px;z-index:9999;display:none;animation:fadeup .3s ease;max-width:90vw;text-align:center;box-shadow:0 4px 20px rgba(0,0,0,.4)}
 .toast.toast-error{background:#dc2626;font-size:18px;padding:18px 28px}
+.gps-banner{display:none;background:linear-gradient(90deg,#065f46,#047857);padding:6px 16px;text-align:center;font-size:12px;font-weight:600;color:#d1fae5;letter-spacing:.5px;align-items:center;justify-content:center;gap:8px;position:sticky;top:58px;z-index:99;cursor:pointer}
+.gps-banner.active{display:flex}
+.gps-banner .gps-dot{width:8px;height:8px;border-radius:50%;background:#34d399;animation:gpsPulse 1.5s infinite}
+.gps-banner .gps-loc{color:#a7f3d0;font-size:11px;margin-left:8px}
+@keyframes gpsPulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(52,211,153,.5)}50%{opacity:.7;box-shadow:0 0 0 6px rgba(52,211,153,0)}}
+.gps-banner.paused{background:linear-gradient(90deg,#78350f,#92400e)}
+.gps-banner.paused .gps-dot{background:#fbbf24;animation:none}
+.logout-btn{position:fixed;bottom:16px;right:16px;background:#dc2626;color:#fff;border:none;border-radius:50%;width:52px;height:52px;font-size:10px;font-weight:700;cursor:pointer;z-index:150;box-shadow:0 4px 12px rgba(0,0,0,.4);display:none;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+.logout-btn.active{display:flex}
+.logout-btn .logout-icon{font-size:18px}
+.geofence-item{display:flex;align-items:center;gap:8px;padding:8px 10px;background:#1e293b;border-radius:6px;margin-bottom:4px;font-size:13px}
+.geofence-item .gf-name{flex:1;color:#e2e8f0}
+.geofence-item .gf-radius{color:#94a3b8;font-size:11px}
+.geofence-item .gf-coords{color:#64748b;font-size:10px}
+.gps-toggle{display:flex;align-items:center;gap:10px;padding:10px 14px;background:#1e293b;border-radius:8px;margin-bottom:8px}
+.gps-toggle label{flex:1;color:#e2e8f0;font-size:13px}
+.gps-toggle input[type=checkbox]{width:20px;height:20px;accent-color:#22c55e}
 @keyframes fadeup{from{opacity:0;transform:translateX(-50%) translateY(10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
 .hidden{display:none!important}
 .conditional-field{margin-top:8px}
@@ -229,6 +248,7 @@ function checkPin(){
     }
     logActivity('login', 'logged in (' + driver.role + ')', driver.name);
     autoSelectDriver(user);
+    startGpsTracking();
   }else{
     failCount++;
     const r=MAX_FAILS-failCount;
@@ -404,6 +424,9 @@ document.addEventListener('DOMContentLoaded', () => {
     initEntriesSync();
     initActivityLog();
   });
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch(e => console.log('SW registration failed:', e));
+  }
 });
 </script>
 
@@ -411,6 +434,17 @@ document.addEventListener('DOMContentLoaded', () => {
   <h1>LOADLEDGER</h1>
   <div class="sub">CA Cattle Co. - Bakery Recycling Division</div>
 </div>
+
+<div class="gps-banner" id="gpsBanner" onclick="showGpsInfo()">
+  <span class="gps-dot"></span>
+  <span>TRACKING ACTIVE</span>
+  <span class="gps-loc" id="gpsLocLabel"></span>
+</div>
+
+<button class="logout-btn" id="logoutBtn" onclick="doLogout()">
+  <span class="logout-icon">&#9211;</span>
+  LOG OUT
+</button>
 
 <div class="tabs">
   <div class="tab active" onclick="switchTab('load')"><span class="tab-icon">&#9878;</span>Load</div>
@@ -824,6 +858,35 @@ document.addEventListener('DOMContentLoaded', () => {
     <div class="form-actions">
       <button class="save" onclick="saveCommodity()">Save</button>
       <button class="cancel" onclick="hideAddCommodityForm()">Cancel</button>
+    </div>
+  </div>
+
+  <div id="gpsAdminSection">
+    <div class="section-title">GPS Tracking</div>
+    <div class="gps-toggle">
+      <label>Enable GPS tracking for all drivers</label>
+      <input type="checkbox" id="gpsGlobalToggle" onchange="toggleGpsGlobal(this.checked)">
+    </div>
+    <div id="gpsDriverToggles"></div>
+    <div class="section-title" style="margin-top:16px">Geofence Locations</div>
+    <div style="font-size:11px;color:#64748b;margin-bottom:8px">Auto-detect when drivers arrive/depart these locations</div>
+    <div id="geofenceList"></div>
+    <button class="admin-btn-add" onclick="showAddGeofenceForm()">+ Add Location</button>
+    <div id="adminAddGeofenceForm" class="admin-inline-form" style="display:none">
+      <input type="text" id="geofenceName" placeholder="Location name (e.g., Plant, Bimbo ATX)">
+      <input type="text" id="geofenceLat" placeholder="Latitude (e.g., 30.2672)">
+      <input type="text" id="geofenceLng" placeholder="Longitude (e.g., -97.7431)">
+      <input type="number" id="geofenceRadius" placeholder="Radius in feet (default 500)" value="500">
+      <select id="geofenceType">
+        <option value="plant">Plant</option>
+        <option value="supplier">Supplier</option>
+        <option value="customer">Customer</option>
+      </select>
+      <div class="form-actions">
+        <button class="save" onclick="saveGeofence()">Save</button>
+        <button class="save" onclick="captureCurrentLocation()" style="background:#2563eb">Use My Location</button>
+        <button class="cancel" onclick="hideAddGeofenceForm()">Cancel</button>
+      </div>
     </div>
   </div>
 
@@ -1633,6 +1696,8 @@ function renderAdminPanel() {
   renderAdminCustomers();
   renderAdminProducts();
   renderAdminCommodities();
+  renderGpsDriverToggles();
+  renderGeofenceList();
 }
 
 function renderAdminDrivers() {
@@ -2556,6 +2621,145 @@ function emailExport() {
   window.location.href = 'mailto:chadcrocker@cacattlebrd.com?subject=LoadLedger%20Export%20' +
     encodeURIComponent(new Date().toLocaleDateString()) + '&body=' + encodeURIComponent(body);
 }
+
+// ===== GPS TRACKING ENGINE =====
+let gpsWatchId = null;
+let gpsTrackingActive = false;
+let gpsLastPos = null;
+let gpsTrackLog = [];
+let gpsLoginTime = null;
+let currentGeofence = null;
+let geofenceHistory = [];
+const GEOFENCE_DEFAULTS = [{name:'CA Cattle Plant',lat:0,lng:0,radius:500,type:'plant'}];
+function getGeofences(){const s=getConfig('geofences');return(s&&s.length>0)?s:GEOFENCE_DEFAULTS;}
+function isGpsEnabled(){const cfg=getConfig('gpsEnabled');if(cfg===false)return false;const dg=getConfig('gpsDrivers');if(dg&&window.currentUser&&dg[window.currentUser]===false)return false;return true;}
+function startGpsTracking(){
+  if(!navigator.geolocation){console.warn('Geolocation not supported');return;}
+  if(!isGpsEnabled()){document.getElementById('gpsBanner').classList.remove('active');return;}
+  gpsTrackingActive=true;gpsLoginTime=new Date().toISOString();gpsTrackLog=[];
+  document.getElementById('gpsBanner').classList.add('active');
+  document.getElementById('gpsBanner').classList.remove('paused');
+  document.getElementById('logoutBtn').classList.add('active');
+  gpsWatchId=navigator.geolocation.watchPosition(onGpsPosition,onGpsError,{enableHighAccuracy:true,maximumAge:30000,timeout:15000});
+  pushToFirebase('gps_sessions',{driver:window.currentUser,driverName:getDriverDisplayName(window.currentUser),loginTime:gpsLoginTime,status:'active'});
+  logActivity('gps','GPS tracking started',getDriverDisplayName(window.currentUser));
+}
+function stopGpsTracking(){
+  if(gpsWatchId!==null){navigator.geolocation.clearWatch(gpsWatchId);gpsWatchId=null;}
+  gpsTrackingActive=false;
+  document.getElementById('gpsBanner').classList.remove('active');
+  document.getElementById('logoutBtn').classList.remove('active');
+  const logoutTime=new Date().toISOString();
+  if(gpsLoginTime){
+    const sd={driver:window.currentUser,driverName:getDriverDisplayName(window.currentUser),loginTime:gpsLoginTime,logoutTime:logoutTime,pointsLogged:gpsTrackLog.length,geofenceVisits:geofenceHistory.length>0?geofenceHistory:[],status:'completed'};
+    pushToFirebase('gps_sessions',sd);
+    pushToGoogleSheets('GPS Log',[new Date().toLocaleDateString(),sd.driverName,gpsLoginTime.substring(11,16),logoutTime.substring(11,16),gpsTrackLog.length+' pts',geofenceHistory.map(g=>g.name+' ('+g.arrived.substring(11,16)+')').join('; ')]);
+  }
+  logActivity('gps','GPS tracking stopped',getDriverDisplayName(window.currentUser));
+  gpsLoginTime=null;gpsTrackLog=[];geofenceHistory=[];currentGeofence=null;
+  document.getElementById('gpsLocLabel').textContent='';
+}
+function onGpsPosition(pos){
+  const lat=pos.coords.latitude,lng=pos.coords.longitude,acc=pos.coords.accuracy,spd=pos.coords.speed;
+  gpsLastPos={lat,lng,acc,spd,ts:new Date().toISOString()};
+  const lastLog=gpsTrackLog[gpsTrackLog.length-1];
+  if(!lastLog||(Date.now()-new Date(lastLog.ts).getTime())>60000){
+    gpsTrackLog.push(gpsLastPos);
+    if(!lastLog||(Date.now()-new Date(lastLog.ts).getTime())>300000){
+      pushToFirebase('gps_points',{driver:window.currentUser,lat,lng,acc,speed:spd?Math.round(spd*2.237):0,ts:gpsLastPos.ts});
+    }
+  }
+  checkGeofences(lat,lng);
+}
+function onGpsError(err){
+  console.warn('GPS error:',err.message);
+  document.getElementById('gpsBanner').classList.add('paused');
+  document.getElementById('gpsLocLabel').textContent='GPS paused — '+(err.code===1?'permission denied':'unavailable');
+}
+// ===== GEOFENCE ENGINE =====
+function distanceFeet(lat1,lng1,lat2,lng2){
+  const R=20902231,dLat=(lat2-lat1)*Math.PI/180,dLng=(lng2-lng1)*Math.PI/180;
+  const a=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)*Math.sin(dLng/2);
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+function checkGeofences(lat,lng){
+  const fences=getGeofences();let inside=null;
+  for(const f of fences){if(!f.lat||!f.lng)continue;if(distanceFeet(lat,lng,f.lat,f.lng)<=(f.radius||500)){inside=f;break;}}
+  const label=document.getElementById('gpsLocLabel');
+  if(inside){
+    if(!currentGeofence||currentGeofence.name!==inside.name){
+      geofenceHistory.push({name:inside.name,type:inside.type,arrived:new Date().toISOString()});
+      currentGeofence=inside;
+      logActivity('gps','arrived at '+inside.name,getDriverDisplayName(window.currentUser));
+      pushToFirebase('geofence_events',{driver:window.currentUser,driverName:getDriverDisplayName(window.currentUser),location:inside.name,type:inside.type,event:'arrived',lat,lng,ts:new Date().toISOString()});
+    }
+    label.textContent='@ '+inside.name;
+  }else{
+    if(currentGeofence){
+      logActivity('gps','departed '+currentGeofence.name,getDriverDisplayName(window.currentUser));
+      pushToFirebase('geofence_events',{driver:window.currentUser,driverName:getDriverDisplayName(window.currentUser),location:currentGeofence.name,type:currentGeofence.type,event:'departed',lat,lng,ts:new Date().toISOString()});
+      const lv=geofenceHistory[geofenceHistory.length-1];if(lv)lv.departed=new Date().toISOString();
+      currentGeofence=null;
+    }
+    label.textContent=gpsLastPos?'En route':'';
+  }
+}
+function showGpsInfo(){if(!gpsLastPos){showToast('Waiting for GPS fix...');return;}const mph=gpsLastPos.spd?Math.round(gpsLastPos.spd*2.237):0;showToast('GPS: '+gpsLastPos.lat.toFixed(4)+', '+gpsLastPos.lng.toFixed(4)+' | '+mph+' mph');}
+
+// ===== LOGOUT =====
+function doLogout(){
+  if(!confirm('Log out and stop GPS tracking?'))return;
+  stopGpsTracking();
+  window.currentUser=null;window.userRole=null;window.isAdmin=false;window.isMaster=false;window.isManager=false;window.isObserver=false;
+  document.getElementById('pin-overlay').classList.remove('hidden');
+  document.body.classList.add('locked');
+  pinEntry='';updateDots();
+  document.getElementById('pin-user-select').value='';
+  document.getElementById('pin-error').textContent='';
+  switchTab('load');document.getElementById('tab-admin').classList.add('hidden');
+  showToast('Logged out — GPS stopped');
+}
+
+// ===== GPS ADMIN =====
+function toggleGpsGlobal(on){saveConfig('gpsEnabled',on);showToast('GPS tracking '+(on?'enabled':'disabled'));renderGpsDriverToggles();}
+function toggleGpsDriver(id,on){const cur=getConfig('gpsDrivers')||{};cur[id]=on;saveConfig('gpsDrivers',cur);}
+function renderGpsDriverToggles(){
+  const el=document.getElementById('gpsDriverToggles');if(!el)return;
+  const drivers=getConfig('drivers'),globalOn=getConfig('gpsEnabled')!==false,dg=getConfig('gpsDrivers')||{};
+  document.getElementById('gpsGlobalToggle').checked=globalOn;el.innerHTML='';
+  if(!globalOn){el.innerHTML='<div style="font-size:11px;color:#ef4444;padding:4px 14px">GPS tracking is disabled globally</div>';return;}
+  drivers.forEach(d=>{if(d.role==='master'||d.role==='observer')return;const on=dg[d.id]!==false;
+    const div=document.createElement('div');div.className='gps-toggle';
+    div.innerHTML='<label>'+d.name+'</label><input type="checkbox" '+(on?'checked':'')+' onchange="toggleGpsDriver(\''+d.id+'\',this.checked)">';
+    el.appendChild(div);});
+}
+function renderGeofenceList(){
+  const el=document.getElementById('geofenceList');if(!el)return;const fences=getGeofences();el.innerHTML='';
+  fences.forEach((f,i)=>{if(!f.name)return;const div=document.createElement('div');div.className='geofence-item';
+    div.innerHTML='<span class="gf-name">'+f.name+' <span style="color:#60a5fa;font-size:10px">'+(f.type||'')+'</span></span><span class="gf-radius">'+(f.radius||500)+'ft</span>'+(f.lat?'<span class="gf-coords">'+f.lat.toFixed(4)+', '+f.lng.toFixed(4)+'</span>':'<span class="gf-coords" style="color:#ef4444">No coords</span>')+'<span style="color:#ef4444;cursor:pointer;font-size:16px" onclick="deleteGeofence('+i+')">&#10005;</span>';
+    el.appendChild(div);});
+}
+function showAddGeofenceForm(){document.getElementById('adminAddGeofenceForm').style.display='block';}
+function hideAddGeofenceForm(){document.getElementById('adminAddGeofenceForm').style.display='none';}
+function saveGeofence(){
+  const name=document.getElementById('geofenceName').value.trim();
+  const lat=parseFloat(document.getElementById('geofenceLat').value);
+  const lng=parseFloat(document.getElementById('geofenceLng').value);
+  const radius=parseInt(document.getElementById('geofenceRadius').value)||500;
+  const type=document.getElementById('geofenceType').value;
+  if(!name){showToast('Enter location name',true);return;}
+  if(isNaN(lat)||isNaN(lng)){showToast('Enter valid lat/lng or use My Location',true);return;}
+  const fences=getGeofences().filter(f=>f.name);fences.push({name,lat,lng,radius,type});
+  saveConfig('geofences',fences);renderGeofenceList();hideAddGeofenceForm();
+  document.getElementById('geofenceName').value='';document.getElementById('geofenceLat').value='';document.getElementById('geofenceLng').value='';
+  showToast('Geofence saved');
+}
+function captureCurrentLocation(){
+  if(!navigator.geolocation){showToast('Geolocation not supported',true);return;}
+  showToast('Getting your location...');
+  navigator.geolocation.getCurrentPosition(pos=>{document.getElementById('geofenceLat').value=pos.coords.latitude.toFixed(6);document.getElementById('geofenceLng').value=pos.coords.longitude.toFixed(6);showToast('Location captured');},err=>showToast('Could not get location',true),{enableHighAccuracy:true,timeout:10000});
+}
+function deleteGeofence(i){if(!confirm('Delete this geofence?'))return;const f=getGeofences().filter(f=>f.name);f.splice(i,1);saveConfig('geofences',f);renderGeofenceList();showToast('Geofence deleted');}
 
 // ===== TOAST =====
 function showToast(msg, isError) {
