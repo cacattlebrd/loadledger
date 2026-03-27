@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>LoadLedger - BRD</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9h.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -1229,6 +1229,22 @@ function pushToFirebase(collection, entry) {
   if (clean.photoData) { clean.hasPhoto = true; delete clean.photoData; }
   db.ref(collection).push(clean).catch(err => console.error('Firebase push error:', err));
 }
+// ===== GOOGLE SHEETS INTEGRATION =====
+const SHEETS_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbyv2CXJO1KrOU9ux9uVjT2gksOGYd7tk7ME-UW7dUAgZ-ljT8YPByBsxcSXHxWsuB7P/exec';
+
+function pushToGoogleSheets(sheetName, rowArray) {
+  fetch(SHEETS_WEBAPP_URL, {
+    method: 'POST',
+    mode: 'no-cors',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ sheet: sheetName, row: rowArray })
+  }).then(() => {
+    console.log('Sheets sync: row sent to ' + sheetName);
+  }).catch(err => {
+    console.warn('Sheets sync error:', err);
+  });
+}
+
 function initEntriesSync() {
   ['loads','fuel','dvir'].forEach(collection => {
     db.ref(collection).orderByChild('timestamp').on('value', snap => {
@@ -1457,6 +1473,16 @@ function submitLoad() {
 
   addStore('loads', entry);
   pushToFirebase('loads', entry);
+
+  // Push to Google Sheets
+  const sheetsTab = entry.type === 'Inbound' ? 'Inbound Loads' : 'Outbound Loads';
+  pushToGoogleSheets(sheetsTab, [
+    entry.date, entry.driver, entry.truck, entry.trailer,
+    entry.products, entry.source, entry.gross, entry.tare,
+    entry.net, entry.ticket, entry.notes ? entry.notes : '',
+    entry.tons
+  ]);
+
   logActivity('load', 'submitted ' + entry.type.toLowerCase() + ' load \u2014 ' + entry.source + ', ' + entry.tons + 'T, Tkt: ' + entry.ticket, getDriverDisplayName(entry.driver));
   showToast(entry.type + ' load saved - ' + entry.tons + ' tons');
   clearFieldErrors();
@@ -1491,6 +1517,14 @@ function submitFuel() {
   if(!entry.driver || !entry.date) { showToast('Please fill required fields'); return; }
   addStore('fuel', entry);
   pushToFirebase('fuel', entry);
+
+  // Push to Google Sheets
+  pushToGoogleSheets('Fuel & DEF', [
+    entry.date, entry.driver, entry.truck,
+    entry.fuelGal, entry.defGal, entry.fuelCost, entry.defCost,
+    entry.odometer, entry.station, entry.notes
+  ]);
+
   logActivity('fuel', 'logged fuel \u2014 ' + entry.fuelGal + ' gal' + (entry.defGal > 0 ? ' + ' + entry.defGal + ' DEF' : '') + ' at ' + (entry.station || 'N/A'), getDriverDisplayName(entry.driver));
   showToast('Fuel log saved');
   ['fuelGal','defGal','fuelCost','defCost','fuelOdo','fuelStation','fuelNotes'].forEach(id => document.getElementById(id).value = '');
@@ -1515,6 +1549,16 @@ function submitDvir() {
   if(!entry.driver || !entry.date || !entry.truck) { showToast('Please fill required fields'); return; }
   addStore('dvir', entry);
   pushToFirebase('dvir', entry);
+
+  // Push to Google Sheets
+  pushToGoogleSheets('DVIR', [
+    entry.date, entry.driver, entry.truck, entry.trailer,
+    defects.length > 0 ? 'Yes' : 'No',
+    defects.join(', '),
+    '', // Corrective Action (filled later)
+    entry.allClear ? 'All Clear' : 'Defects Found'
+  ]);
+
   logActivity('dvir', 'submitted ' + entry.type + ' DVIR \u2014 Truck ' + entry.truck + (defects.length > 0 ? ', ' + defects.length + ' defect(s): ' + defects.join(', ') : ', All Clear'), getDriverDisplayName(entry.driver));
   showToast('DVIR saved' + (defects.length > 0 ? ' - ' + defects.length + ' defect(s)' : ' - All Clear'));
   document.getElementById('dvirNotes').value = '';
