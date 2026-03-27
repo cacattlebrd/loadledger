@@ -1230,7 +1230,7 @@ function pushToFirebase(collection, entry) {
   db.ref(collection).push(clean).catch(err => console.error('Firebase push error:', err));
 }
 // ===== GOOGLE SHEETS INTEGRATION =====
-const SHEETS_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbyv2CXJO1KrOU9ux9uVjT2gksOGYd7tk7ME-UW7dUAgZ-ljT8YPByBsxcSXHxWsuB7P/exec';
+const SHEETS_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbzDa0LRR8JkMbCc52vzuGklM6vEjf-sN5mVekSvEFp-Nvmt_pxq1Fb6IeuqALRMeuFF/exec';
 
 function pushToGoogleSheets(sheetName, rowArray) {
   fetch(SHEETS_WEBAPP_URL, {
