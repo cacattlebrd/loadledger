@@ -207,16 +207,27 @@ function checkPin(){
 
   if(driver && driver.pin && driver.pin === pinEntry){
     window.currentUser = user;
-    window.isAdmin = (driver.role === 'admin');
+    window.userRole = driver.role;
+    window.isAdmin = (driver.role === 'master' || driver.role === 'admin');
+    window.isMaster = (driver.role === 'master');
+    window.isManager = (driver.role === 'manager');
+    window.isObserver = (driver.role === 'observer');
     document.getElementById('pin-overlay').classList.add('hidden');
     document.body.classList.remove('locked');
-    if(window.isAdmin) {
+    if(window.isAdmin || window.isManager) {
       document.getElementById('sync-section').classList.remove('hidden');
-      document.getElementById('adminOverride').classList.remove('hidden');
       document.getElementById('tab-admin').classList.remove('hidden');
+      if(window.isAdmin) document.getElementById('adminOverride').classList.remove('hidden');
+      if(!window.isMaster) {
+        document.getElementById('userManagement').classList.add('hidden');
+        document.getElementById('dangerZoneSection').classList.add('hidden');
+      }
     }
-    logActivity('login', 'logged in', driver.name);
-    if(driver.role!=='admin')autoSelectDriver(user);
+    if(window.isObserver) {
+      document.querySelectorAll('.btn-submit').forEach(b => { b.disabled = true; b.title = 'Observer mode \u2014 read only'; });
+    }
+    logActivity('login', 'logged in (' + driver.role + ')', driver.name);
+    if(driver.role === 'driver' || driver.role === 'observer') autoSelectDriver(user);
   }else{
     failCount++;
     const r=MAX_FAILS-failCount;
@@ -257,10 +268,10 @@ const db = firebase.database();
 // ===== CONFIG DEFAULTS =====
 const CONFIG_DEFAULTS = {
   drivers: [
-    {"id":"admin","name":"Chad (Admin)","pin":"2636","role":"admin","group":"Admin"},
+    {"id":"admin","name":"Chad (Admin)","pin":"2636","role":"master","group":"Admin"},
     {"id":"john","name":"John Hightower","pin":"5990","role":"driver","group":"BRD Drivers"},
     {"id":"juan","name":"Juan Gutierrez","pin":"8258","role":"driver","group":"BRD Drivers"},
-    {"id":"james","name":"James Gass","pin":"5796","role":"driver","group":"BRD Drivers"},
+    {"id":"james","name":"James Gass","pin":"5796","role":"manager","group":"Admin"},
     {"id":"cuatrot","name":"Cuatro T","pin":"","role":"driver","group":"Contract Haulers"},
     {"id":"treshijos","name":"Tres Hijos","pin":"","role":"driver","group":"Contract Haulers"},
     {"id":"luckey","name":"Luckey","pin":"","role":"driver","group":"Contract Haulers"},
@@ -716,9 +727,11 @@ document.addEventListener('DOMContentLoaded', () => {
     <div style="text-align:center;color:#64748b;padding:20px;font-size:13px">Loading activity...</div>
   </div>
 
-  <div class="section-title">Drivers &amp; PINs</div>
+  <div id="userManagement">
+  <div class="section-title">Users &amp; Roles</div>
+  <div style="font-size:11px;color:#64748b;margin-bottom:8px">Only Master Admin can add, edit, or remove users</div>
   <div id="adminDriversList" class="admin-list"></div>
-  <button class="admin-btn-add" onclick="showAddDriverForm()">+ Add Driver</button>
+  <button class="admin-btn-add" onclick="showAddDriverForm()">+ Add User</button>
   <div id="adminAddDriverForm" class="admin-inline-form" style="display:none">
     <input type="text" id="adminDriverName" placeholder="Full name">
     <input type="text" id="adminDriverPin" placeholder="4-digit PIN" maxlength="4">
@@ -728,13 +741,16 @@ document.addEventListener('DOMContentLoaded', () => {
       <option value="Contract Haulers">Contract Haulers</option>
     </select>
     <select id="adminDriverRole">
-      <option value="admin">Admin</option>
+      <option value="master">Master Admin</option>
+      <option value="manager">Manager</option>
       <option value="driver">Driver</option>
+      <option value="observer">Observer</option>
     </select>
     <div class="form-actions">
       <button class="save" onclick="saveDriver()">Save</button>
       <button class="cancel" onclick="hideAddDriverForm()">Cancel</button>
     </div>
+  </div>
   </div>
 
   <div class="section-title">Trucks</div>
@@ -810,7 +826,7 @@ document.addEventListener('DOMContentLoaded', () => {
     </div>
   </div>
 
-  <div class="danger-zone">
+  <div id="dangerZoneSection" class="danger-zone">
     <div class="section-title">Danger Zone</div>
     <button class="delete-btn" onclick="confirmClearAllData()">Clear All Load Data</button>
     <button class="delete-btn" onclick="confirmResetDefaults()">Reset to Defaults</button>
@@ -1508,7 +1524,7 @@ function submitDvir() {
 
 // ===== HISTORY =====
 function renderHistory() {
-  if(window.isAdmin) {
+  if(window.isAdmin || window.isManager) {
     document.getElementById('sync-section').classList.remove('hidden');
     const unsynced = getUnsyncedLoads();
     const syncBtn = document.getElementById('syncBtn');
@@ -1570,25 +1586,27 @@ function renderAdminDrivers() {
   const drivers = getConfig('drivers');
   const container = document.getElementById('adminDriversList');
   container.innerHTML = '';
+  const roleColors = {master:'#ef4444',manager:'#f59e0b',driver:'#22c55e',observer:'#94a3b8',admin:'#ef4444'};
+  const roleLabels = {master:'MASTER',manager:'MANAGER',driver:'DRIVER',observer:'OBSERVER',admin:'ADMIN'};
   drivers.forEach(d => {
     const item = document.createElement('div');
     item.className = 'admin-list-item';
-    const pinDisplay = d.pin ? '••••' : 'N/A';
-    item.innerHTML = `
-      <div class="item-info">
-        <div style="font-weight:600;color:#e2e8f0">${d.name}</div>
-        <div style="font-size:12px;color:#94a3b8">PIN: ${pinDisplay} | ${d.group} | ${d.role}</div>
-      </div>
-      <div class="item-actions">
-        <button class="admin-btn-edit" onclick="editDriver('${d.id}')">Edit</button>
-        <button class="admin-btn-delete" onclick="deleteDriver('${d.id}')">Delete</button>
-      </div>
-    `;
+    const pinDisplay = d.pin ? String.fromCharCode(8226,8226,8226,8226) : 'N/A';
+    const roleColor = roleColors[d.role] || '#94a3b8';
+    const roleLabel = roleLabels[d.role] || d.role;
+    const isMasterAcct = (d.role === 'master');
+    const canEdit = window.isMaster && !isMasterAcct;
+    const canEditSelf = window.isMaster && isMasterAcct;
+    let actions = '';
+    if (canEditSelf) actions = '<button class="admin-btn-edit" onclick="editDriver(\'' + d.id + '\')">Edit</button>';
+    else if (canEdit) actions = '<button class="admin-btn-edit" onclick="editDriver(\'' + d.id + '\')">Edit</button><button class="admin-btn-delete" onclick="deleteDriver(\'' + d.id + '\')">Delete</button>';
+    else if (isMasterAcct) actions = '<span style="font-size:11px;color:#64748b">Protected</span>';
+    item.innerHTML = '<div class="item-info"><div style="font-weight:600;color:#e2e8f0">' + d.name + ' <span style="font-size:10px;font-weight:700;color:' + roleColor + ';background:' + roleColor + '22;padding:2px 6px;border-radius:4px;margin-left:4px">' + roleLabel + '</span></div><div style="font-size:12px;color:#94a3b8">PIN: ' + pinDisplay + ' | ' + d.group + '</div></div><div class="item-actions">' + actions + '</div>';
     container.appendChild(item);
   });
 }
-
 function editDriver(id) {
+  if (!window.isMaster) { showToast('Only Master Admin can edit users'); return; }
   const drivers = getConfig('drivers');
   const driver = drivers.find(d => d.id === id);
   if (!driver) return;
@@ -1615,6 +1633,7 @@ function hideAddDriverForm() {
 }
 
 function saveDriver() {
+  if (!window.isMaster) { showToast('Only Master Admin can manage users'); return; }
   const drivers = getConfig('drivers');
   const name = document.getElementById('adminDriverName').value.trim();
   const pin = document.getElementById('adminDriverPin').value.trim();
@@ -1622,7 +1641,8 @@ function saveDriver() {
   const role = document.getElementById('adminDriverRole').value;
 
   if (!name) { showToast('Name is required'); return; }
-  if (role === 'admin' && !pin) { showToast('Admin drivers need a PIN'); return; }
+  if ((role === 'master' || role === 'manager') && !pin) { showToast('Admin/Manager roles need a PIN'); return; }
+  if (role === 'master' && editingDriver !== 'admin') { const em = drivers.find(d => d.role === 'master'); if (em) { showToast('Only one Master Admin allowed'); return; } }
   if (pin && pin.length !== 4) { showToast('PIN must be 4 digits'); return; }
 
   if (editingDriver) {
@@ -1639,20 +1659,25 @@ function saveDriver() {
   }
 
   setConfig('drivers', drivers);
+  logActivity('admin', (editingDriver ? 'edited' : 'added') + ' user: ' + name + ' (' + role + ')', getDriverDisplayName(window.currentUser));
   populateDropdowns();
   renderAdminDrivers();
   hideAddDriverForm();
-  showToast('Driver saved');
+  showToast('User saved');
 }
 
 function deleteDriver(id) {
-  if (!confirm('Delete this driver?')) return;
-  let drivers = getConfig('drivers');
-  drivers = drivers.filter(d => d.id !== id);
-  setConfig('drivers', drivers);
+  if (!window.isMaster) { showToast('Only Master Admin can delete users'); return; }
+  const drivers = getConfig('drivers');
+  const target = drivers.find(d => d.id === id);
+  if (target && target.role === 'master') { showToast('Cannot delete Master Admin'); return; }
+  if (!confirm('Delete ' + (target ? target.name : 'this user') + '?')) return;
+  const filtered = drivers.filter(d => d.id !== id);
+  setConfig('drivers', filtered);
+  logActivity('admin', 'deleted user: ' + (target ? target.name : id), getDriverDisplayName(window.currentUser));
   populateDropdowns();
   renderAdminDrivers();
-  showToast('Driver deleted');
+  showToast('User deleted');
 }
 
 let editingTruck = null;
