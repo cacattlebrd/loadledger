@@ -4,13 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-styhle" content="black-translucent">
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#0f172a">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>LoadLedger - BRD</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0f172a;color:#e2e8f0;min-height:100vh;padding-bottom:80px}
@@ -67,25 +63,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:#60a5fa;box-sh
 .history-item .h-tons{font-size:18px;font-weight:800;color:#fbbf24}
 .export-bar{display:flex;gap:8px;margin-bottom:12px}
 .export-bar button{flex:1;padding:10px;background:#334155;border:none;border-radius:8px;color:#e2e8f0;font-size:12px;font-weight:600;cursor:pointer}
-.toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#22c55e;color:#fff;padding:16px 28px;border-radius:10px;font-weight:700;font-size:16px;z-index:9999;display:none;animation:fadeup .3s ease;max-width:90vw;text-align:center;box-shadow:0 4px 20px rgba(0,0,0,.4)}
-.toast.toast-error{background:#dc2626;font-size:18px;padding:18px 28px}
-.gps-banner{display:none;background:linear-gradient(90deg,#065f46,#047857);padding:6px 16px;text-align:center;font-size:12px;font-weight:600;color:#d1fae5;letter-spacing:.5px;align-items:center;justify-content:center;gap:8px;position:sticky;top:58px;z-index:99;cursor:pointer}
-.gps-banner.active{display:flex}
-.gps-banner .gps-dot{width:8px;height:8px;border-radius:50%;background:#34d399;animation:gpsPulse 1.5s infinite}
-.gps-banner .gps-loc{color:#a7f3d0;font-size:11px;margin-left:8px}
-@keyframes gpsPulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(52,211,153,.5)}50%{opacity:.7;box-shadow:0 0 0 6px rgba(52,211,153,0)}}
-.gps-banner.paused{background:linear-gradient(90deg,#78350f,#92400e)}
-.gps-banner.paused .gps-dot{background:#fbbf24;animation:none}
-.logout-btn{position:fixed;bottom:16px;right:16px;background:#dc2626;color:#fff;border:none;border-radius:50%;width:52px;height:52px;font-size:10px;font-weight:700;cursor:pointer;z-index:150;box-shadow:0 4px 12px rgba(0,0,0,.4);display:none;flex-direction:column;align-items:center;justify-content:center;gap:2px}
-.logout-btn.active{display:flex}
-.logout-btn .logout-icon{font-size:18px}
-.geofence-item{display:flex;align-items:center;gap:8px;padding:8px 10px;background:#1e293b;border-radius:6px;margin-bottom:4px;font-size:13px}
-.geofence-item .gf-name{flex:1;color:#e2e8f0}
-.geofence-item .gf-radius{color:#94a3b8;font-size:11px}
-.geofence-item .gf-coords{color:#64748b;font-size:10px}
-.gps-toggle{display:flex;align-items:center;gap:10px;padding:10px 14px;background:#1e293b;border-radius:8px;margin-bottom:8px}
-.gps-toggle label{flex:1;color:#e2e8f0;font-size:13px}
-.gps-toggle input[type=checkbox]{width:20px;height:20px;accent-color:#22c55e}
+.toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#22c55e;color:#fff;padding:12px 24px;border-radius:8px;font-weight:600;z-index:200;display:none;animation:fadeup .3s ease}
 @keyframes fadeup{from{opacity:0;transform:translateX(-50%) translateY(10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
 .hidden{display:none!important}
 .conditional-field{margin-top:8px}
@@ -153,23 +131,6 @@ body.locked > *:not(#pin-overlay):not(.toast){display:none!important}
 .danger-zone button{width:100%;padding:10px;margin:6px 0;border:none;border-radius:6px;cursor:pointer;font-weight:700;font-size:13px}
 .danger-zone .delete-btn{background:#dc2626;color:#fff;transition:all .2s}
 .danger-zone .delete-btn:active{background:#991b1b}
-/* Activity Log */
-.activity-log{max-height:400px;overflow-y:auto;margin-bottom:12px}
-.activity-item{display:flex;gap:10px;padding:10px 12px;background:#0f172a;border-radius:6px;margin-bottom:4px;border-left:3px solid #334155;align-items:flex-start}
-.activity-item.act-login{border-left-color:#60a5fa}
-.activity-item.act-load{border-left-color:#22c55e}
-.activity-item.act-fuel{border-left-color:#fbbf24}
-.activity-item.act-dvir{border-left-color:#a78bfa}
-.activity-item.act-error{border-left-color:#ef4444}
-.activity-item.act-admin{border-left-color:#f97316}
-.activity-icon{font-size:16px;flex-shrink:0;margin-top:2px}
-.activity-body{flex:1;min-width:0}
-.activity-msg{font-size:13px;color:#cbd5e1;line-height:1.4}
-.activity-meta{font-size:11px;color:#64748b;margin-top:2px}
-.activity-driver{font-weight:700;color:#60a5fa}
-.activity-filter{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
-.activity-filter button{padding:6px 12px;background:#1e293b;border:1px solid #334155;border-radius:16px;color:#94a3b8;font-size:11px;font-weight:600;cursor:pointer;transition:all .15s}
-.activity-filter button.active{background:#1e3a5f;border-color:#60a5fa;color:#60a5fa}
 </style>
 </head>
 <body>
@@ -227,35 +188,19 @@ function checkPin(){
 
   if(driver && driver.pin && driver.pin === pinEntry){
     window.currentUser = user;
-    window.userRole = driver.role;
-    window.isAdmin = (driver.role === 'master' || driver.role === 'admin');
-    window.isMaster = (driver.role === 'master');
-    window.isManager = (driver.role === 'manager');
-    window.isObserver = (driver.role === 'observer');
+    window.isAdmin = (driver.role === 'admin');
     document.getElementById('pin-overlay').classList.add('hidden');
     document.body.classList.remove('locked');
-    if(window.isAdmin || window.isManager) {
+    if(window.isAdmin) {
       document.getElementById('sync-section').classList.remove('hidden');
+      document.getElementById('adminOverride').classList.remove('hidden');
       document.getElementById('tab-admin').classList.remove('hidden');
-      if(window.isAdmin) document.getElementById('adminOverride').classList.remove('hidden');
-      if(!window.isMaster) {
-        document.getElementById('userManagement').classList.add('hidden');
-        document.getElementById('dangerZoneSection').classList.add('hidden');
-      }
     }
-    if(window.isObserver) {
-      document.querySelectorAll('.btn-submit').forEach(b => { b.disabled = true; b.title = 'Observer mode \u2014 read only'; });
-    }
-    logActivity('login', 'logged in (' + driver.role + ')', driver.name);
-    autoSelectDriver(user);
-    startGpsTracking();
+    if(driver.role!=='admin')autoSelectDriver(user);
   }else{
     failCount++;
     const r=MAX_FAILS-failCount;
     err.textContent=r>0?'Wrong PIN ('+r+' attempts left)':'Too many attempts. Reload page.';
-    const selName = document.getElementById('pin-user-select');
-    const attemptName = selName.options[selName.selectedIndex]?.text || user;
-    logActivity('error', 'failed PIN attempt (' + (MAX_FAILS-r) + '/' + MAX_FAILS + ')', attemptName);
     pinEntry='';updateDots();
   }
 }
@@ -272,142 +217,52 @@ function autoSelectDriver(userId){
   });
 }
 
-// ===== FIREBASE INIT =====
-// This key is restricted to cacattlebrd.github.io in Google Cloud Console.
-const firebaseConfig = {
-  apiKey: "AIzaSyCaLAw_OoWT3aNK4tVSsLSenSnVhTWTaV0",
-  authDomain: "loadledger-7007e.firebaseapp.com",
-  databaseURL: "https://loadledger-7007e-default-rtdb.firebaseio.com",
-  projectId: "loadledger-7007e",
-  storageBucket: "loadledger-7007e.firebasestorage.app",
-  messagingSenderId: "953441361412",
-  appId: "1:953441361412:web:22a8487caeb4237d109f51"
-};
-firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
-
-// ===== CONFIG DEFAULTS =====
-const CONFIG_DEFAULTS = {
-  drivers: [
-    {"id":"admin","name":"Chad (Admin)","pin":"2636","role":"master","group":"Admin"},
-    {"id":"john","name":"John Hightower","pin":"5990","role":"driver","group":"BRD Drivers"},
-    {"id":"juan","name":"Juan Gutierrez","pin":"8258","role":"driver","group":"BRD Drivers"},
-    {"id":"james","name":"James Gass","pin":"5796","role":"manager","group":"Admin"},
-    {"id":"cuatrot","name":"Cuatro T","pin":"","role":"driver","group":"Contract Haulers"},
-    {"id":"treshijos","name":"Tres Hijos","pin":"","role":"driver","group":"Contract Haulers"},
-    {"id":"luckey","name":"Luckey","pin":"","role":"driver","group":"Contract Haulers"},
-    {"id":"rockingb","name":"Rocking B","pin":"","role":"driver","group":"Contract Haulers"}
-  ],
-  trucks: ["881486","256533"],
-  trailers: [
-    {"id":"DV-1323","group":"Dry Vans"},{"id":"DV-2452","group":"Dry Vans"},{"id":"DV-3921","group":"Dry Vans"},{"id":"DV-3106","group":"Dry Vans"},
-    {"id":"DV-O880","group":"Dry Vans"},{"id":"DV-7938","group":"Dry Vans"},{"id":"DV-7660","group":"Dry Vans"},{"id":"DV-888","group":"Dry Vans"},
-    {"id":"DV-2399","group":"Dry Vans"},{"id":"DV-5613","group":"Dry Vans"},{"id":"DV-5620","group":"Dry Vans"},{"id":"DV-1881","group":"Dry Vans"},{"id":"DV-58","group":"Dry Vans"},
-    {"id":"ED-6657","group":"End Dumps"},{"id":"ED-4505","group":"End Dumps"},
-    {"id":"FB-6709","group":"Flatbeds"},{"id":"FB-1641","group":"Flatbeds"},{"id":"FB-6572","group":"Flatbeds"}
-  ],
-  suppliers: ["Maruchan Noodles","Envirofeeds","Sterling","Pioneer Flour","Bimbo ATX1","Bimbo ATX2 Wall","Bimbo SATX","Mission Tortillas","HEB Snacks","HEB Bakery SA","Frito-Lay"],
-  customers: [
-    {"id":"LOF","name":"LOF - Liveoak Feedlots"},{"id":"CHAP","name":"CHAP - Chaparral Feeders"},
-    {"id":"MCF","name":"MCF - Mason County Feeders"},{"id":"LABA","name":"LABA - La Babia Cattle"},
-    {"id":"Taylor","name":"Taylor Ranch"},{"id":"Clampit","name":"Clampit Ranches"},{"id":"Poncho","name":"Poncho Properties"}
-  ],
-  products: ["Bread","Snacks","Chips","Tortillas","Pasta/Noodles","Flour","Nut Mix","Wet Dough","Mixed"],
-  commodities: [
-    {"id":"BKF","name":"BKF - Bakery Feed Mix"},{"id":"Ramen","name":"Ramen Noodles"},
-    {"id":"BKF-Fob","name":"BKF Fob SaTX"},{"id":"Ramen-Fob","name":"Ramen Fob SaTX"}
-  ]
-};
-
-// In-memory config cache (synced from Firebase)
-const configCache = {};
-let firebaseReady = false;
-
-// Load all config from Firebase on startup, seed defaults if empty
-function initFirebaseConfig() {
-  return db.ref('config').once('value').then(snap => {
-    const data = snap.val();
-    if (!data) {
-      // First run â seed Firebase with defaults
-      return db.ref('config').set(CONFIG_DEFAULTS).then(() => {
-        Object.assign(configCache, JSON.parse(JSON.stringify(CONFIG_DEFAULTS)));
-        firebaseReady = true;
-      });
-    } else {
-      // Load from Firebase
-      Object.keys(CONFIG_DEFAULTS).forEach(key => {
-        configCache[key] = data[key] || CONFIG_DEFAULTS[key];
-      });
-      firebaseReady = true;
-    }
-  }).catch(err => {
-    console.warn('Firebase load failed, using defaults:', err);
-    Object.assign(configCache, JSON.parse(JSON.stringify(CONFIG_DEFAULTS)));
-    firebaseReady = true;
-  });
-}
-
-// Config functions â reads from cache, writes to Firebase + cache
+// Config functions
 function getConfig(key) {
-  if (firebaseReady && configCache[key]) return configCache[key];
-  return CONFIG_DEFAULTS[key] || CONFIG_DEFAULTS;
+  const defaults = {
+    drivers: [
+      {"id":"admin","name":"Chad (Admin)","pin":"2636","role":"admin","group":"Admin"},
+      {"id":"john","name":"John Hightower","pin":"5990","role":"driver","group":"BRD Drivers"},
+      {"id":"juan","name":"Juan Gutierrez","pin":"8258","role":"driver","group":"BRD Drivers"},
+      {"id":"james","name":"James Gass","pin":"5796","role":"driver","group":"BRD Drivers"},
+      {"id":"cuatrot","name":"Cuatro T","pin":"","role":"driver","group":"Contract Haulers"},
+      {"id":"treshijos","name":"Tres Hijos","pin":"","role":"driver","group":"Contract Haulers"},
+      {"id":"luckey","name":"Luckey","pin":"","role":"driver","group":"Contract Haulers"},
+      {"id":"rockingb","name":"Rocking B","pin":"","role":"driver","group":"Contract Haulers"}
+    ],
+    trucks: ["881486","256533"],
+    trailers: [
+      {"id":"DV-1323","group":"Dry Vans"},{"id":"DV-2452","group":"Dry Vans"},{"id":"DV-3921","group":"Dry Vans"},{"id":"DV-3106","group":"Dry Vans"},
+      {"id":"DV-O880","group":"Dry Vans"},{"id":"DV-7938","group":"Dry Vans"},{"id":"DV-7660","group":"Dry Vans"},{"id":"DV-888","group":"Dry Vans"},
+      {"id":"DV-2399","group":"Dry Vans"},{"id":"DV-5613","group":"Dry Vans"},{"id":"DV-5620","group":"Dry Vans"},{"id":"DV-1881","group":"Dry Vans"},{"id":"DV-58","group":"Dry Vans"},
+      {"id":"ED-6657","group":"End Dumps"},{"id":"ED-4505","group":"End Dumps"},
+      {"id":"FB-6709","group":"Flatbeds"},{"id":"FB-1641","group":"Flatbeds"},{"id":"FB-6572","group":"Flatbeds"}
+    ],
+    suppliers: ["Maruchan Noodles","Envirofeeds","Sterling","Pioneer Flour","Bimbo ATX1","Bimbo ATX2 Wall","Bimbo SATX","Mission Tortillas","HEB Snacks","HEB Bakery SA","Frito-Lay"],
+    customers: [
+      {"id":"LOF","name":"LOF - Liveoak Feedlots"},{"id":"CHAP","name":"CHAP - Chaparral Feeders"},
+      {"id":"MCF","name":"MCF - Mason County Feeders"},{"id":"LABA","name":"LABA - La Babia Cattle"},
+      {"id":"Taylor","name":"Taylor Ranch"},{"id":"Clampit","name":"Clampit Ranches"},{"id":"Poncho","name":"Poncho Properties"}
+    ],
+    products: ["Bread","Snacks","Chips","Tortillas","Pasta/Noodles","Flour","Nut Mix","Wet Dough","Mixed"],
+    commodities: [
+      {"id":"BKF","name":"BKF - Bakery Feed Mix"},{"id":"Ramen","name":"Ramen Noodles"},
+      {"id":"BKF-Fob","name":"BKF Fob SaTX"},{"id":"Ramen-Fob","name":"Ramen Fob SaTX"}
+    ]
+  };
+
+  const stored = localStorage.getItem('ll_cfg_'+key);
+  return stored ? JSON.parse(stored) : defaults[key] || defaults;
 }
 
 function setConfig(key, arr) {
-  configCache[key] = arr;
-  db.ref('config/' + key).set(arr).catch(err => console.error('Firebase write error:', err));
-}
-
-// ===== REAL-TIME SYNC =====
-// Listen for changes from Firebase and refresh UI automatically
-function startRealtimeSync() {
-  db.ref('config').on('value', snap => {
-    const data = snap.val();
-    if (!data) return;
-    let changed = false;
-    Object.keys(CONFIG_DEFAULTS).forEach(key => {
-      const newVal = data[key];
-      if (newVal && JSON.stringify(newVal) !== JSON.stringify(configCache[key])) {
-        configCache[key] = newVal;
-        changed = true;
-      }
-    });
-    if (changed && firebaseReady) {
-      // Refresh all dropdowns and admin panel
-      if (typeof populateDropdowns === 'function') populateDropdowns();
-      if (typeof renderAdminPanel === 'function' && document.getElementById('panel-admin')) renderAdminPanel();
-      // Re-populate pin select for login screen
-      const pinSel = document.getElementById('pin-user-select');
-      if (pinSel && document.getElementById('pin-overlay') && !document.getElementById('pin-overlay').classList.contains('hidden')) {
-        const drivers = configCache.drivers || [];
-        const currentVal = pinSel.value;
-        pinSel.innerHTML = '<option value="">Select your name...</option>';
-        drivers.forEach(d => {
-          const opt = document.createElement('option');
-          opt.value = d.id;
-          opt.textContent = d.name;
-          pinSel.appendChild(opt);
-        });
-        if (currentVal) pinSel.value = currentVal;
-      }
-    }
-  });
-}
-
-// Also sync load history to Firebase
-function getHistory() {
-  const stored = localStorage.getItem('ll_history');
-  return stored ? JSON.parse(stored) : [];
-}
-function saveHistory(arr) {
-  localStorage.setItem('ll_history', JSON.stringify(arr));
+  localStorage.setItem('ll_cfg_'+key, JSON.stringify(arr));
 }
 
 // Initialize pin-user-select
 function initPinSelect() {
   const drivers = getConfig('drivers');
   const sel = document.getElementById('pin-user-select');
-  sel.innerHTML = '<option value="">Select your name...</option>';
   drivers.forEach(d => {
     const opt = document.createElement('option');
     opt.value = d.id;
@@ -416,35 +271,14 @@ function initPinSelect() {
   });
 }
 
-// Call after DOM is ready â wait for Firebase first
-document.addEventListener('DOMContentLoaded', () => {
-  initFirebaseConfig().then(() => {
-    initPinSelect();
-    startRealtimeSync();
-    initEntriesSync();
-    initActivityLog();
-  });
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js').catch(e => console.log('SW registration failed:', e));
-  }
-});
+// Call after DOM is ready
+document.addEventListener('DOMContentLoaded', initPinSelect);
 </script>
 
 <div class="header">
   <h1>LOADLEDGER</h1>
   <div class="sub">CA Cattle Co. - Bakery Recycling Division</div>
 </div>
-
-<div class="gps-banner" id="gpsBanner" onclick="showGpsInfo()">
-  <span class="gps-dot"></span>
-  <span>TRACKING ACTIVE</span>
-  <span class="gps-loc" id="gpsLocLabel"></span>
-</div>
-
-<button class="logout-btn" id="logoutBtn" onclick="doLogout()">
-  <span class="logout-icon">&#9211;</span>
-  LOG OUT
-</button>
 
 <div class="tabs">
   <div class="tab active" onclick="switchTab('load')"><span class="tab-icon">&#9878;</span>Load</div>
@@ -749,24 +583,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
 <!-- ===== ADMIN TAB ===== -->
 <div id="panel-admin" class="panel">
-  <div class="section-title">Activity Log</div>
-  <div class="activity-filter" id="activityFilter">
-    <button class="active" onclick="filterActivity('all')">All</button>
-    <button onclick="filterActivity('login')">Logins</button>
-    <button onclick="filterActivity('load')">Loads</button>
-    <button onclick="filterActivity('fuel')">Fuel</button>
-    <button onclick="filterActivity('dvir')">DVIR</button>
-    <button onclick="filterActivity('error')">Errors</button>
-  </div>
-  <div class="activity-log" id="activityLog">
-    <div style="text-align:center;color:#64748b;padding:20px;font-size:13px">Loading activity...</div>
-  </div>
-
-  <div id="userManagement">
-  <div class="section-title">Users &amp; Roles</div>
-  <div style="font-size:11px;color:#64748b;margin-bottom:8px">Only Master Admin can add, edit, or remove users</div>
+  <div class="section-title">Drivers &amp; PINs</div>
   <div id="adminDriversList" class="admin-list"></div>
-  <button class="admin-btn-add" onclick="showAddDriverForm()">+ Add User</button>
+  <button class="admin-btn-add" onclick="showAddDriverForm()">+ Add Driver</button>
   <div id="adminAddDriverForm" class="admin-inline-form" style="display:none">
     <input type="text" id="adminDriverName" placeholder="Full name">
     <input type="text" id="adminDriverPin" placeholder="4-digit PIN" maxlength="4">
@@ -776,16 +595,13 @@ document.addEventListener('DOMContentLoaded', () => {
       <option value="Contract Haulers">Contract Haulers</option>
     </select>
     <select id="adminDriverRole">
-      <option value="master">Master Admin</option>
-      <option value="manager">Manager</option>
+      <option value="admin">Admin</option>
       <option value="driver">Driver</option>
-      <option value="observer">Observer</option>
     </select>
     <div class="form-actions">
       <button class="save" onclick="saveDriver()">Save</button>
       <button class="cancel" onclick="hideAddDriverForm()">Cancel</button>
     </div>
-  </div>
   </div>
 
   <div class="section-title">Trucks</div>
@@ -861,36 +677,7 @@ document.addEventListener('DOMContentLoaded', () => {
     </div>
   </div>
 
-  <div id="gpsAdminSection">
-    <div class="section-title">GPS Tracking</div>
-    <div class="gps-toggle">
-      <label>Enable GPS tracking for all drivers</label>
-      <input type="checkbox" id="gpsGlobalToggle" onchange="toggleGpsGlobal(this.checked)">
-    </div>
-    <div id="gpsDriverToggles"></div>
-    <div class="section-title" style="margin-top:16px">Geofence Locations</div>
-    <div style="font-size:11px;color:#64748b;margin-bottom:8px">Auto-detect when drivers arrive/depart these locations</div>
-    <div id="geofenceList"></div>
-    <button class="admin-btn-add" onclick="showAddGeofenceForm()">+ Add Location</button>
-    <div id="adminAddGeofenceForm" class="admin-inline-form" style="display:none">
-      <input type="text" id="geofenceName" placeholder="Location name (e.g., Plant, Bimbo ATX)">
-      <input type="text" id="geofenceLat" placeholder="Latitude (e.g., 30.2672)">
-      <input type="text" id="geofenceLng" placeholder="Longitude (e.g., -97.7431)">
-      <input type="number" id="geofenceRadius" placeholder="Radius in feet (default 500)" value="500">
-      <select id="geofenceType">
-        <option value="plant">Plant</option>
-        <option value="supplier">Supplier</option>
-        <option value="customer">Customer</option>
-      </select>
-      <div class="form-actions">
-        <button class="save" onclick="saveGeofence()">Save</button>
-        <button class="save" onclick="captureCurrentLocation()" style="background:#2563eb">Use My Location</button>
-        <button class="cancel" onclick="hideAddGeofenceForm()">Cancel</button>
-      </div>
-    </div>
-  </div>
-
-  <div id="dangerZoneSection" class="danger-zone">
+  <div class="danger-zone">
     <div class="section-title">Danger Zone</div>
     <button class="delete-btn" onclick="confirmClearAllData()">Clear All Load Data</button>
     <button class="delete-btn" onclick="confirmResetDefaults()">Reset to Defaults</button>
@@ -1232,7 +1019,7 @@ function switchTab(name) {
   document.getElementById('panel-'+name).classList.add('active');
   event.currentTarget.classList.add('active');
   if(name==='history') renderHistory();
-  if(name==='admin') { renderAdminPanel(); renderActivityLog(); }
+  if(name==='admin') renderAdminPanel();
 }
 
 // ===== DIRECTION =====
@@ -1245,7 +1032,7 @@ function setDirection(dir) {
   document.getElementById('product-type-section').classList.toggle('hidden', dir!=='in');
 }
 
-// ===== WEIGHT CALC =====
+// ===== WEEGHTCALC =====
 function calcNet() {
   const g = parseFloat(document.getElementById('loadGross').value) || 0;
   const t = parseFloat(document.getElementById('loadTare').value) || 0;
@@ -1283,123 +1070,6 @@ function setDvirType(type) {
 // ===== STORAGE =====
 function getStore(key) { try { return JSON.parse(localStorage.getItem('ll_'+key)) || []; } catch(e) { return []; } }
 function addStore(key, obj) { const arr = getStore(key); arr.unshift(obj); localStorage.setItem('ll_'+key, JSON.stringify(arr)); }
-
-// ===== FIREBASE ENTRIES SYNC =====
-const firebaseEntries = { loads: [], fuel: [], dvir: [] };
-let entriesReady = false;
-function pushToFirebase(collection, entry) {
-  if (!firebaseReady) { console.warn('Firebase not ready, saved locally only'); return; }
-  const clean = JSON.parse(JSON.stringify(entry));
-  if (clean.photoData) { clean.hasPhoto = true; delete clean.photoData; }
-  function sanitizeKeys(obj) {
-    if (typeof obj !== 'object' || obj === null || Array.isArray(obj)) return obj;
-    const out = {};
-    for (const k in obj) { out[k.replace(/[.#$\/\[\]]/g, '-')] = sanitizeKeys(obj[k]); }
-    return out;
-  }
-  try {
-    db.ref(collection).push(sanitizeKeys(clean)).catch(err => console.error('Firebase push error:', err));
-  } catch(e) { console.error('Firebase push exception:', e); }
-}
-// ===== GOOGLE SHEETS INTEGRATION =====
-const SHEETS_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbzDa0LRR8JkMbCc52vzuGklM6vEjf-sN5mVekSvEFp-Nvmt_pxq1Fb6IeuqALRMeuFF/exec';
-
-function pushToGoogleSheets(sheetName, rowArray) {
-  fetch(SHEETS_WEBAPP_URL, {
-    method: 'POST',
-    mode: 'no-cors',
-    headers: { 'Content-Type': 'text/plain' },
-    body: JSON.stringify({ sheet: sheetName, row: rowArray })
-  }).then(() => {
-    console.log('Sheets sync: row sent to ' + sheetName);
-  }).catch(err => {
-    console.warn('Sheets sync error:', err);
-  });
-}
-
-function initEntriesSync() {
-  ['loads','fuel','dvir'].forEach(collection => {
-    db.ref(collection).orderByChild('timestamp').on('value', snap => {
-      const data = snap.val();
-      if (data) {
-        firebaseEntries[collection] = Object.values(data).sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
-      } else { firebaseEntries[collection] = []; }
-      entriesReady = true;
-      const hp = document.getElementById('panel-history');
-      if (hp && hp.classList.contains('active')) renderHistory();
-    });
-  });
-  if (!localStorage.getItem('ll_migrated_to_firebase')) {
-    setTimeout(() => {
-      ['loads','fuel','dvir'].forEach(col => {
-        const local = getStore(col);
-        if (local.length > 0) {
-          local.forEach(e => { const cl = {...e}; if(cl.photoData){cl.hasPhoto=true;delete cl.photoData;} db.ref(col).push(cl).catch(()=>{}); });
-        }
-      });
-      localStorage.setItem('ll_migrated_to_firebase','true');
-    }, 2000);
-  }
-}
-function getAllEntries(collection) {
-  if (entriesReady && firebaseEntries[collection].length > 0) return firebaseEntries[collection];
-  return getStore(collection);
-}
-
-// ===== ACTIVITY LOG =====
-let activityFilter = 'all';
-const activityIcons = { login: '\ud83d\udd11', load: '\ud83d\ude9b', fuel: '\u26fd', dvir: '\ud83d\udd27', error: '\u26a0\ufe0f', admin: '\u2699\ufe0f' };
-
-function logActivity(type, message, driverName) {
-  if (!firebaseReady) return;
-  db.ref('activity_log').push({
-    type: type, message: message,
-    driver: driverName || 'Unknown',
-    timestamp: new Date().toISOString()
-  }).catch(err => console.error('Activity log error:', err));
-}
-
-function getDriverDisplayName(driverId) {
-  const drivers = getConfig('drivers');
-  const d = drivers.find(x => x.id === driverId);
-  return d ? d.name : driverId || 'Unknown';
-}
-
-function initActivityLog() {
-  db.ref('activity_log').orderByChild('timestamp').limitToLast(100).on('value', snap => {
-    const data = snap.val();
-    window._activityData = data ? Object.values(data).sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp)) : [];
-    const ap = document.getElementById('panel-admin');
-    if (ap && ap.classList.contains('active')) renderActivityLog();
-  });
-}
-
-function renderActivityLog() {
-  const c = document.getElementById('activityLog');
-  if (!c) return;
-  const items = window._activityData || [];
-  const filtered = activityFilter === 'all' ? items : items.filter(i => i.type === activityFilter);
-  if (filtered.length === 0) {
-    c.innerHTML = '<div style="text-align:center;color:#64748b;padding:20px;font-size:13px">' +
-      (items.length === 0 ? 'No activity yet. Actions will appear here as drivers use the app.' : 'No ' + activityFilter + ' activity found.') + '</div>';
-    return;
-  }
-  c.innerHTML = filtered.slice(0, 50).map(item => {
-    const icon = activityIcons[item.type] || '\ud83d\udccb';
-    const cls = 'act-' + (item.type || 'login');
-    const ts = new Date(item.timestamp);
-    const timeStr = ts.toLocaleDateString('en-US', {month:'short',day:'numeric'}) + ' at ' +
-      ts.toLocaleTimeString('en-US', {hour:'numeric',minute:'2-digit',hour12:true});
-    return '<div class="activity-item ' + cls + '"><span class="activity-icon">' + icon + '</span><div class="activity-body"><div class="activity-msg"><span class="activity-driver">' + (item.driver || 'Unknown') + '</span> ' + (item.message || '') + '</div><div class="activity-meta">' + timeStr + '</div></div></div>';
-  }).join('');
-}
-
-function filterActivity(type) {
-  activityFilter = type;
-  document.querySelectorAll('#activityFilter button').forEach(b => b.classList.remove('active'));
-  event.target.classList.add('active');
-  renderActivityLog();
-}
 
 // ===== ADMIN OVERRIDE =====
 function toggleOverrideUI() {
@@ -1472,13 +1142,11 @@ function validateLoadForm() {
   const tare = parseFloat(document.getElementById('loadTare').value) || 0;
   if(tare === 0) errors.push({id:'loadTare', msg:'Tare weight is required'});
 
-    // Ticket photo is optional â drivers can submit without one
+  if(!ticketPhotoData) errors.push({id:'photoUpload', msg:'Ticket photo is required'});
 
   if(errors.length > 0) {
     errors.forEach(e => markError(e.id));
     showToast('Fill all required fields (' + errors.length + ' missing)');
-    const driverVal2 = document.getElementById('loadDriver').value;
-    logActivity('error', 'load submission failed \u2014 missing: ' + errors.map(e => e.msg.replace(' is required','')).join(', '), getDriverDisplayName(driverVal2 || window.currentUser));
     return false;
   }
   return true;
@@ -1545,18 +1213,6 @@ function submitLoad() {
 
   addStore('loads', entry);
   sheetsSync.send('load', entry);
-  pushToFirebase('loads', entry);
-
-  // Push to Google Sheets
-  const sheetsTab = entry.type === 'Inbound' ? 'Inbound Loads' : 'Outbound Loads';
-  pushToGoogleSheets(sheetsTab, [
-    entry.date, entry.driver, entry.truck, entry.trailer,
-    entry.products, entry.source, entry.gross, entry.tare,
-    entry.net, entry.ticket, entry.notes ? entry.notes : '',
-    entry.tons
-  ]);
-
-  logActivity('load', 'submitted ' + entry.type.toLowerCase() + ' load \u2014 ' + entry.source + ', ' + entry.tons + 'T, Tkt: ' + entry.ticket, getDriverDisplayName(entry.driver));
   showToast(entry.type + ' load saved - ' + entry.tons + ' tons');
   clearFieldErrors();
   ['loadGross','loadTare','loadTicket','loadNotes','loadMileStart','loadMileEnd','loadTimeStart','loadTimeEnd','loadTruckOther'].forEach(id => {
@@ -1587,19 +1243,9 @@ function submitFuel() {
     notes: document.getElementById('fuelNotes').value,
     timestamp: new Date().toISOString()
   };
-  if(!entry.driver || !entry.date) { showToast('Please fill required fields', true); return; }
+  if(!entry.driver || !entry.date) { showToast('Please fill required fields'); return; }
   addStore('fuel', entry);
   sheetsSync.send('fuel', entry);
-  pushToFirebase('fuel', entry);
-
-  // Push to Google Sheets
-  pushToGoogleSheets('Fuel & DEF', [
-    entry.date, entry.driver, entry.truck,
-    entry.fuelGal, entry.defGal, entry.fuelCost, entry.defCost,
-    entry.odometer, entry.station, entry.notes
-  ]);
-
-  logActivity('fuel', 'logged fuel \u2014 ' + entry.fuelGal + ' gal' + (entry.defGal > 0 ? ' + ' + entry.defGal + ' DEF' : '') + ' at ' + (entry.station || 'N/A'), getDriverDisplayName(entry.driver));
   showToast('Fuel log saved');
   ['fuelGal','defGal','fuelCost','defCost','fuelOdo','fuelStation','fuelNotes'].forEach(id => document.getElementById(id).value = '');
 }
@@ -1620,21 +1266,9 @@ function submitDvir() {
     allClear: defects.length === 0,
     timestamp: new Date().toISOString()
   };
-  if(!entry.driver || !entry.date || !entry.truck) { showToast('Please fill required fields', true); return; }
+  if(!entry.driver || !entry.date || !entry.truck) { showToast('Please fill required fields'); return; }
   addStore('dvir', entry);
   sheetsSync.send('dvir', entry);
-  pushToFirebase('dvir', entry);
-
-  // Push to Google Sheets
-  pushToGoogleSheets('DVIR', [
-    entry.date, entry.driver, entry.truck, entry.trailer,
-    defects.length > 0 ? 'Yes' : 'No',
-    defects.join(', '),
-    '', // Corrective Action (filled later)
-    entry.allClear ? 'All Clear' : 'Defects Found'
-  ]);
-
-  logActivity('dvir', 'submitted ' + entry.type + ' DVIR \u2014 Truck ' + entry.truck + (defects.length > 0 ? ', ' + defects.length + ' defect(s): ' + defects.join(', ') : ', All Clear'), getDriverDisplayName(entry.driver));
   showToast('DVIR saved' + (defects.length > 0 ? ' - ' + defects.length + ' defect(s)' : ' - All Clear'));
   document.getElementById('dvirNotes').value = '';
   dvirItems.forEach(i => dvirState[i] = 'ok');
@@ -1643,7 +1277,7 @@ function submitDvir() {
 
 // ===== HISTORY =====
 function renderHistory() {
-  if(window.isAdmin || window.isManager) {
+  if(window.isAdmin) {
     document.getElementById('sync-section').classList.remove('hidden');
     const unsynced = getUnsyncedLoads();
     const syncBtn = document.getElementById('syncBtn');
@@ -1654,9 +1288,9 @@ function renderHistory() {
     }
   }
 
-  const loads = getAllEntries('loads').map(e => ({...e, _cat: 'load'}));
-  const fuel = getAllEntries('fuel').map(e => ({...e, _cat: 'fuel'}));
-  const dvirs = getAllEntries('dvir').map(e => ({...e, _cat: 'dvir'}));
+  const loads = getStore('loads').map(e => ({...e, _cat: 'load'}));
+  const fuel = getStore('fuel').map(e => ({...e, _cat: 'fuel'}));
+  const dvirs = getStore('dvir').map(e => ({...e, _cat: 'dvir'}));
   const all = [...loads, ...fuel, ...dvirs].sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
   const el = document.getElementById('historyList');
   if(all.length === 0) { el.innerHTML = '<div style="text-align:center;color:#64748b;padding:40px">No entries yet</div>'; return; }
@@ -1699,35 +1333,31 @@ function renderAdminPanel() {
   renderAdminCustomers();
   renderAdminProducts();
   renderAdminCommodities();
-  renderGpsDriverToggles();
-  renderGeofenceList();
 }
 
 function renderAdminDrivers() {
   const drivers = getConfig('drivers');
   const container = document.getElementById('adminDriversList');
   container.innerHTML = '';
-  const roleColors = {master:'#ef4444',manager:'#f59e0b',driver:'#22c55e',observer:'#94a3b8',admin:'#ef4444'};
-  const roleLabels = {master:'MASTER',manager:'MANAGER',driver:'DRIVER',observer:'OBSERVER',admin:'ADMIN'};
   drivers.forEach(d => {
     const item = document.createElement('div');
     item.className = 'admin-list-item';
-    const pinDisplay = d.pin ? String.fromCharCode(8226,8226,8226,8226) : 'N/A';
-    const roleColor = roleColors[d.role] || '#94a3b8';
-    const roleLabel = roleLabels[d.role] || d.role;
-    const isMasterAcct = (d.role === 'master');
-    const canEdit = window.isMaster && !isMasterAcct;
-    const canEditSelf = window.isMaster && isMasterAcct;
-    let actions = '';
-    if (canEditSelf) actions = '<button class="admin-btn-edit" onclick="editDriver(\'' + d.id + '\')">Edit</button>';
-    else if (canEdit) actions = '<button class="admin-btn-edit" onclick="editDriver(\'' + d.id + '\')">Edit</button><button class="admin-btn-delete" onclick="deleteDriver(\'' + d.id + '\')">Delete</button>';
-    else if (isMasterAcct) actions = '<span style="font-size:11px;color:#64748b">Protected</span>';
-    item.innerHTML = '<div class="item-info"><div style="font-weight:600;color:#e2e8f0">' + d.name + ' <span style="font-size:10px;font-weight:700;color:' + roleColor + ';background:' + roleColor + '22;padding:2px 6px;border-radius:4px;margin-left:4px">' + roleLabel + '</span></div><div style="font-size:12px;color:#94a3b8">PIN: ' + pinDisplay + ' | ' + d.group + '</div></div><div class="item-actions">' + actions + '</div>';
+    const pinDisplay = d.pin ? 'â¢â¢â¢â¢' : 'N/A';
+    item.innerHTML = `
+      <div class="item-info">
+        <div style="font-weight:600;color:#e2e8f0">${d.name}</div>
+        <div style="font-size:12px;color:#94a3b8">PIN: ${pinDisplay} | ${d.group} | ${d.role}</div>
+      </div>
+      <div class="item-actions">
+        <button class="admin-btn-edit" onclick="editDriver('${d.id}')">Edit</button>
+        <button class="admin-btn-delete" onclick="deleteDriver('${d.id}')">Delete</button>
+      </div>
+    `;
     container.appendChild(item);
   });
 }
+
 function editDriver(id) {
-  if (!window.isMaster) { showToast('Only Master Admin can edit users'); return; }
   const drivers = getConfig('drivers');
   const driver = drivers.find(d => d.id === id);
   if (!driver) return;
@@ -1754,7 +1384,6 @@ function hideAddDriverForm() {
 }
 
 function saveDriver() {
-  if (!window.isMaster) { showToast('Only Master Admin can manage users'); return; }
   const drivers = getConfig('drivers');
   const name = document.getElementById('adminDriverName').value.trim();
   const pin = document.getElementById('adminDriverPin').value.trim();
@@ -1762,8 +1391,7 @@ function saveDriver() {
   const role = document.getElementById('adminDriverRole').value;
 
   if (!name) { showToast('Name is required'); return; }
-  if ((role === 'master' || role === 'manager') && !pin) { showToast('Admin/Manager roles need a PIN'); return; }
-  if (role === 'master' && editingDriver !== 'admin') { const em = drivers.find(d => d.role === 'master'); if (em) { showToast('Only one Master Admin allowed'); return; } }
+  if (role === 'admin' && !pin) { showToast('Admin drivers need a PIN'); return; }
   if (pin && pin.length !== 4) { showToast('PIN must be 4 digits'); return; }
 
   if (editingDriver) {
@@ -1780,25 +1408,20 @@ function saveDriver() {
   }
 
   setConfig('drivers', drivers);
-  logActivity('admin', (editingDriver ? 'edited' : 'added') + ' user: ' + name + ' (' + role + ')', getDriverDisplayName(window.currentUser));
   populateDropdowns();
   renderAdminDrivers();
   hideAddDriverForm();
-  showToast('User saved');
+  showToast('Driver saved');
 }
 
 function deleteDriver(id) {
-  if (!window.isMaster) { showToast('Only Master Admin can delete users'); return; }
-  const drivers = getConfig('drivers');
-  const target = drivers.find(d => d.id === id);
-  if (target && target.role === 'master') { showToast('Cannot delete Master Admin'); return; }
-  if (!confirm('Delete ' + (target ? target.name : 'this user') + '?')) return;
-  const filtered = drivers.filter(d => d.id !== id);
-  setConfig('drivers', filtered);
-  logActivity('admin', 'deleted user: ' + (target ? target.name : id), getDriverDisplayName(window.currentUser));
+  if (!confirm('Delete this driver?')) return;
+  let drivers = getConfig('drivers');
+  drivers = drivers.filter(d => d.id !== id);
+  setConfig('drivers', drivers);
   populateDropdowns();
   renderAdminDrivers();
-  showToast('User deleted');
+  showToast('Driver deleted');
 }
 
 let editingTruck = null;
@@ -2268,7 +1891,7 @@ function confirmResetDefaults() {
 function resetDefaults() {
   const keys = ['drivers', 'trucks', 'trailers', 'suppliers', 'customers', 'products', 'commodities'];
   keys.forEach(key => {
-    setConfig(key, CONFIG_DEFAULTS[key]);
+    localStorage.removeItem('ll_cfg_' + key);
   });
   populateDropdowns();
   renderAdminPanel();
@@ -2568,7 +2191,7 @@ async function syncToWorkbook(input) {
 }
 
 function getUnsyncedLoads() {
-  const loads = getAllEntries('loads');
+  const loads = getStore('loads');
   const synced = JSON.parse(localStorage.getItem('ll_synced_loads') || '[]');
   return loads.filter(l => !synced.includes(l.timestamp));
 }
@@ -2625,197 +2248,135 @@ function emailExport() {
     encodeURIComponent(new Date().toLocaleDateString()) + '&body=' + encodeURIComponent(body);
 }
 
-// ===== GPS TRACKING ENGINE =====
-let gpsWatchId = null;
-let gpsTrackingActive = false;
-let gpsLastPos = null;
-let gpsTrackLog = [];
-let gpsLoginTime = null;
-let currentGeofence = null;
-let geofenceHistory = [];
-const GEOFENCE_DEFAULTS = [{name:'CA Cattle Plant',lat:0,lng:0,radius:500,type:'plant'}];
-function getGeofences(){const s=getConfig('geofences');return(s&&s.length>0)?s:GEOFENCE_DEFAULTS;}
-function isGpsEnabled(){const cfg=getConfig('gpsEnabled');if(cfg===false)return false;const dg=getConfig('gpsDrivers');if(dg&&window.currentUser&&dg[window.currentUser]===false)return false;return true;}
-function startGpsTracking(){
-  if(!navigator.geolocation){console.warn('Geolocation not supported');return;}
-  if(!isGpsEnabled()){document.getElementById('gpsBanner').classList.remove('active');return;}
-  gpsTrackingActive=true;gpsLoginTime=new Date().toISOString();gpsTrackLog=[];
-  document.getElementById('gpsBanner').classList.add('active');
-  document.getElementById('gpsBanner').classList.remove('paused');
-  document.getElementById('logoutBtn').classList.add('active');
-  gpsWatchId=navigator.geolocation.watchPosition(onGpsPosition,onGpsError,{enableHighAccuracy:true,maximumAge:30000,timeout:15000});
-  pushToFirebase('gps_sessions',{driver:window.currentUser,driverName:getDriverDisplayName(window.currentUser),loginTime:gpsLoginTime,status:'active'});
-  logActivity('gps','GPS tracking started',getDriverDisplayName(window.currentUser));
-}
-function stopGpsTracking(){
-  if(gpsWatchId!==null){navigator.geolocation.clearWatch(gpsWatchId);gpsWatchId=null;}
-  gpsTrackingActive=false;
-  document.getElementById('gpsBanner').classList.remove('active');
-  document.getElementById('logoutBtn').classList.remove('active');
-  const logoutTime=new Date().toISOString();
-  if(gpsLoginTime){
-    const sd={driver:window.currentUser,driverName:getDriverDisplayName(window.currentUser),loginTime:gpsLoginTime,logoutTime:logoutTime,pointsLogged:gpsTrackLog.length,geofenceVisits:geofenceHistory.length>0?geofenceHistory:[],status:'completed'};
-    pushToFirebase('gps_sessions',sd);
-    pushToGoogleSheets('GPS Log',[new Date().toLocaleDateString(),sd.driverName,gpsLoginTime.substring(11,16),logoutTime.substring(11,16),gpsTrackLog.length+' pts',geofenceHistory.map(g=>g.name+' ('+g.arrived.substring(11,16)+')').join('; ')]);
-  }
-  logActivity('gps','GPS tracking stopped',getDriverDisplayName(window.currentUser));
-  gpsLoginTime=null;gpsTrackLog=[];geofenceHistory=[];currentGeofence=null;
-  document.getElementById('gpsLocLabel').textContent='';
-}
-function onGpsPosition(pos){
-  const lat=pos.coords.latitude,lng=pos.coords.longitude,acc=pos.coords.accuracy,spd=pos.coords.speed;
-  gpsLastPos={lat,lng,acc,spd,ts:new Date().toISOString()};
-  const lastLog=gpsTrackLog[gpsTrackLog.length-1];
-  if(!lastLog||(Date.now()-new Date(lastLog.ts).getTime())>60000){
-    gpsTrackLog.push(gpsLastPos);
-    if(!lastLog||(Date.now()-new Date(lastLog.ts).getTime())>300000){
-      pushToFirebase('gps_points',{driver:window.currentUser,lat,lng,acc,speed:spd?Math.round(spd*2.237):0,ts:gpsLastPos.ts});
-    }
-  }
-  checkGeofences(lat,lng);
-}
-function onGpsError(err){
-  console.warn('GPS error:',err.message);
-  document.getElementById('gpsBanner').classList.add('paused');
-  document.getElementById('gpsLocLabel').textContent='GPS paused â '+(err.code===1?'permission denied':'unavailable');
-}
-// ===== GEOFENCE ENGINE =====
-function distanceFeet(lat1,lng1,lat2,lng2){
-  const R=20902231,dLat=(lat2-lat1)*Math.PI/180,dLng=(lng2-lng1)*Math.PI/180;
-  const a=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)*Math.sin(dLng/2);
-  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
-}
-function checkGeofences(lat,lng){
-  const fences=getGeofences();let inside=null;
-  for(const f of fences){if(!f.lat||!f.lng)continue;if(distanceFeet(lat,lng,f.lat,f.lng)<=(f.radius||500)){inside=f;break;}}
-  const label=document.getElementById('gpsLocLabel');
-  if(inside){
-    if(!currentGeofence||currentGeofence.name!==inside.name){
-      geofenceHistory.push({name:inside.name,type:inside.type,arrived:new Date().toISOString()});
-      currentGeofence=inside;
-      logActivity('gps','arrived at '+inside.name,getDriverDisplayName(window.currentUser));
-      pushToFirebase('geofence_events',{driver:window.currentUser,driverName:getDriverDisplayName(window.currentUser),location:inside.name,type:inside.type,event:'arrived',lat,lng,ts:new Date().toISOString()});
-    }
-    label.textContent='@ '+inside.name;
-  }else{
-    if(currentGeofence){
-      logActivity('gps','departed '+currentGeofence.name,getDriverDisplayName(window.currentUser));
-      pushToFirebase('geofence_events',{driver:window.currentUser,driverName:getDriverDisplayName(window.currentUser),location:currentGeofence.name,type:currentGeofence.type,event:'departed',lat,lng,ts:new Date().toISOString()});
-      const lv=geofenceHistory[geofenceHistory.length-1];if(lv)lv.departed=new Date().toISOString();
-      currentGeofence=null;
-    }
-    label.textContent=gpsLastPos?'En route':'';
-  }
-}
-function showGpsInfo(){if(!gpsLastPos){showToast('Waiting for GPS fix...');return;}const mph=gpsLastPos.spd?Math.round(gpsLastPos.spd*2.237):0;showToast('GPS: '+gpsLastPos.lat.toFixed(4)+', '+gpsLastPos.lng.toFixed(4)+' | '+mph+' mph');}
-
-// ===== LOGOUT =====
-function doLogout(){
-  if(!confirm('Log out and stop GPS tracking?'))return;
-  stopGpsTracking();
-  window.currentUser=null;window.userRole=null;window.isAdmin=false;window.isMaster=false;window.isManager=false;window.isObserver=false;
-  document.getElementById('pin-overlay').classList.remove('hidden');
-  document.body.classList.add('locked');
-  pinEntry='';updateDots();
-  document.getElementById('pin-user-select').value='';
-  document.getElementById('pin-error').textContent='';
-  switchTab('load');document.getElementById('tab-admin').classList.add('hidden');
-  showToast('Logged out â GPS stopped');
-}
-
-// ===== GPS ADMIN =====
-function toggleGpsGlobal(on){setConfig('gpsEnabled',on);showToast('GPS tracking '+(on?'enabled':'disabled'));renderGpsDriverToggles();}
-function toggleGpsDriver(id,on){const cur=getConfig('gpsDrivers')||{};cur[id]=on;setConfig('gpsDrivers',cur);}
-function renderGpsDriverToggles(){
-  const el=document.getElementById('gpsDriverToggles');if(!el)return;
-  const drivers=getConfig('drivers'),globalOn=getConfig('gpsEnabled')!==false,dg=getConfig('gpsDrivers')||{};
-  document.getElementById('gpsGlobalToggle').checked=globalOn;el.innerHTML='';
-  if(!globalOn){el.innerHTML='<div style="font-size:11px;color:#ef4444;padding:4px 14px">GPS tracking is disabled globally</div>';return;}
-  drivers.forEach(d=>{if(d.role==='master'||d.role==='observer')return;const on=dg[d.id]!==false;
-    const div=document.createElement('div');div.className='gps-toggle';
-    div.innerHTML='<label>'+d.name+'</label><input type="checkbox" '+(on?'checked':'')+' onchange="toggleGpsDriver(\''+d.id+'\',this.checked)">';
-    el.appendChild(div);});
-}
-function renderGeofenceList(){
-  const el=document.getElementById('geofenceList');if(!el)return;const fences=getGeofences();el.innerHTML='';
-  fences.forEach((f,i)=>{if(!f.name)return;const div=document.createElement('div');div.className='geofence-item';
-    div.innerHTML='<span class="gf-name">'+f.name+' <span style="color:#60a5fa;font-size:10px">'+(f.type||'')+'</span></span><span class="gf-radius">'+(f.radius||500)+'ft</span>'+(f.lat?'<span class="gf-coords">'+f.lat.toFixed(4)+', '+f.lng.toFixed(4)+'</span>':'<span class="gf-coords" style="color:#ef4444">No coords</span>')+'<span style="color:#ef4444;cursor:pointer;font-size:16px" onclick="deleteGeofence('+i+')">&#10005;</span>';
-    el.appendChild(div);});
-}
-function showAddGeofenceForm(){document.getElementById('adminAddGeofenceForm').style.display='block';}
-function hideAddGeofenceForm(){document.getElementById('adminAddGeofenceForm').style.display='none';}
-function saveGeofence(){
-  const name=document.getElementById('geofenceName').value.trim();
-  const lat=parseFloat(document.getElementById('geofenceLat').value);
-  const lng=parseFloat(document.getElementById('geofenceLng').value);
-  const radius=parseInt(document.getElementById('geofenceRadius').value)||500;
-  const type=document.getElementById('geofenceType').value;
-  if(!name){showToast('Enter location name',true);return;}
-  if(isNaN(lat)||isNaN(lng)){showToast('Enter valid lat/lng or use My Location',true);return;}
-  const fences=getGeofences().filter(f=>f.name);fences.push({name,lat,lng,radius,type});
-  setConfig('geofences',fences);renderGeofenceList();hideAddGeofenceForm();
-  document.getElementById('geofenceName').value='';document.getElementById('geofenceLat').value='';document.getElementById('geofenceLng').value='';
-  showToast('Geofence saved');
-}
-function captureCurrentLocation(){
-  if(!navigator.geolocation){showToast('Geolocation not supported',true);return;}
-  showToast('Getting your location...');
-  navigator.geolocation.getCurrentPosition(pos=>{document.getElementById('geofenceLat').value=pos.coords.latitude.toFixed(6);document.getElementById('geofenceLng').value=pos.coords.longitude.toFixed(6);showToast('Location captured');},err=>showToast('Could not get location',true),{enableHighAccuracy:true,timeout:10000});
-}
-function deleteGeofence(i){if(!confirm('Delete this geofence?'))return;const f=getGeofences().filter(f=>f.name);f.splice(i,1);setConfig('geofences',f);renderGeofenceList();showToast('Geofence deleted');}
-
 // ===== TOAST =====
-function showToast(msg, isError) {
+function showToast(msg) {
   const t = document.getElementById('toast');
-  t.textContent = msg;
-  if(isError){t.classList.add('toast-error');}else{t.classList.remove('toast-error');}
-  t.style.display = 'block';
-  setTimeout(() => t.style.display = 'none', isError ? 4000 : 2500);
+  t.textContent = msg; t.style.display = 'block';
+  setTimeout(() => t.style.display = 'none', 2500);
 }
 
-// ===== Google Sheets Sync Module =====
+// ===== SHEETS SYNC MODULE =====
 const sheetsSync = (() => {
   const WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbwn7pA48Q-hh2kTYwnnXsHps1CCwkYLclVpMR2qrPijzHCqGATArHeq4FOlJJPlQwOa/exec';
   const QUEUE_KEY = 'll_sync_queue';
-  function getQueue() { try { return JSON.parse(localStorage.getItem(QUEUE_KEY)) || []; } catch(e) { return []; } }
-  function saveQueue(q) { localStorage.setItem(QUEUE_KEY, JSON.stringify(q)); }
+
+  function getQueue() {
+    try { return JSON.parse(localStorage.getItem(QUEUE_KEY)) || []; }
+    catch(e) { return []; }
+  }
+
+  function saveQueue(q) {
+    localStorage.setItem(QUEUE_KEY, JSON.stringify(q));
+  }
+
   async function send(action, data) {
     const payload = { ...data, action };
     try {
-      await fetch(WEBAPP_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify(payload), mode: 'no-cors' });
+      const resp = await fetch(WEBAPP_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify(payload),
+        mode: 'no-cors'
+      });
       markSynced(data.timestamp || new Date().toISOString());
       console.log('[SheetsSync] Sent ' + action + ' to Google Sheets');
       return true;
     } catch(err) {
-      console.warn('[SheetsSync] Failed, queued:', err.message);
-      const q = getQueue(); q.push({ action, data, queuedAt: new Date().toISOString() }); saveQueue(q);
+      console.warn('[SheetsSync] Failed to send, queued for retry:', err.message);
+      const q = getQueue();
+      q.push({ action, data, queuedAt: new Date().toISOString() });
+      saveQueue(q);
       return false;
     }
   }
-  function markSynced(ts) { const s = JSON.parse(localStorage.getItem('ll_sheets_synced') || '[]'); if (!s.includes(ts)) { s.push(ts); localStorage.setItem('ll_sheets_synced', JSON.stringify(s)); } }
-  function isSynced(ts) { return JSON.parse(localStorage.getItem('ll_sheets_synced') || '[]').includes(ts); }
-  async function retryQueue() {
-    const q = getQueue(); if (!q.length) return { sent: 0, failed: 0 };
-    const failed = []; let sent = 0;
-    for (const item of q) { try { await fetch(WEBAPP_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ ...item.data, action: item.action }), mode: 'no-cors' }); markSynced(item.data.timestamp); sent++; } catch(e) { failed.push(item); } }
-    saveQueue(failed); return { sent, failed: failed.length };
+
+  function markSynced(timestamp) {
+    const synced = JSON.parse(localStorage.getItem('ll_sheets_synced') || '[]');
+    if (!synced.includes(timestamp)) {
+      synced.push(timestamp);
+      localStorage.setItem('ll_sheets_synced', JSON.stringify(synced));
+    }
   }
+
+  function isSynced(timestamp) {
+    const synced = JSON.parse(localStorage.getItem('ll_sheets_synced') || '[]');
+    return synced.includes(timestamp);
+  }
+
+  async function retryQueue() {
+    const q = getQueue();
+    if (q.length === 0) return { sent: 0, failed: 0 };
+    const failed = [];
+    let sent = 0;
+    for (const item of q) {
+      try {
+        await fetch(WEBAPP_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain' },
+          body: JSON.stringify({ ...item.data, action: item.action }),
+          mode: 'no-cors'
+        });
+        markSynced(item.data.timestamp);
+        sent++;
+      } catch(err) {
+        failed.push(item);
+      }
+    }
+    saveQueue(failed);
+    return { sent, failed: failed.length };
+  }
+
   async function syncAll() {
     const loads = JSON.parse(localStorage.getItem('ll_loads') || '[]');
     const fuel = JSON.parse(localStorage.getItem('ll_fuel') || '[]');
     const dvir = JSON.parse(localStorage.getItem('ll_dvir') || '[]');
-    let total = 0, synced = 0;
-    for (const l of loads) { if (!isSynced(l.timestamp)) { if (await send('load', l)) synced++; total++; } }
-    for (const f of fuel) { if (!isSynced(f.timestamp)) { if (await send('fuel', f)) synced++; total++; } }
-    for (const d of dvir) { if (!isSynced(d.timestamp)) { if (await send('dvir', d)) synced++; total++; } }
+    let total = 0;
+    let synced = 0;
+    for (const load of loads) {
+      if (!isSynced(load.timestamp)) {
+        const ok = await send('load', load);
+        if (ok) synced++;
+        total++;
+      }
+    }
+    for (const f of fuel) {
+      if (!isSynced(f.timestamp)) {
+        const ok = await send('fuel', f);
+        if (ok) synced++;
+        total++;
+      }
+    }
+    for (const d of dvir) {
+      if (!isSynced(d.timestamp)) {
+        const ok = await send('dvir', d);
+        if (ok) synced++;
+        total++;
+      }
+    }
     return { total, synced, queued: total - synced };
   }
-  function getStatus() { return { synced: JSON.parse(localStorage.getItem('ll_sheets_synced') || '[]').length, queued: getQueue().length, configured: true }; }
-  if (typeof window !== 'undefined') { window.addEventListener('online', () => { retryQueue().then(r => { if (r.sent > 0) console.log('[SheetsSync] Retried ' + r.sent); }); }); }
+
+  function getStatus() {
+    const queue = getQueue();
+    const synced = JSON.parse(localStorage.getItem('ll_sheets_synced') || '[]');
+    return {
+      synced: synced.length,
+      queued: queue.length,
+      configured: WEBAPP_URL !== 'YOUR_DEPLOYED_WEBAPP_URL_HERE'
+    };
+  }
+
+  if (typeof window !== 'undefined') {
+    window.addEventListener('online', () => {
+      console.log('[SheetsSync] Back online, retrying queue...');
+      retryQueue().then(r => {
+        if (r.sent > 0) console.log('[SheetsSync] Retried ' + r.sent + ' entries');
+      });
+    });
+  }
+
   return { send, retryQueue, syncAll, getStatus, isSynced };
 })();
-// ===== End Google Sheets Sync Module =====
-
 </script>
 </body>
 </html>
