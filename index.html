@@ -175,7 +175,7 @@ body.locked > *:not(#pin-overlay):not(.toast){display:none!important}
 <body>
 <div id="pin-overlay">
   <h1>&#9878; LOADLEDGER</h1>
-  <div class="pin-subtitle">CA Cattle Co. — Bakery Recycling Division</div>
+  <div class="pin-subtitle">CA Cattle Co. â Bakery Recycling Division</div>
   <select id="pin-user-select">
     <option value="">Select your name...</option>
   </select>
@@ -328,7 +328,7 @@ function initFirebaseConfig() {
   return db.ref('config').once('value').then(snap => {
     const data = snap.val();
     if (!data) {
-      // First run — seed Firebase with defaults
+      // First run â seed Firebase with defaults
       return db.ref('config').set(CONFIG_DEFAULTS).then(() => {
         Object.assign(configCache, JSON.parse(JSON.stringify(CONFIG_DEFAULTS)));
         firebaseReady = true;
@@ -347,7 +347,7 @@ function initFirebaseConfig() {
   });
 }
 
-// Config functions — reads from cache, writes to Firebase + cache
+// Config functions â reads from cache, writes to Firebase + cache
 function getConfig(key) {
   if (firebaseReady && configCache[key]) return configCache[key];
   return CONFIG_DEFAULTS[key] || CONFIG_DEFAULTS;
@@ -416,7 +416,7 @@ function initPinSelect() {
   });
 }
 
-// Call after DOM is ready — wait for Firebase first
+// Call after DOM is ready â wait for Firebase first
 document.addEventListener('DOMContentLoaded', () => {
   initFirebaseConfig().then(() => {
     initPinSelect();
@@ -503,7 +503,7 @@ document.addEventListener('DOMContentLoaded', () => {
     </div>
   </div>
 
-  <!-- PRODUCT TYPE (multi-select) — Inbound only -->
+  <!-- PRODUCT TYPE (multi-select) â Inbound only -->
   <div id="product-type-section">
     <div class="section-title">Product Type</div>
     <div class="form-group">
@@ -720,7 +720,7 @@ document.addEventListener('DOMContentLoaded', () => {
   <!-- Admin-Only: Sync to Workbook -->
   <div id="sync-section" class="hidden">
     <div class="section-title" style="color:#22c55e">&#9889; Sync to Workbook</div>
-    <p style="font-size:12px;color:#94a3b8;margin-bottom:8px">Import LoadLedger data directly into your master workbook. Select the workbook file below — data will be auto-placed into the correct rows.</p>
+    <p style="font-size:12px;color:#94a3b8;margin-bottom:8px">Import LoadLedger data directly into your master workbook. Select the workbook file below â data will be auto-placed into the correct rows.</p>
     <div style="position:relative">
       <button id="syncBtn" onclick="document.getElementById('wbFileInput').click()" style="width:100%;padding:14px;border:none;border-radius:8px;font-size:16px;font-weight:700;cursor:pointer;background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;margin-bottom:8px">&#128218; Sync to Workbook</button>
       <input type="file" id="wbFileInput" accept=".xlsx,.xlsm" style="display:none" onchange="syncToWorkbook(this)">
@@ -1472,7 +1472,7 @@ function validateLoadForm() {
   const tare = parseFloat(document.getElementById('loadTare').value) || 0;
   if(tare === 0) errors.push({id:'loadTare', msg:'Tare weight is required'});
 
-    // Ticket photo is optional — drivers can submit without one
+    // Ticket photo is optional â drivers can submit without one
 
   if(errors.length > 0) {
     errors.forEach(e => markError(e.id));
@@ -1648,9 +1648,9 @@ function renderHistory() {
     const unsynced = getUnsyncedLoads();
     const syncBtn = document.getElementById('syncBtn');
     if(unsynced.length > 0) {
-      syncBtn.textContent = '📚 Sync ' + unsynced.length + ' Load' + (unsynced.length>1?'s':'') + ' to Workbook';
+      syncBtn.textContent = 'ð Sync ' + unsynced.length + ' Load' + (unsynced.length>1?'s':'') + ' to Workbook';
     } else {
-      syncBtn.textContent = '✅ All Loads Synced';
+      syncBtn.textContent = 'â All Loads Synced';
     }
   }
 
@@ -2583,7 +2583,7 @@ function markAllSynced() {
 
 function clearSyncStatus() {
   localStorage.removeItem('ll_synced_loads');
-  showToast('Sync status cleared — all loads will sync next time');
+  showToast('Sync status cleared â all loads will sync next time');
   renderHistory();
 }
 
@@ -2677,7 +2677,7 @@ function onGpsPosition(pos){
 function onGpsError(err){
   console.warn('GPS error:',err.message);
   document.getElementById('gpsBanner').classList.add('paused');
-  document.getElementById('gpsLocLabel').textContent='GPS paused — '+(err.code===1?'permission denied':'unavailable');
+  document.getElementById('gpsLocLabel').textContent='GPS paused â '+(err.code===1?'permission denied':'unavailable');
 }
 // ===== GEOFENCE ENGINE =====
 function distanceFeet(lat1,lng1,lat2,lng2){
@@ -2720,12 +2720,12 @@ function doLogout(){
   document.getElementById('pin-user-select').value='';
   document.getElementById('pin-error').textContent='';
   switchTab('load');document.getElementById('tab-admin').classList.add('hidden');
-  showToast('Logged out — GPS stopped');
+  showToast('Logged out â GPS stopped');
 }
 
 // ===== GPS ADMIN =====
-function toggleGpsGlobal(on){saveConfig('gpsEnabled',on);showToast('GPS tracking '+(on?'enabled':'disabled'));renderGpsDriverToggles();}
-function toggleGpsDriver(id,on){const cur=getConfig('gpsDrivers')||{};cur[id]=on;saveConfig('gpsDrivers',cur);}
+function toggleGpsGlobal(on){setConfig('gpsEnabled',on);showToast('GPS tracking '+(on?'enabled':'disabled'));renderGpsDriverToggles();}
+function toggleGpsDriver(id,on){const cur=getConfig('gpsDrivers')||{};cur[id]=on;setConfig('gpsDrivers',cur);}
 function renderGpsDriverToggles(){
   const el=document.getElementById('gpsDriverToggles');if(!el)return;
   const drivers=getConfig('drivers'),globalOn=getConfig('gpsEnabled')!==false,dg=getConfig('gpsDrivers')||{};
@@ -2753,7 +2753,7 @@ function saveGeofence(){
   if(!name){showToast('Enter location name',true);return;}
   if(isNaN(lat)||isNaN(lng)){showToast('Enter valid lat/lng or use My Location',true);return;}
   const fences=getGeofences().filter(f=>f.name);fences.push({name,lat,lng,radius,type});
-  saveConfig('geofences',fences);renderGeofenceList();hideAddGeofenceForm();
+  setConfig('geofences',fences);renderGeofenceList();hideAddGeofenceForm();
   document.getElementById('geofenceName').value='';document.getElementById('geofenceLat').value='';document.getElementById('geofenceLng').value='';
   showToast('Geofence saved');
 }
@@ -2762,7 +2762,7 @@ function captureCurrentLocation(){
   showToast('Getting your location...');
   navigator.geolocation.getCurrentPosition(pos=>{document.getElementById('geofenceLat').value=pos.coords.latitude.toFixed(6);document.getElementById('geofenceLng').value=pos.coords.longitude.toFixed(6);showToast('Location captured');},err=>showToast('Could not get location',true),{enableHighAccuracy:true,timeout:10000});
 }
-function deleteGeofence(i){if(!confirm('Delete this geofence?'))return;const f=getGeofences().filter(f=>f.name);f.splice(i,1);saveConfig('geofences',f);renderGeofenceList();showToast('Geofence deleted');}
+function deleteGeofence(i){if(!confirm('Delete this geofence?'))return;const f=getGeofences().filter(f=>f.name);f.splice(i,1);setConfig('geofences',f);renderGeofenceList();showToast('Geofence deleted');}
 
 // ===== TOAST =====
 function showToast(msg, isError) {
