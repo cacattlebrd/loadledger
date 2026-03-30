@@ -1544,6 +1544,7 @@ function submitLoad() {
   };
 
   addStore('loads', entry);
+  sheetsSync.send('load', entry);
   pushToFirebase('loads', entry);
 
   // Push to Google Sheets
@@ -1588,6 +1589,7 @@ function submitFuel() {
   };
   if(!entry.driver || !entry.date) { showToast('Please fill required fields', true); return; }
   addStore('fuel', entry);
+  sheetsSync.send('fuel', entry);
   pushToFirebase('fuel', entry);
 
   // Push to Google Sheets
@@ -1620,6 +1622,7 @@ function submitDvir() {
   };
   if(!entry.driver || !entry.date || !entry.truck) { showToast('Please fill required fields', true); return; }
   addStore('dvir', entry);
+  sheetsSync.send('dvir', entry);
   pushToFirebase('dvir', entry);
 
   // Push to Google Sheets
@@ -2769,6 +2772,50 @@ function showToast(msg, isError) {
   t.style.display = 'block';
   setTimeout(() => t.style.display = 'none', isError ? 4000 : 2500);
 }
+
+// ===== Google Sheets Sync Module =====
+const sheetsSync = (() => {
+  const WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbwn7pA48Q-hh2kTYwnnXsHps1CCwkYLclVpMR2qrPijzHCqGATArHeq4FOlJJPlQwOa/exec';
+  const QUEUE_KEY = 'll_sync_queue';
+  function getQueue() { try { return JSON.parse(localStorage.getItem(QUEUE_KEY)) || []; } catch(e) { return []; } }
+  function saveQueue(q) { localStorage.setItem(QUEUE_KEY, JSON.stringify(q)); }
+  async function send(action, data) {
+    const payload = { ...data, action };
+    try {
+      await fetch(WEBAPP_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify(payload), mode: 'no-cors' });
+      markSynced(data.timestamp || new Date().toISOString());
+      console.log('[SheetsSync] Sent ' + action + ' to Google Sheets');
+      return true;
+    } catch(err) {
+      console.warn('[SheetsSync] Failed, queued:', err.message);
+      const q = getQueue(); q.push({ action, data, queuedAt: new Date().toISOString() }); saveQueue(q);
+      return false;
+    }
+  }
+  function markSynced(ts) { const s = JSON.parse(localStorage.getItem('ll_sheets_synced') || '[]'); if (!s.includes(ts)) { s.push(ts); localStorage.setItem('ll_sheets_synced', JSON.stringify(s)); } }
+  function isSynced(ts) { return JSON.parse(localStorage.getItem('ll_sheets_synced') || '[]').includes(ts); }
+  async function retryQueue() {
+    const q = getQueue(); if (!q.length) return { sent: 0, failed: 0 };
+    const failed = []; let sent = 0;
+    for (const item of q) { try { await fetch(WEBAPP_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ ...item.data, action: item.action }), mode: 'no-cors' }); markSynced(item.data.timestamp); sent++; } catch(e) { failed.push(item); } }
+    saveQueue(failed); return { sent, failed: failed.length };
+  }
+  async function syncAll() {
+    const loads = JSON.parse(localStorage.getItem('ll_loads') || '[]');
+    const fuel = JSON.parse(localStorage.getItem('ll_fuel') || '[]');
+    const dvir = JSON.parse(localStorage.getItem('ll_dvir') || '[]');
+    let total = 0, synced = 0;
+    for (const l of loads) { if (!isSynced(l.timestamp)) { if (await send('load', l)) synced++; total++; } }
+    for (const f of fuel) { if (!isSynced(f.timestamp)) { if (await send('fuel', f)) synced++; total++; } }
+    for (const d of dvir) { if (!isSynced(d.timestamp)) { if (await send('dvir', d)) synced++; total++; } }
+    return { total, synced, queued: total - synced };
+  }
+  function getStatus() { return { synced: JSON.parse(localStorage.getItem('ll_sheets_synced') || '[]').length, queued: getQueue().length, configured: true }; }
+  if (typeof window !== 'undefined') { window.addEventListener('online', () => { retryQueue().then(r => { if (r.sent > 0) console.log('[SheetsSync] Retried ' + r.sent); }); }); }
+  return { send, retryQueue, syncAll, getStatus, isSynced };
+})();
+// ===== End Google Sheets Sync Module =====
+
 </script>
 </body>
 </html>
