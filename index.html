@@ -134,6 +134,23 @@ body.locked > *:not(#pin-overlay):not(.toast){display:none!important}
 
     .admin-toggle-list { display:flex; flex-direction:column; gap:8px; }
     .toggle-label { display:flex; align-items:center; gap:8px; font-size:0.95em; cursor:pointer; }
+    .admin-section {
+      background: #1a2636;
+      border: 1px solid #2a4a6b;
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 16px;
+    }
+    .admin-section h4 {
+      color: #7eb8f7;
+      margin: 0 0 8px 0;
+      font-size: 14px;
+    }
+    .admin-section p {
+      color: #8899aa;
+      font-size: 12px;
+      margin: 0 0 10px 0;
+    }
     .toggle-label input[type=checkbox] { width:18px; height:18px; accent-color:#f59e0b; }
 </style>
 <link rel="manifest" href="/manifest.json">
@@ -229,7 +246,7 @@ function getConfig(key) {
       {"id":"admin","name":"Chad (Admin)","pin":"2636","role":"admin","group":"Admin"},
       {"id":"john","name":"John Hightower","pin":"5990","role":"driver","group":"BRD Drivers"},
       {"id":"juan","name":"Juan Gutierrez","pin":"8258","role":"driver","group":"BRD Drivers"},
-      {"id":"james","name":"James Gass","pin":"5796","role":"driver","group":"BRD Drivers"},
+      {"id":"james","name":"James Gass (Admin)","pin":"5796","role":"admin","group":"BRD Drivers"},
       {"id":"cuatrot","name":"Cuatro T","pin":"","role":"driver","group":"Contract Haulers"},
       {"id":"treshijos","name":"Tres Hijos","pin":"","role":"driver","group":"Contract Haulers"},
       {"id":"luckey","name":"Luckey","pin":"","role":"driver","group":"Contract Haulers"},
@@ -682,9 +699,9 @@ document.addEventListener('DOMContentLoaded', initPinSelect);
     </div>
   </div>
 
-  <div class="danger-zone">
-    
-      <!-- Required Fields Configuration -->
+  
+    <div class="section-title">Required Fields</div>
+    <!-- Required Fields Configuration -->
       <div class="admin-section" id="requiredFieldsConfig">
         <h3>Required Fields</h3>
         <p style="color:#888;font-size:0.85em;margin-bottom:10px;">Toggle which fields are required for load submission. Changes save automatically.</p>
@@ -697,6 +714,10 @@ document.addEventListener('DOMContentLoaded', initPinSelect);
           <label class="toggle-label"><input type="checkbox" id="req_ticketPhoto" onchange="saveFieldReqs()"> Ticket Photo</label>
         </div>
       </div>
+
+  <div class="danger-zone">
+    
+      
 <div class="section-title">Danger Zone</div>
     <button class="delete-btn" onclick="confirmClearAllData()">Clear All Load Data</button>
     <button class="delete-btn" onclick="confirmResetDefaults()">Reset to Defaults</button>
