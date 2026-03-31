@@ -131,13 +131,17 @@ body.locked > *:not(#pin-overlay):not(.toast){display:none!important}
 .danger-zone button{width:100%;padding:10px;margin:6px 0;border:none;border-radius:6px;cursor:pointer;font-weight:700;font-size:13px}
 .danger-zone .delete-btn{background:#dc2626;color:#fff;transition:all .2s}
 .danger-zone .delete-btn:active{background:#991b1b}
+
+    .admin-toggle-list { display:flex; flex-direction:column; gap:8px; }
+    .toggle-label { display:flex; align-items:center; gap:8px; font-size:0.95em; cursor:pointer; }
+    .toggle-label input[type=checkbox] { width:18px; height:18px; accent-color:#f59e0b; }
 </style>
 <link rel="manifest" href="/manifest.json">
 </head>
 <body>
 <div id="pin-overlay">
   <h1>&#9878; LOADLEDGER</h1>
-  <div class="pin-subtitle">CA Cattle Co. Ã¢ÂÂ Bakery Recycling Division</div>
+  <div class="pin-subtitle">CA Cattle Co. ÃÂ¢ÃÂÃÂ Bakery Recycling Division</div>
   <select id="pin-user-select">
     <option value="">Select your name...</option>
   </select>
@@ -338,7 +342,7 @@ document.addEventListener('DOMContentLoaded', initPinSelect);
     </div>
   </div>
 
-  <!-- PRODUCT TYPE (multi-select) Ã¢ÂÂ Inbound only -->
+  <!-- PRODUCT TYPE (multi-select) ÃÂ¢ÃÂÃÂ Inbound only -->
   <div id="product-type-section">
     <div class="section-title">Product Type</div>
     <div class="form-group">
@@ -555,7 +559,7 @@ document.addEventListener('DOMContentLoaded', initPinSelect);
   <!-- Admin-Only: Sync to Workbook -->
   <div id="sync-section" class="hidden">
     <div class="section-title" style="color:#22c55e">&#9889; Sync to Workbook</div>
-    <p style="font-size:12px;color:#94a3b8;margin-bottom:8px">Import LoadLedger data directly into your master workbook. Select the workbook file below Ã¢ÂÂ data will be auto-placed into the correct rows.</p>
+    <p style="font-size:12px;color:#94a3b8;margin-bottom:8px">Import LoadLedger data directly into your master workbook. Select the workbook file below ÃÂ¢ÃÂÃÂ data will be auto-placed into the correct rows.</p>
     <div style="position:relative">
       <button id="syncBtn" onclick="document.getElementById('wbFileInput').click()" style="width:100%;padding:14px;border:none;border-radius:8px;font-size:16px;font-weight:700;cursor:pointer;background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;margin-bottom:8px">&#128218; Sync to Workbook</button>
       <input type="file" id="wbFileInput" accept=".xlsx,.xlsm" style="display:none" onchange="syncToWorkbook(this)">
@@ -679,7 +683,21 @@ document.addEventListener('DOMContentLoaded', initPinSelect);
   </div>
 
   <div class="danger-zone">
-    <div class="section-title">Danger Zone</div>
+    
+      <!-- Required Fields Configuration -->
+      <div class="admin-section" id="requiredFieldsConfig">
+        <h3>Required Fields</h3>
+        <p style="color:#888;font-size:0.85em;margin-bottom:10px;">Toggle which fields are required for load submission. Changes save automatically.</p>
+        <div class="admin-toggle-list">
+          <label class="toggle-label"><input type="checkbox" id="req_productType" onchange="saveFieldReqs()"> Product Type</label>
+          <label class="toggle-label"><input type="checkbox" id="req_startTime" onchange="saveFieldReqs()"> Start Time</label>
+          <label class="toggle-label"><input type="checkbox" id="req_endTime" onchange="saveFieldReqs()"> End Time</label>
+          <label class="toggle-label"><input type="checkbox" id="req_startMiles" onchange="saveFieldReqs()"> Start Miles</label>
+          <label class="toggle-label"><input type="checkbox" id="req_endMiles" onchange="saveFieldReqs()"> End Miles</label>
+          <label class="toggle-label"><input type="checkbox" id="req_ticketPhoto" onchange="saveFieldReqs()"> Ticket Photo</label>
+        </div>
+      </div>
+<div class="section-title">Danger Zone</div>
     <button class="delete-btn" onclick="confirmClearAllData()">Clear All Load Data</button>
     <button class="delete-btn" onclick="confirmResetDefaults()">Reset to Defaults</button>
   </div>
@@ -712,6 +730,7 @@ document.addEventListener('DOMContentLoaded', () => {
   buildDvirChecklist();
   renderHistory();
   populateDropdowns();
+      loadFieldReqs();
   setupOtherToggle('loadDriver','loadDriverOther');
   setupOtherToggle('loadSupplier','loadSupplierOther');
   setupOtherToggle('loadCustomer','loadCustomerOther');
@@ -1091,67 +1110,103 @@ function markError(id) {
 }
 
 function validateLoadForm() {
-  clearFieldErrors();
-  const skip = window.isAdmin && document.getElementById('overrideValidation').checked;
-  if(skip) return true;
+      const ov = document.getElementById('overrideValidation');
+      if (ov && ov.checked) { clearFieldErrors(); return true; }
 
-  const errors = [];
-  const date = document.getElementById('loadDate').value;
-  if(!date) errors.push({id:'loadDate', msg:'Date is required'});
+      clearFieldErrors();
+      const errors = [];
+      const reqs = getFieldReqs();
+      const dir = document.getElementById('btn-in').classList.contains('active-in') ? 'in' : 'out';
 
-  const driverVal = document.getElementById('loadDriver').value;
-  if(!driverVal) errors.push({id:'loadDriver', msg:'Driver is required'});
-  if(driverVal === 'Other' && !document.getElementById('loadDriverOther').value.trim()) errors.push({id:'loadDriverOther', msg:'Enter driver name'});
+      // Always required
+      const driver = document.getElementById('loadDriver').value;
+      if (!driver) { markError('loadDriver'); errors.push('Driver'); }
 
-  if(direction === 'in') {
-    const sup = document.getElementById('loadSupplier').value;
-    if(!sup) errors.push({id:'loadSupplier', msg:'Supplier is required'});
-    if(sup === 'Other' && !document.getElementById('loadSupplierOther').value.trim()) errors.push({id:'loadSupplierOther', msg:'Enter supplier name'});
-    const products = getSelectedProducts();
-    if(products.length === 0) errors.push({id:'productGrid', msg:'Select at least one product type'});
-  } else {
-    const cust = document.getElementById('loadCustomer').value;
-    if(!cust) errors.push({id:'loadCustomer', msg:'Customer is required'});
-    if(cust === 'Other' && !document.getElementById('loadCustomerOther').value.trim()) errors.push({id:'loadCustomerOther', msg:'Enter customer name'});
-    const comm = document.getElementById('loadCommodity').value;
-    if(!comm) errors.push({id:'loadCommodity', msg:'Commodity is required'});
-  }
+      if (dir === 'in') {
+        const sup = document.getElementById('loadSupplier').value;
+        if (!sup) { markError('loadSupplier'); errors.push('Supplier'); }
+      } else {
+        const cust = document.getElementById('loadCustomer').value;
+        if (!cust) { markError('loadCustomer'); errors.push('Customer'); }
+      }
 
-  const truckVal = document.getElementById('loadTruck').value;
-  if(!truckVal) errors.push({id:'loadTruck', msg:'Truck is required'});
-  if(truckVal === 'Other' && !document.getElementById('loadTruckOther').value.trim()) errors.push({id:'loadTruckOther', msg:'Enter truck #'});
+      const commodity = document.getElementById('loadCommodity').value;
+      if (!commodity) { markError('loadCommodity'); errors.push('Commodity'); }
 
-  const trailerVal = document.getElementById('loadTrailer').value;
-  if(!trailerVal) errors.push({id:'loadTrailer', msg:'Trailer is required'});
+      const truck = document.getElementById('loadTruck').value;
+      if (!truck) { markError('loadTruck'); errors.push('Truck'); }
 
-  const timeStart = document.getElementById('loadTimeStart').value;
-  const timeEnd = document.getElementById('loadTimeEnd').value;
-  if(!timeStart) errors.push({id:'loadTimeStart', msg:'Start time is required'});
-  if(!timeEnd) errors.push({id:'loadTimeEnd', msg:'End time is required'});
+      const trailer = document.getElementById('loadTrailer').value;
+      if (!trailer) { markError('loadTrailer'); errors.push('Trailer'); }
 
-  const mileStart = document.getElementById('loadMileStart').value;
-  const mileEnd = document.getElementById('loadMileEnd').value;
-  if(!mileStart) errors.push({id:'loadMileStart', msg:'Start miles is required'});
-  if(!mileEnd) errors.push({id:'loadMileEnd', msg:'End miles is required'});
+      const ticket = document.getElementById('loadTicket').value;
+      if (!ticket) { markError('loadTicket'); errors.push('Ticket #'); }
 
-  const ticket = document.getElementById('loadTicket').value.trim();
-  if(!ticket) errors.push({id:'loadTicket', msg:'Ticket # is required'});
+      const gross = parseFloat(document.getElementById('loadGross').value) || 0;
+      const tare = parseFloat(document.getElementById('loadTare').value) || 0;
+      if (!gross) { markError('loadGross'); errors.push('Gross weight'); }
+      if (!tare) { markError('loadTare'); errors.push('Tare weight'); }
 
-  const gross = parseFloat(document.getElementById('loadGross').value) || 0;
-  if(gross === 0) errors.push({id:'loadGross', msg:'Gross weight is required'});
+      // Admin-configurable required fields (all optional by default)
+      if (reqs.productType) {
+        const products = getSelectedProducts();
+        if (!products || products.length === 0) { markError('productGrid'); errors.push('Product type'); }
+      }
+      if (reqs.startTime) {
+        if (!document.getElementById('loadTimeStart').value) { markError('loadTimeStart'); errors.push('Start time'); }
+      }
+      if (reqs.endTime) {
+        if (!document.getElementById('loadTimeEnd').value) { markError('loadTimeEnd'); errors.push('End time'); }
+      }
+      if (reqs.startMiles) {
+        const sm = parseFloat(document.getElementById('loadMileStart').value) || 0;
+        if (!sm) { markError('loadMileStart'); errors.push('Start miles'); }
+      }
+      if (reqs.endMiles) {
+        const em = parseFloat(document.getElementById('loadMileEnd').value) || 0;
+        if (!em) { markError('loadMileEnd'); errors.push('End miles'); }
+      }
+      if (reqs.ticketPhoto) {
+        const photoArea = document.getElementById('photoUpload') || document.querySelector('[id*=photo]');
+        const hasPhoto = photoArea && photoArea.querySelector('img');
+        if (!hasPhoto) { markError('photoUpload'); errors.push('Ticket photo'); }
+      }
 
-  const tare = parseFloat(document.getElementById('loadTare').value) || 0;
-  if(tare === 0) errors.push({id:'loadTare', msg:'Tare weight is required'});
+      if (errors.length > 0) {
+        errors.forEach(e => markError(e));
+        showToast('Missing: ' + errors.join(', '));
+        return false;
+      }
+      return true;
+    }
 
-  if(!ticketPhotoData) errors.push({id:'photoUpload', msg:'Ticket photo is required'});
+    function getFieldReqs() {
+      try {
+        return JSON.parse(localStorage.getItem('ll_fieldReqs') || '{}');
+      } catch(e) { return {}; }
+    }
+    function saveFieldReqs() {
+      const reqs = {
+        productType: document.getElementById('req_productType').checked,
+        startTime: document.getElementById('req_startTime').checked,
+        endTime: document.getElementById('req_endTime').checked,
+        startMiles: document.getElementById('req_startMiles').checked,
+        endMiles: document.getElementById('req_endMiles').checked,
+        ticketPhoto: document.getElementById('req_ticketPhoto').checked
+      };
+      localStorage.setItem('ll_fieldReqs', JSON.stringify(reqs));
+      showToast('Field requirements saved');
+    }
+    function loadFieldReqs() {
+      const reqs = getFieldReqs();
+      const ids = ['req_productType','req_startTime','req_endTime','req_startMiles','req_endMiles','req_ticketPhoto'];
+      const keys = ['productType','startTime','endTime','startMiles','endMiles','ticketPhoto'];
+      ids.forEach((id, i) => {
+        const el = document.getElementById(id);
+        if (el) el.checked = !!reqs[keys[i]];
+      });
+    }
 
-  if(errors.length > 0) {
-    errors.forEach(e => markError(e.id));
-    showToast('Fill all required fields (' + errors.length + ' missing)');
-    return false;
-  }
-  return true;
-}
 
 // ===== SUBMIT LOAD =====
 function submitLoad() {
@@ -1283,9 +1338,9 @@ function renderHistory() {
     const unsynced = getUnsyncedLoads();
     const syncBtn = document.getElementById('syncBtn');
     if(unsynced.length > 0) {
-      syncBtn.textContent = 'Ã°ÂÂÂ Sync ' + unsynced.length + ' Load' + (unsynced.length>1?'s':'') + ' to Workbook';
+      syncBtn.textContent = 'ÃÂ°ÃÂÃÂÃÂ Sync ' + unsynced.length + ' Load' + (unsynced.length>1?'s':'') + ' to Workbook';
     } else {
-      syncBtn.textContent = 'Ã¢ÂÂ All Loads Synced';
+      syncBtn.textContent = 'ÃÂ¢ÃÂÃÂ All Loads Synced';
     }
   }
 
@@ -1343,7 +1398,7 @@ function renderAdminDrivers() {
   drivers.forEach(d => {
     const item = document.createElement('div');
     item.className = 'admin-list-item';
-    const pinDisplay = d.pin ? 'Ã¢ÂÂ¢Ã¢ÂÂ¢Ã¢ÂÂ¢Ã¢ÂÂ¢' : 'N/A';
+    const pinDisplay = d.pin ? 'ÃÂ¢ÃÂÃÂ¢ÃÂ¢ÃÂÃÂ¢ÃÂ¢ÃÂÃÂ¢ÃÂ¢ÃÂÃÂ¢' : 'N/A';
     item.innerHTML = `
       <div class="item-info">
         <div style="font-weight:600;color:#e2e8f0">${d.name}</div>
@@ -2207,7 +2262,7 @@ function markAllSynced() {
 
 function clearSyncStatus() {
   localStorage.removeItem('ll_synced_loads');
-  showToast('Sync status cleared Ã¢ÂÂ all loads will sync next time');
+  showToast('Sync status cleared ÃÂ¢ÃÂÃÂ all loads will sync next time');
   renderHistory();
 }
 
