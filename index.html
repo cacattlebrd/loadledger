@@ -1331,8 +1331,8 @@ function validateLoadForm() {
       if (dir === 'in') {
         const sup = document.getElementById('loadSupplier').value;
         if (!sup) { markError('loadSupplier'); errors.push('Supplier'); }
-      const products = getSelectedProducts();
-      if (!products || products.length === 0) { markError('productGrid'); errors.push('Product type'); }
+      var inboundProducts = getSelectedProducts();
+      if (!inboundProducts || inboundProducts.length === 0) { markError('productGrid'); errors.push('Product type'); }
         } else {
         const cust = document.getElementById('loadCustomer').value;
         if (!cust) { markError('loadCustomer'); errors.push('Customer'); }
