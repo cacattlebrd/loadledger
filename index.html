@@ -351,7 +351,8 @@ document.addEventListener('DOMContentLoaded', initPinSelect);
   <div class="tab" onclick="switchTab('fuel')"><span class="tab-icon">&#9981;</span>Fuel/DEF</div>
   <div class="tab" onclick="switchTab('dvir')"><span class="tab-icon">&#9874;</span>DVIR</div>
   <div class="tab" onclick="switchTab('history')"><span class="tab-icon">&#128203;</span>History</div>
-  <div id="tab-admin" class="tab hidden" onclick="switchTab('admin')"><span class="tab-icon">&#9881;</span>Admin</div>
+  <div class="tab" onclick="switchTab('report')"><span class="tab-icon">⚠</span> Report</div>
+    <div id="tab-admin" class="tab hidden" onclick="switchTab('admin')"><span class="tab-icon">&#9881;</span>Admin</div>
 </div>
 
 <!-- ===== LOAD ENTRY TAB ===== -->
@@ -650,6 +651,31 @@ document.addEventListener('DOMContentLoaded', initPinSelect);
 <!-- ===== ADMIN TAB ===== -->
 <div id="panel-admin" class="panel">
   <div class="section-title">Drivers &amp; PINs</div>
+
+  <!-- Report Issue Panel -->
+  <div id="panel-report" class="panel" style="display:none">
+    <div class="section-title">Report an Issue</div>
+    <div class="form-group">
+      <label>Driver</label>
+      <input type="text" id="reportDriver" readonly class="form-input" />
+    </div>
+    <div class="form-group">
+      <label>Category</label>
+      <select id="reportCategory" class="form-input">
+        <option value="">Select category...</option>
+        <option value="App Bug">App Bug</option>
+        <option value="Truck Issue">Truck Issue</option>
+        <option value="Equipment Issue">Equipment Issue</option>
+        <option value="Safety">Safety</option>
+        <option value="Other">Other</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Description</label>
+      <textarea id="reportDescription" class="form-input" rows="5" placeholder="Describe the issue..."></textarea>
+    </div>
+    <button class="submit-btn" onclick="submitReport()">Submit Report</button>
+  </div>
   <div id="adminDriversList" class="admin-list"></div>
   <button class="admin-btn-add" onclick="showAddDriverForm()">+ Add Driver</button>
   <div id="adminAddDriverForm" class="admin-inline-form" style="display:none">
@@ -1105,7 +1131,14 @@ function switchTab(name) {
   event.currentTarget.classList.add('active');
   if(name==='history') renderHistory();
   if(name==='admin') renderAdminPanel();
-}
+
+    // Auto-fill driver name on Report tab
+    if (name === 'report') {
+      const sel = document.getElementById('pin-user-select');
+      const opt = sel.options[sel.selectedIndex];
+      document.getElementById('reportDriver').value = opt ? opt.textContent.trim() : '';
+    }
+  }
 
 // ===== DIRECTION =====
 function setDirection(dir) {
@@ -2504,7 +2537,63 @@ const sheetsSync = (() => {
 })();
 
 
+  
   /* ============================================================
+     REPORT ISSUE
+     ============================================================ */
+  function submitReport() {
+    const select = document.getElementById('pin-user-select');
+    const driverName = select.options[select.selectedIndex] ? select.options[select.selectedIndex].textContent.trim() : 'Unknown';
+    const category = document.getElementById('reportCategory').value;
+    const description = document.getElementById('reportDescription').value.trim();
+
+    if (!category) {
+      showToast('Select a category');
+      return;
+    }
+    if (!description) {
+      showToast('Enter a description');
+      return;
+    }
+
+    const report = {
+      type: 'report',
+      driver: driverName,
+      category: category,
+      description: description,
+      timestamp: new Date().toISOString(),
+      gpsLat: gpsTracker.getPosition() ? gpsTracker.getPosition().lat : null,
+      gpsLng: gpsTracker.getPosition() ? gpsTracker.getPosition().lng : null
+    };
+
+    // Save locally
+    addStore('ll_reports', report);
+
+    // Send to Google Sheets via sheetsSync
+    sheetsSync.send(report);
+
+    // Also open mailto as backup notification to assistant@cacattlebrd.com
+    const subject = 'LoadLedger Report: ' + category + ' — ' + driverName;
+    const body = 'Driver: ' + driverName + '\nCategory: ' + category + '\nDescription: ' + description + '\nTime: ' + new Date().toLocaleString();
+    const mailLink = 'mailto:assistant@cacattlebrd.com?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
+
+    // Try to send the email link silently via a hidden iframe (won't open mail app in kiosk)
+    // If that fails, the Sheets entry is the primary record
+    try {
+      const a = document.createElement('a');
+      a.href = mailLink;
+      a.click();
+    } catch(e) {
+      // Kiosk mode may block this - that's fine, Sheets has the record
+    }
+
+    // Clear form
+    document.getElementById('reportCategory').value = '';
+    document.getElementById('reportDescription').value = '';
+    showToast('Report submitted');
+  }
+
+/* ============================================================
      GPS TRACKING MODULE
      - Starts on clock-in (PIN login success)
      - Tracks position while session is active
