@@ -1331,14 +1331,15 @@ function validateLoadForm() {
       if (dir === 'in') {
         const sup = document.getElementById('loadSupplier').value;
         if (!sup) { markError('loadSupplier'); errors.push('Supplier'); }
-      } else {
+      const products = getSelectedProducts();
+      if (!products || products.length === 0) { markError('productGrid'); errors.push('Product type'); }
+        } else {
         const cust = document.getElementById('loadCustomer').value;
         if (!cust) { markError('loadCustomer'); errors.push('Customer'); }
-      }
-
+      
       const commodity = document.getElementById('loadCommodity').value;
       if (!commodity) { markError('loadCommodity'); errors.push('Commodity'); }
-
+    }
       const truck = document.getElementById('loadTruck').value;
       if (!truck) { markError('loadTruck'); errors.push('Truck'); }
 
@@ -1354,7 +1355,7 @@ function validateLoadForm() {
       if (!tare) { markError('loadTare'); errors.push('Tare weight'); }
 
       // Admin-configurable required fields (all optional by default)
-      if (reqs.productType) {
+      if (reqs.productType && dir !== 'in') {
         const products = getSelectedProducts();
         if (!products || products.length === 0) { markError('productGrid'); errors.push('Product type'); }
       }
