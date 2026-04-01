@@ -152,6 +152,45 @@ body.locked > *:not(#pin-overlay):not(.toast){display:none!important}
       margin: 0 0 10px 0;
     }
     .toggle-label input[type=checkbox] { width:18px; height:18px; accent-color:#f59e0b; }
+
+    /* GPS Indicator & Clock Out */
+    .header-controls {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      margin-top: 6px;
+    }
+    .gps-indicator {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 12px;
+      letter-spacing: 0.5px;
+    }
+    .gps-on {
+      background: #0d3d1f;
+      color: #4ade80;
+      border: 1px solid #22c55e;
+    }
+    .gps-off {
+      background: #3d0d0d;
+      color: #f87171;
+      border: 1px solid #ef4444;
+    }
+    .clock-out-btn {
+      background: #7f1d1d;
+      color: #fca5a5;
+      border: 1px solid #ef4444;
+      padding: 4px 14px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .clock-out-btn:active {
+      background: #991b1b;
+    }
 </style>
 <link rel="manifest" href="/manifest.json">
 </head>
@@ -212,6 +251,7 @@ function checkPin(){
     window.currentUser = user;
     window.isAdmin = (driver.role === 'admin');
     document.getElementById('pin-overlay').classList.add('hidden');
+      gpsTracker.start(); // Start GPS tracking on clock-in
     document.body.classList.remove('locked');
     if(window.isAdmin) {
       document.getElementById('sync-section').classList.remove('hidden');
@@ -300,6 +340,10 @@ document.addEventListener('DOMContentLoaded', initPinSelect);
 <div class="header">
   <h1>LOADLEDGER</h1>
   <div class="sub">CA Cattle Co. - Bakery Recycling Division</div>
+    <div class="header-controls">
+      <span id="gps-indicator" class="gps-indicator gps-off">GPS: OFF</span>
+      <button class="clock-out-btn" onclick="clockOut()">Clock Out</button>
+    </div>
 </div>
 
 <div class="tabs">
@@ -1285,7 +1329,11 @@ function submitLoad() {
     photoData: ticketPhotoData || '',
     notes: document.getElementById('loadNotes').value,
     adminOverride: window.isAdmin && document.getElementById('overrideValidation').checked,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+      gpsLat: gpsTracker.getPosition() ? gpsTracker.getPosition().lat : null,
+      gpsLng: gpsTracker.getPosition() ? gpsTracker.getPosition().lng : null,
+      gpsAccuracy: gpsTracker.getPosition() ? gpsTracker.getPosition().accuracy : null,
+      gpsTimestamp: gpsTracker.getPosition() ? gpsTracker.getPosition().timestamp : null
   };
 
   addStore('loads', entry);
@@ -2454,6 +2502,113 @@ const sheetsSync = (() => {
 
   return { send, retryQueue, syncAll, getStatus, isSynced };
 })();
+
+
+  /* ============================================================
+     GPS TRACKING MODULE
+     - Starts on clock-in (PIN login success)
+     - Tracks position while session is active
+     - Attaches coords to load submissions
+     - Stops on clock-out
+     ============================================================ */
+  const gpsTracker = (function() {
+    let watchId = null;
+    let currentPosition = null;
+    let trackingActive = false;
+    let positionLog = [];
+
+    function start() {
+      if (!navigator.geolocation) {
+        console.warn('GPS: Geolocation not supported');
+        return;
+      }
+      navigator.geolocation.getCurrentPosition(
+        function(pos) {
+          currentPosition = {
+            lat: pos.coords.latitude,
+            lng: pos.coords.longitude,
+            accuracy: pos.coords.accuracy,
+            timestamp: new Date().toISOString()
+          };
+          positionLog.push(currentPosition);
+          trackingActive = true;
+          updateGpsIndicator(true);
+          // Start continuous tracking
+          watchId = navigator.geolocation.watchPosition(
+            function(pos) {
+              currentPosition = {
+                lat: pos.coords.latitude,
+                lng: pos.coords.longitude,
+                accuracy: pos.coords.accuracy,
+                timestamp: new Date().toISOString()
+              };
+              positionLog.push(currentPosition);
+              updateGpsIndicator(true);
+            },
+            function(err) {
+              console.warn('GPS watch error:', err.message);
+              updateGpsIndicator(false);
+            },
+            { enableHighAccuracy: true, timeout: 30000, maximumAge: 60000 }
+          );
+        },
+        function(err) {
+          console.warn('GPS permission denied or error:', err.message);
+          trackingActive = false;
+          updateGpsIndicator(false);
+        },
+        { enableHighAccuracy: true, timeout: 15000 }
+      );
+    }
+
+    function stop() {
+      if (watchId !== null) {
+        navigator.geolocation.clearWatch(watchId);
+        watchId = null;
+      }
+      trackingActive = false;
+      currentPosition = null;
+      positionLog = [];
+      updateGpsIndicator(false);
+    }
+
+    function getPosition() {
+      return currentPosition;
+    }
+
+    function isTracking() {
+      return trackingActive;
+    }
+
+    function getLog() {
+      return positionLog.slice();
+    }
+
+    function updateGpsIndicator(active) {
+      const el = document.getElementById('gps-indicator');
+      if (el) {
+        el.textContent = active ? 'GPS: ON' : 'GPS: OFF';
+        el.className = 'gps-indicator ' + (active ? 'gps-on' : 'gps-off');
+      }
+    }
+
+    return { start: start, stop: stop, getPosition: getPosition, isTracking: isTracking, getLog: getLog };
+  })();
+
+  function clockOut() {
+    gpsTracker.stop();
+    document.getElementById('pin-overlay').classList.remove('hidden');
+    document.body.classList.add('locked');
+    pinEntry = '';
+    document.getElementById('pin-error').textContent = '';
+    document.getElementById('pin-user-select').value = '';
+    updateDots();
+    // Hide admin tab on clock out
+    document.getElementById('tab-admin').style.display = 'none';
+    switchTab('load');
+    showToast('Clocked out. GPS tracking stopped.');
+  }
+
 </script>
 
 <script>
