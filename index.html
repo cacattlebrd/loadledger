@@ -158,7 +158,7 @@ body.locked > *:not(#pin-overlay):not(.toast){display:none!important}
 <body>
 <div id="pin-overlay">
   <h1>&#9878; LOADLEDGER</h1>
-  <div class="pin-subtitle">CA Cattle Co. ÃÂ¢ÃÂÃÂ Bakery Recycling Division</div>
+  <div class="pin-subtitle">CA Cattle Co. — Bakery Recycling Division</div>
   <select id="pin-user-select">
     <option value="">Select your name...</option>
   </select>
@@ -359,7 +359,7 @@ document.addEventListener('DOMContentLoaded', initPinSelect);
     </div>
   </div>
 
-  <!-- PRODUCT TYPE (multi-select) ÃÂ¢ÃÂÃÂ Inbound only -->
+  <!-- PRODUCT TYPE (multi-select) — Inbound only -->
   <div id="product-type-section">
     <div class="section-title">Product Type</div>
     <div class="form-group">
@@ -576,7 +576,7 @@ document.addEventListener('DOMContentLoaded', initPinSelect);
   <!-- Admin-Only: Sync to Workbook -->
   <div id="sync-section" class="hidden">
     <div class="section-title" style="color:#22c55e">&#9889; Sync to Workbook</div>
-    <p style="font-size:12px;color:#94a3b8;margin-bottom:8px">Import LoadLedger data directly into your master workbook. Select the workbook file below ÃÂ¢ÃÂÃÂ data will be auto-placed into the correct rows.</p>
+    <p style="font-size:12px;color:#94a3b8;margin-bottom:8px">Import LoadLedger data directly into your master workbook. Select the workbook file below — data will be auto-placed into the correct rows.</p>
     <div style="position:relative">
       <button id="syncBtn" onclick="document.getElementById('wbFileInput').click()" style="width:100%;padding:14px;border:none;border-radius:8px;font-size:16px;font-weight:700;cursor:pointer;background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;margin-bottom:8px">&#128218; Sync to Workbook</button>
       <input type="file" id="wbFileInput" accept=".xlsx,.xlsm" style="display:none" onchange="syncToWorkbook(this)">
@@ -1359,9 +1359,9 @@ function renderHistory() {
     const unsynced = getUnsyncedLoads();
     const syncBtn = document.getElementById('syncBtn');
     if(unsynced.length > 0) {
-      syncBtn.textContent = 'ÃÂ°ÃÂÃÂÃÂ Sync ' + unsynced.length + ' Load' + (unsynced.length>1?'s':'') + ' to Workbook';
+      syncBtn.textContent = '📚 Sync ' + unsynced.length + ' Load' + (unsynced.length>1?'s':'') + ' to Workbook';
     } else {
-      syncBtn.textContent = 'ÃÂ¢ÃÂÃÂ All Loads Synced';
+      syncBtn.textContent = '✅ All Loads Synced';
     }
   }
 
@@ -1419,7 +1419,7 @@ function renderAdminDrivers() {
   drivers.forEach(d => {
     const item = document.createElement('div');
     item.className = 'admin-list-item';
-    const pinDisplay = d.pin ? 'ÃÂ¢ÃÂÃÂ¢ÃÂ¢ÃÂÃÂ¢ÃÂ¢ÃÂÃÂ¢ÃÂ¢ÃÂÃÂ¢' : 'N/A';
+    const pinDisplay = d.pin ? '••••' : 'N/A';
     item.innerHTML = `
       <div class="item-info">
         <div style="font-weight:600;color:#e2e8f0">${d.name}</div>
@@ -2283,7 +2283,7 @@ function markAllSynced() {
 
 function clearSyncStatus() {
   localStorage.removeItem('ll_synced_loads');
-  showToast('Sync status cleared ÃÂ¢ÃÂÃÂ all loads will sync next time');
+  showToast('Sync status cleared — all loads will sync next time');
   renderHistory();
 }
 
