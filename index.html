@@ -283,6 +283,15 @@ body.locked > *:not(#pin-overlay):not(.toast){display:none!important}
       padding: 40px 16px;
       font-size: 14px;
     }
+
+/* Version Badge */
+.version-badge { position:fixed; bottom:4px; right:8px; font-size:10px; color:#999; z-index:1; pointer-events:none; }
+/* Config Sync Indicator */
+.sync-status { font-size:10px; color:#aaa; text-align:center; padding:2px 0; }
+.sync-status.syncing { color:#f0ad4e; }
+.sync-status.synced { color:#5cb85c; }
+.sync-status.error { color:#d9534f; }
+
 </style>
 <link rel="manifest" href="/manifest.json">
 </head>
@@ -412,6 +421,13 @@ function getConfig(key) {
 
 function setConfig(key, arr) {
   localStorage.setItem('ll_cfg_'+key, JSON.stringify(arr));
+  // Auto-push to server when admin saves config
+  if (window.isAdmin && typeof configSync !== 'undefined') {
+    configSync.push(key, arr).then(function() {
+      var badge = document.getElementById('versionBadge');
+      if (badge) { badge.textContent = 'v2.1.0 \u2714 synced'; setTimeout(function(){ badge.textContent = 'v2.1.0'; }, 2000); }
+    });
+  }
 }
 
 // Initialize pin-user-select
@@ -896,7 +912,12 @@ document.addEventListener('DOMContentLoaded', initPinSelect);
   <div class="danger-zone">
     
       
-<div class="section-title">Danger Zone</div>
+<div class="admin-section" style="border-color:#5cb85c;margin-bottom:15px;">
+      <div class="section-title" style="color:#5cb85c;">Device Sync</div>
+      <button style="background:#5cb85c;color:#fff;border:none;padding:10px 20px;border-radius:6px;font-size:14px;width:100%;cursor:pointer;" onclick="syncAllConfig()">Sync Config to All Devices</button>
+      <div id="syncStatusMsg" class="sync-status" style="margin-top:6px;"></div>
+    </div>
+    <div class="section-title">Danger Zone</div>
     <button class="delete-btn" onclick="confirmClearAllData()">Clear All Load Data</button>
     <button class="delete-btn" onclick="confirmResetDefaults()">Reset to Defaults</button>
   </div>
@@ -930,6 +951,12 @@ document.addEventListener('DOMContentLoaded', () => {
   renderHistory();
   populateDropdowns();
       loadFieldReqs();
+      // Config sync: pull latest config from server, then refresh dropdowns
+      if (typeof configSync !== 'undefined' && configSync.needsSync()) {
+        configSync.pull().then(function(ok) {
+          if (ok) { populateDropdowns(); console.log('[configSync] Dropdowns refreshed from server config'); }
+        });
+      }
   setupOtherToggle('loadDriver','loadDriverOther');
   setupOtherToggle('loadSupplier','loadSupplierOther');
   setupOtherToggle('loadCustomer','loadCustomerOther');
@@ -2522,6 +2549,105 @@ function showToast(msg) {
   setTimeout(() => t.style.display = 'none', 2500);
 }
 
+
+// Sync all config to server (admin button)
+function syncAllConfig() {
+  var msg = document.getElementById('syncStatusMsg');
+  if (msg) { msg.textContent = 'Syncing...'; msg.className = 'sync-status syncing'; }
+  configSync.pushAll().then(function(ok) {
+    if (msg) {
+      if (ok) { msg.textContent = 'All config synced to server. Other devices will update on next load.'; msg.className = 'sync-status synced'; }
+      else { msg.textContent = 'Sync failed. Check connection.'; msg.className = 'sync-status error'; }
+      setTimeout(function(){ msg.textContent = ''; msg.className = 'sync-status'; }, 5000);
+    }
+  });
+}
+
+// ===== CONFIG SYNC MODULE =====
+// Syncs admin config (suppliers, trucks, etc.) via Google Sheet so all devices stay in sync
+const configSync = (() => {
+  const SYNC_KEY = 'll_config_last_sync';
+  const SYNC_INTERVAL = 5 * 60 * 1000; // 5 min cache
+
+  // Pull config from server (Google Sheet via Apps Script)
+  async function pull() {
+    try {
+      const url = sheetsSync.getWebAppUrl() + '?action=getConfig';
+      const resp = await fetch(url);
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      const data = await resp.json();
+      if (data && data.config) {
+        // Save each config category to localStorage
+        const categories = ['suppliers','customers','trucks','trailers','commodities','products'];
+        categories.forEach(cat => {
+          if (data.config[cat] && Array.isArray(data.config[cat]) && data.config[cat].length > 0) {
+            localStorage.setItem('ll_cfg_' + cat, JSON.stringify(data.config[cat]));
+          }
+        });
+        localStorage.setItem(SYNC_KEY, Date.now().toString());
+        console.log('[configSync] Pulled config from server');
+        return true;
+      }
+      return false;
+    } catch(e) {
+      console.warn('[configSync] Pull failed:', e.message);
+      return false;
+    }
+  }
+
+  // Push config to server (admin only)
+  async function push(category, data) {
+    try {
+      const url = sheetsSync.getWebAppUrl();
+      const resp = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({ type: 'configSync', category: category, data: data })
+      });
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      console.log('[configSync] Pushed ' + category + ' to server');
+      return true;
+    } catch(e) {
+      console.warn('[configSync] Push failed:', e.message);
+      return false;
+    }
+  }
+
+  // Push ALL categories at once (admin bulk sync)
+  async function pushAll() {
+    const categories = ['suppliers','customers','trucks','trailers','commodities','products'];
+    const allConfig = {};
+    categories.forEach(cat => {
+      const stored = localStorage.getItem('ll_cfg_' + cat);
+      if (stored) {
+        try { allConfig[cat] = JSON.parse(stored); } catch(e) {}
+      }
+    });
+    try {
+      const url = sheetsSync.getWebAppUrl();
+      const resp = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({ type: 'configSyncAll', config: allConfig })
+      });
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      console.log('[configSync] Pushed all config to server');
+      return true;
+    } catch(e) {
+      console.warn('[configSync] PushAll failed:', e.message);
+      return false;
+    }
+  }
+
+  // Check if we should pull (stale cache or never synced)
+  function needsSync() {
+    const last = parseInt(localStorage.getItem(SYNC_KEY) || '0');
+    return (Date.now() - last) > SYNC_INTERVAL;
+  }
+
+  return { pull, push, pushAll, needsSync };
+})();
+
 // ===== SHEETS SYNC MODULE =====
 const sheetsSync = (() => {
   const WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbx4Hc4uKNPNNdkRpSaZx_n0QOe_STBISIzbKfLeRkPIRf-BzZIkiYQQHk85-uXRqCfgLA/exec';
@@ -2951,5 +3077,6 @@ if ('serviceWorker' in navigator) {
   });
 }
 </script>
+<div class="version-badge" id="versionBadge">v2.1.0</div>
 </body>
 </html>
