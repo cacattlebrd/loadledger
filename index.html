@@ -153,7 +153,7 @@ body.locked > *:not(#pin-overlay):not(.toast){display:none!important}
     }
     .toggle-label input[type=checkbox] { width:18px; height:18px; accent-color:#f59e0b; }
 
-    /* GPS Indicator & Clock Out */
+    /* GPS Indicator & Log Out */
     .header-controls {
       display: flex;
       align-items: center;
@@ -425,7 +425,7 @@ function setConfig(key, arr) {
   if (window.isAdmin && typeof configSync !== 'undefined') {
     configSync.push(key, arr).then(function() {
       var badge = document.getElementById('versionBadge');
-      if (badge) { badge.textContent = 'v2.1.0 \u2714 synced'; setTimeout(function(){ badge.textContent = 'v2.1.0'; }, 2000); }
+      if (badge) { badge.textContent = 'v2.1.1 \u2714 synced'; setTimeout(function(){ badge.textContent = 'v2.1.1'; }, 2000); }
     });
   }
 }
@@ -455,7 +455,7 @@ document.addEventListener('DOMContentLoaded', initPinSelect);
         <span id="notif-badge" class="notif-badge" style="display:none">0</span>
       </div>
       <span id="gps-indicator" class="gps-indicator gps-off">GPS: OFF</span>
-      <button class="clock-out-btn" onclick="clockOut()">Clock Out</button>
+      <button class="clock-out-btn" onclick="clockOut()">Log Out</button>
     </div>
 </div>
 
@@ -3077,6 +3077,6 @@ if ('serviceWorker' in navigator) {
   });
 }
 </script>
-<div class="version-badge" id="versionBadge">v2.1.0</div>
+<div class="version-badge" id="versionBadge">v2.1.1</div>
 </body>
 </html>
