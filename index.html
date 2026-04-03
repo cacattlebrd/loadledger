@@ -478,7 +478,7 @@ function setConfig(key, arr) {
   if (window.isAdmin && typeof configSync !== 'undefined') {
     configSync.push(key, arr).then(function() {
       var badge = document.getElementById('versionBadge');
-      if (badge) { badge.textContent = 'v2.4.2 \u2714 synced'; setTimeout(function(){ badge.textContent = 'v2.4.2'; }, 2000); }
+      if (badge) { badge.textContent = 'v2.4.3 \u2714 synced'; setTimeout(function(){ badge.textContent = 'v2.4.3'; }, 2000); }
     });
   }
 }
@@ -812,6 +812,7 @@ document.addEventListener('DOMContentLoaded', initPinSelect);
       <span class="sys-toggle">+</span>
     </div>
     <div class="sys-update-body" style="display:none">
+      <div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">Apr 3</div><div class="sys-update-text">Fixed tab switching bug and admin sync section error</div></div>
       <div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">Apr 3</div><div class="sys-update-text">Fixed false offline mode when server returns empty history</div></div>
       <div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">Apr 3</div><div class="sys-update-text">Backend upgraded - History now syncs from Google Sheets across all devices</div></div>
       <div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">Apr 3</div><div class="sys-update-text">History tab rebuilt - Activity Log, Load/Fuel/DVIR history sections</div></div>
@@ -954,7 +955,7 @@ document.addEventListener('DOMContentLoaded', initPinSelect);
         </div>
       </div>
 
-  <div class="admin-action"><div class="section-title">Device Sync</div><button style="background:#5cb85c;color:#fff;border:none;padding:10px 20px;border-radius:6px;font-size:14px;width:100%;cursor:pointer;" onclick="syncAllConfig()">Sync Config to All Devices</button></div>
+  <div id="sync-section" class="admin-action"><div class="section-title">Device Sync</div><button style="background:#5cb85c;color:#fff;border:none;padding:10px 20px;border-radius:6px;font-size:14px;width:100%;cursor:pointer;" onclick="syncAllConfig()">Sync Config to All Devices</button></div>
 <div class="danger-zone"><div class="section-title">Danger Zone</div><button class="delete-btn" onclick="confirmClearAllData()">Clear All Load Data</button><button class="delete-btn" onclick="confirmResetDefaults()">Reset to Defaults</button></div>
 </div>
 
@@ -1302,8 +1303,8 @@ function switchTab(name) {
   if(name==='history') renderHistory();
   if(name==='admin') renderAdminPanel();
 
-    // Auto-fill driver name on Report tab
-    if (tab === 'report') {
+    // Auto-fill driver name on Help tab
+    if (name === 'help') {
       var sel = document.getElementById('pin-user-select');
       var dn = sel && sel.selectedIndex > 0 ? sel.options[sel.selectedIndex].text : 'Driver';
       helpDesk.init(dn);
@@ -3468,6 +3469,6 @@ if ('serviceWorker' in navigator) {
   });
 }
 </script>
-<div class="version-badge" id="versionBadge">v2.4.2</div>
+<div class="version-badge" id="versionBadge">v2.4.3</div>
 </body>
 </html>
