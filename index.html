@@ -298,7 +298,7 @@ body.locked > *:not(#pin-overlay):not(.toast){display:none!important}
 <body>
 <div id="pin-overlay">
   <h1>&#9878; LOADLEDGER</h1>
-  <div class="pin-subtitle">CA Cattle Co. ÃÂ¢ÃÂÃÂ Bakery Recycling Division</div>
+  <div class="pin-subtitle">CA Cattle Co. ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ Bakery Recycling Division</div>
   <select id="pin-user-select">
     <option value="">Select your name...</option>
   </select>
@@ -425,7 +425,7 @@ function setConfig(key, arr) {
   if (window.isAdmin && typeof configSync !== 'undefined') {
     configSync.push(key, arr).then(function() {
       var badge = document.getElementById('versionBadge');
-      if (badge) { badge.textContent = 'v2.3.0 \u2714 synced'; setTimeout(function(){ badge.textContent = 'v2.3.0'; }, 2000); }
+      if (badge) { badge.textContent = 'v2.3.1 \u2714 synced'; setTimeout(function(){ badge.textContent = 'v2.3.1'; }, 2000); }
     });
   }
 }
@@ -464,7 +464,7 @@ document.addEventListener('DOMContentLoaded', initPinSelect);
   <div class="tab" onclick="switchTab('fuel')"><span class="tab-icon">&#9981;</span>Fuel/DEF</div>
   <div class="tab" onclick="switchTab('dvir')"><span class="tab-icon">&#9874;</span>DVIR</div>
   <div class="tab" onclick="switchTab('history')"><span class="tab-icon">&#128203;</span>History</div>
-  <div class="tab" onclick="switchTab('report')"><span class="tab-icon">ÃÂ¢ÃÂÃÂ </span> Help</div>
+  <div class="tab" onclick="switchTab('report')"><span class="tab-icon">ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ </span> Help</div>
     <div id="tab-admin" class="tab hidden" onclick="switchTab('admin')"><span class="tab-icon">&#9881;</span>Admin</div>
 </div>
 
@@ -517,7 +517,7 @@ document.addEventListener('DOMContentLoaded', initPinSelect);
     </div>
   </div>
 
-  <!-- PRODUCT TYPE (multi-select) ÃÂ¢ÃÂÃÂ Inbound only -->
+  <!-- PRODUCT TYPE (multi-select) ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ Inbound only -->
   <div id="product-type-section">
     <div class="section-title">Product Type</div>
     <div class="form-group">
@@ -734,7 +734,7 @@ document.addEventListener('DOMContentLoaded', initPinSelect);
   <!-- Admin-Only: Sync to Workbook -->
   <div id="sync-section" class="hidden">
     <div class="section-title" style="color:#22c55e">&#9889; Sync to Workbook</div>
-    <p style="font-size:12px;color:#94a3b8;margin-bottom:8px">Import LoadLedger data directly into your master workbook. Select the workbook file below ÃÂ¢ÃÂÃÂ data will be auto-placed into the correct rows.</p>
+    <p style="font-size:12px;color:#94a3b8;margin-bottom:8px">Import LoadLedger data directly into your master workbook. Select the workbook file below ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ data will be auto-placed into the correct rows.</p>
     <div style="position:relative">
       <button id="syncBtn" onclick="document.getElementById('wbFileInput').click()" style="width:100%;padding:14px;border:none;border-radius:8px;font-size:16px;font-weight:700;cursor:pointer;background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;margin-bottom:8px">&#128218; Sync to Workbook</button>
       <input type="file" id="wbFileInput" accept=".xlsx,.xlsm" style="display:none" onchange="syncToWorkbook(this)">
@@ -1675,7 +1675,7 @@ function renderAdminDrivers() {
   drivers.forEach(d => {
     const item = document.createElement('div');
     item.className = 'admin-list-item';
-    const pinDisplay = d.pin ? 'ÃÂ¢ÃÂÃÂ¢ÃÂ¢ÃÂÃÂ¢ÃÂ¢ÃÂÃÂ¢ÃÂ¢ÃÂÃÂ¢' : 'N/A';
+    const pinDisplay = d.pin ? 'ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ¢ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ¢ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ¢ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ¢' : 'N/A';
     item.innerHTML = `
       <div class="item-info">
         <div style="font-weight:600;color:#e2e8f0">${d.name}</div>
@@ -2539,7 +2539,7 @@ function markAllSynced() {
 
 function clearSyncStatus() {
   localStorage.removeItem('ll_synced_loads');
-  showToast('Sync status cleared ÃÂ¢ÃÂÃÂ all loads will sync next time');
+  showToast('Sync status cleared ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ all loads will sync next time');
   renderHistory();
 }
 
@@ -2852,6 +2852,7 @@ helpDeskStyles.textContent = `
 .hd-empty-state .hd-icon{font-size:48px;margin-bottom:12px}
 .hd-empty-state p{margin:4px 0;font-size:14px}
 .hd-empty-state .hd-hint{font-size:12px;margin-top:8px;color:#bbb}
+.hd-feedback{display:flex;gap:8px;margin-top:6px;align-items:center}.hd-feedback-btn{background:none;border:1px solid #e0e0e0;border-radius:50%;width:32px;height:32px;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s;padding:0}.hd-feedback-btn:hover{background:#f5f5f5;transform:scale(1.1)}.hd-feedback-btn.selected-up{background:#e8f5e9;border-color:#4caf50}.hd-feedback-btn.selected-down{background:#fce4ec;border-color:#e53935}.hd-feedback-btn.disabled{opacity:0.4;cursor:default;pointer-events:none}.hd-feedback-label{font-size:11px;color:#999}
 .hd-security-notice{background:#fff8e1;border:1px solid #ffcc02;border-radius:8px;padding:8px 12px;margin:8px 16px 0;font-size:11px;color:#666;text-align:center;flex-shrink:0}
 `;
 document.head.appendChild(helpDeskStyles);
@@ -2968,6 +2969,7 @@ var helpDesk = (function() {
     }).catch(function(){});
   }
 
+  var feedbackGiven = {};
   function renderMessages() {
     var area = document.getElementById('hd-chat-area');
     var empty = document.getElementById('hd-empty');
@@ -2986,6 +2988,9 @@ var helpDesk = (function() {
       var div = document.createElement('div');
       var isD = msg.sender === 'driver';
       div.className = 'hd-msg ' + (isD ? 'driver' : 'helper');
+      div.dataset.sender = isD ? 'driver' : 'helper';
+      div.dataset.ts = msg.timestamp || '';
+      div.dataset.tid = msg.threadId || currentThreadId;
       var senderLabel = isD ? msg.driverName : 'Lil Helper';
       var ts = '';
       try{var d=new Date(msg.timestamp);var h=d.getHours();var m=d.getMinutes();var ap=h>=12?'PM':'AM';h=h%12||12;ts=h+':'+(m<10?'0':'')+m+' '+ap;}catch(e){}
@@ -2995,9 +3000,64 @@ var helpDesk = (function() {
       div.appendChild(se); div.appendChild(te); div.appendChild(ti);
       area.appendChild(div);
     });
+    addThumbsFeedback();
     area.scrollTop = area.scrollHeight;
   }
 
+
+  function addThumbsFeedback() {
+    var msgs = document.querySelectorAll(".hd-msg");
+    msgs.forEach(function(el) {
+      if (el.dataset.fbDone) return;
+      var sender = el.dataset.sender;
+      if (sender !== "helper") return;
+      var ts = el.dataset.ts || "";
+      var tid = el.dataset.tid || currentThreadId;
+      var txt = el.querySelector(".hd-msg-text");
+      if (!txt) return;
+      if (txt.textContent.indexOf("I can't help with that") > -1) return;
+      var fbKey = tid + "_" + ts;
+      var fb = feedbackGiven[fbKey];
+      var div = document.createElement("div");
+      div.className = "hd-feedback";
+      if (fb) {
+        var u = document.createElement("button");
+        u.className = "hd-feedback-btn " + (fb==="up"?"selected-up":"disabled");
+        u.disabled = true;
+        u.textContent = "\ud83d\udc4d";
+        var d = document.createElement("button");
+        d.className = "hd-feedback-btn " + (fb==="down"?"selected-down":"disabled");
+        d.disabled = true;
+        d.textContent = "\ud83d\udc4e";
+        div.appendChild(u); div.appendChild(d);
+      } else {
+        var upBtn = document.createElement("button");
+        upBtn.className = "hd-feedback-btn";
+        upBtn.textContent = "\ud83d\udc4d";
+        upBtn.onclick = function() { submitFeedback(fbKey, ts, "up"); };
+        var dnBtn = document.createElement("button");
+        dnBtn.className = "hd-feedback-btn";
+        dnBtn.textContent = "\ud83d\udc4e";
+        dnBtn.onclick = function() { submitFeedback(fbKey, ts, "down"); };
+        var lbl = document.createElement("span");
+        lbl.className = "hd-feedback-label";
+        lbl.textContent = "Helpful?";
+        div.appendChild(upBtn); div.appendChild(dnBtn); div.appendChild(lbl);
+      }
+      el.appendChild(div);
+      el.dataset.fbDone = "1";
+    });
+  }
+
+  function submitFeedback(fbKey, msgTimestamp, rating) {
+    feedbackGiven[fbKey] = rating;
+    document.querySelectorAll(".hd-msg").forEach(function(el){ el.dataset.fbDone=""; });
+    addThumbsFeedback();
+    var url = getWebAppUrl();
+    if (!url) return;
+    var p = { action:"helpDeskFeedback", threadId:currentThreadId, driver:driverName, messageTimestamp:msgTimestamp, rating:rating };
+    fetch(url, { method:"POST", headers:{"Content-Type":"application/x-www-form-urlencoded"}, body:"payload="+encodeURIComponent(JSON.stringify(p)) });
+  }
   function addSystemMessage(text) {
     messages.push({threadId:currentThreadId,sender:'system',message:text,timestamp:new Date().toISOString()});
     renderMessages();
@@ -3267,6 +3327,6 @@ if ('serviceWorker' in navigator) {
   });
 }
 </script>
-<div class="version-badge" id="versionBadge">v2.3.0</div>
+<div class="version-badge" id="versionBadge">v2.3.1</div>
 </body>
 </html>
