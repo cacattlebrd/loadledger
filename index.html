@@ -298,7 +298,7 @@ body.locked > *:not(#pin-overlay):not(.toast){display:none!important}
 <body>
 <div id="pin-overlay">
   <h1>&#9878; LOADLEDGER</h1>
-  <div class="pin-subtitle">CA Cattle Co. â Bakery Recycling Division</div>
+  <div class="pin-subtitle">CA Cattle Co. Ã¢ÂÂ Bakery Recycling Division</div>
   <select id="pin-user-select">
     <option value="">Select your name...</option>
   </select>
@@ -425,7 +425,7 @@ function setConfig(key, arr) {
   if (window.isAdmin && typeof configSync !== 'undefined') {
     configSync.push(key, arr).then(function() {
       var badge = document.getElementById('versionBadge');
-      if (badge) { badge.textContent = 'v2.2.0 \u2714 synced'; setTimeout(function(){ badge.textContent = 'v2.2.0'; }, 2000); }
+      if (badge) { badge.textContent = 'v2.3.0 \u2714 synced'; setTimeout(function(){ badge.textContent = 'v2.3.0'; }, 2000); }
     });
   }
 }
@@ -464,7 +464,7 @@ document.addEventListener('DOMContentLoaded', initPinSelect);
   <div class="tab" onclick="switchTab('fuel')"><span class="tab-icon">&#9981;</span>Fuel/DEF</div>
   <div class="tab" onclick="switchTab('dvir')"><span class="tab-icon">&#9874;</span>DVIR</div>
   <div class="tab" onclick="switchTab('history')"><span class="tab-icon">&#128203;</span>History</div>
-  <div class="tab" onclick="switchTab('report')"><span class="tab-icon">â </span> Report</div>
+  <div class="tab" onclick="switchTab('report')"><span class="tab-icon">Ã¢ÂÂ </span> Help</div>
     <div id="tab-admin" class="tab hidden" onclick="switchTab('admin')"><span class="tab-icon">&#9881;</span>Admin</div>
 </div>
 
@@ -517,7 +517,7 @@ document.addEventListener('DOMContentLoaded', initPinSelect);
     </div>
   </div>
 
-  <!-- PRODUCT TYPE (multi-select) â Inbound only -->
+  <!-- PRODUCT TYPE (multi-select) Ã¢ÂÂ Inbound only -->
   <div id="product-type-section">
     <div class="section-title">Product Type</div>
     <div class="form-group">
@@ -734,7 +734,7 @@ document.addEventListener('DOMContentLoaded', initPinSelect);
   <!-- Admin-Only: Sync to Workbook -->
   <div id="sync-section" class="hidden">
     <div class="section-title" style="color:#22c55e">&#9889; Sync to Workbook</div>
-    <p style="font-size:12px;color:#94a3b8;margin-bottom:8px">Import LoadLedger data directly into your master workbook. Select the workbook file below â data will be auto-placed into the correct rows.</p>
+    <p style="font-size:12px;color:#94a3b8;margin-bottom:8px">Import LoadLedger data directly into your master workbook. Select the workbook file below Ã¢ÂÂ data will be auto-placed into the correct rows.</p>
     <div style="position:relative">
       <button id="syncBtn" onclick="document.getElementById('wbFileInput').click()" style="width:100%;padding:14px;border:none;border-radius:8px;font-size:16px;font-weight:700;cursor:pointer;background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;margin-bottom:8px">&#128218; Sync to Workbook</button>
       <input type="file" id="wbFileInput" accept=".xlsx,.xlsm" style="display:none" onchange="syncToWorkbook(this)">
@@ -767,10 +767,7 @@ document.addEventListener('DOMContentLoaded', initPinSelect);
 
   <!-- Report Issue Panel -->
   <div id="panel-report" class="panel" style="display:none">
-    <div class="section-title">Report an Issue</div>
-
-  <!-- Notification Panel Overlay -->
-  <div id="notif-panel" class="notif-panel" style="display:none">
+    <div id="notif-panel" class="notif-panel" style="display:none">
     <div class="notif-header">
       <span class="notif-title">Notifications</span>
       <button class="notif-close" onclick="toggleNotifPanel()">&times;</button>
@@ -779,26 +776,7 @@ document.addEventListener('DOMContentLoaded', initPinSelect);
       <div class="notif-empty">No messages</div>
     </div>
   </div>
-    <div class="form-group">
-      <label>Driver</label>
-      <input type="text" id="reportDriver" readonly class="form-input" />
-    </div>
-    <div class="form-group">
-      <label>Category</label>
-      <select id="reportCategory" class="form-input">
-        <option value="">Select category...</option>
-        <option value="App Bug">App Bug</option>
-        <option value="Truck Issue">Truck Issue</option>
-        <option value="Equipment Issue">Equipment Issue</option>
-        <option value="Safety">Safety</option>
-        <option value="Other">Other</option>
-      </select>
-    </div>
-    <div class="form-group">
-      <label>Description</label>
-      <textarea id="reportDescription" class="form-input" rows="5" placeholder="Describe the issue..."></textarea>
-    </div>
-    <button class="submit-btn" onclick="submitReport()">Submit Report</button>
+    <div id="help-content"></div>
   </div>
   <div id="adminDriversList" class="admin-list"></div>
   <button class="admin-btn-add" onclick="showAddDriverForm()">+ Add Driver</button>
@@ -1268,10 +1246,11 @@ function switchTab(name) {
   if(name==='admin') renderAdminPanel();
 
     // Auto-fill driver name on Report tab
-    if (name === 'report') {
-      const sel = document.getElementById('pin-user-select');
-      const opt = sel.options[sel.selectedIndex];
-      document.getElementById('reportDriver').value = opt ? opt.textContent.trim() : '';
+    if (tab === 'report') {
+      var sel = document.getElementById('pin-user-select');
+      var dn = sel && sel.selectedIndex > 0 ? sel.options[sel.selectedIndex].text : 'Driver';
+      helpDesk.init(dn);
+    } else { helpDesk.stopPolling(); }
     }
   }
 
@@ -1697,7 +1676,7 @@ function renderAdminDrivers() {
   drivers.forEach(d => {
     const item = document.createElement('div');
     item.className = 'admin-list-item';
-    const pinDisplay = d.pin ? 'â¢â¢â¢â¢' : 'N/A';
+    const pinDisplay = d.pin ? 'Ã¢ÂÂ¢Ã¢ÂÂ¢Ã¢ÂÂ¢Ã¢ÂÂ¢' : 'N/A';
     item.innerHTML = `
       <div class="item-info">
         <div style="font-weight:600;color:#e2e8f0">${d.name}</div>
@@ -2561,7 +2540,7 @@ function markAllSynced() {
 
 function clearSyncStatus() {
   localStorage.removeItem('ll_synced_loads');
-  showToast('Sync status cleared â all loads will sync next time');
+  showToast('Sync status cleared Ã¢ÂÂ all loads will sync next time');
   renderHistory();
 }
 
@@ -2837,57 +2816,208 @@ const sheetsSync = (() => {
   /* ============================================================
      REPORT ISSUE
      ============================================================ */
-  function submitReport() {
-    const select = document.getElementById('pin-user-select');
-    const driverName = select.options[select.selectedIndex] ? select.options[select.selectedIndex].textContent.trim() : 'Unknown';
-    const category = document.getElementById('reportCategory').value;
-    const description = document.getElementById('reportDescription').value.trim();
+  
+// ============================================================
+// LoadLedger Help Desk Module v1.0
+// Chat-style AI help desk powered by Lil Helper
+// ============================================================
+var helpDeskStyles = document.createElement('style');
+helpDeskStyles.textContent = `
+#help-content{display:flex;flex-direction:column;height:calc(100vh - 140px);background:#f5f5f5;position:relative}
+.hd-header{background:#1a237e;color:#fff;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
+.hd-header h3{margin:0;font-size:16px;font-weight:600}
+.hd-new-btn{background:#fff;color:#1a237e;border:none;border-radius:6px;padding:6px 14px;font-size:13px;font-weight:600;cursor:pointer}
+.hd-category-bar{background:#e8eaf6;padding:8px 12px;display:flex;gap:6px;flex-wrap:wrap;flex-shrink:0;border-bottom:1px solid #c5cae9}
+.hd-cat-chip{background:#fff;border:1px solid #9fa8da;border-radius:16px;padding:4px 12px;font-size:12px;cursor:pointer;transition:all 0.2s;color:#333}
+.hd-cat-chip.active{background:#1a237e;color:#fff;border-color:#1a237e}
+.hd-chat-area{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;-webkit-overflow-scrolling:touch}
+.hd-msg{max-width:82%;padding:10px 14px;border-radius:16px;font-size:14px;line-height:1.4;word-wrap:break-word;position:relative}
+.hd-msg.driver{align-self:flex-end;background:#1a237e;color:#fff;border-bottom-right-radius:4px}
+.hd-msg.helper{align-self:flex-start;background:#fff;color:#333;border:1px solid #e0e0e0;border-bottom-left-radius:4px}
+.hd-msg .hd-sender{font-size:11px;font-weight:600;margin-bottom:4px;opacity:0.8}
+.hd-msg.helper .hd-sender{color:#1a237e}
+.hd-msg .hd-time{font-size:10px;opacity:0.6;margin-top:4px;text-align:right}
+.hd-msg.helper .hd-time{text-align:left}
+.hd-typing{align-self:flex-start;background:#fff;border:1px solid #e0e0e0;border-radius:16px;padding:10px 14px;font-size:14px;color:#999;display:none}
+.hd-typing.visible{display:block}
+.hd-typing span{animation:hdBlink 1.4s infinite}
+.hd-typing span:nth-child(2){animation-delay:0.2s}
+.hd-typing span:nth-child(3){animation-delay:0.4s}
+@keyframes hdBlink{0%,60%,100%{opacity:0.3}30%{opacity:1}}
+.hd-input-area{flex-shrink:0;background:#fff;border-top:1px solid #e0e0e0;padding:10px 12px;display:flex;gap:8px;align-items:flex-end}
+.hd-input-area textarea{flex:1;border:1px solid #ccc;border-radius:20px;padding:10px 16px;font-size:14px;resize:none;max-height:100px;min-height:40px;font-family:inherit;line-height:1.4}
+.hd-input-area textarea:focus{outline:none;border-color:#1a237e}
+.hd-send-btn{background:#1a237e;color:#fff;border:none;border-radius:50%;width:42px;height:42px;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.hd-send-btn:disabled{background:#ccc;cursor:not-allowed}
+.hd-empty-state{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#999;text-align:center;padding:40px 20px}
+.hd-empty-state .hd-icon{font-size:48px;margin-bottom:12px}
+.hd-empty-state p{margin:4px 0;font-size:14px}
+.hd-empty-state .hd-hint{font-size:12px;margin-top:8px;color:#bbb}
+.hd-security-notice{background:#fff8e1;border:1px solid #ffcc02;border-radius:8px;padding:8px 12px;margin:8px 16px 0;font-size:11px;color:#666;text-align:center;flex-shrink:0}
+`;
+document.head.appendChild(helpDeskStyles);
 
-    if (!category) {
-      showToast('Select a category');
-      return;
-    }
-    if (!description) {
-      showToast('Enter a description');
-      return;
-    }
 
-    const report = {
-      type: 'report',
-      driver: driverName,
-      category: category,
-      description: description,
-      timestamp: new Date().toISOString(),
-      gpsLat: gpsTracker.getPosition() ? gpsTracker.getPosition().lat : null,
-      gpsLng: gpsTracker.getPosition() ? gpsTracker.getPosition().lng : null
-    };
+var helpDesk = (function() {
+  'use strict';
+  var POLL_INTERVAL = 30000;
+  var pollTimer = null;
+  var currentThreadId = null;
+  var driverName = '';
+  var CATEGORIES = [
+    {id:'app-help',label:'App Help'},
+    {id:'truck-issue',label:'Truck Issue'},
+    {id:'equipment',label:'Equipment'},
+    {id:'safety',label:'Safety'},
+    {id:'other',label:'Other'}
+  ];
+  var selectedCategory = 'app-help';
+  var messages = [];
 
-    // Save locally
-    addStore('ll_reports', report);
-
-    // Send to Google Sheets via sheetsSync
-    sheetsSync.send(report);
-
-    // Also open mailto as backup notification to assistant@cacattlebrd.com
-    const subject = 'LoadLedger Report: ' + category + ' â ' + driverName;
-    const body = 'Driver: ' + driverName + '\nCategory: ' + category + '\nDescription: ' + description + '\nTime: ' + new Date().toLocaleString();
-    const mailLink = 'mailto:assistant@cacattlebrd.com?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
-
-    // Try to send the email link silently via a hidden iframe (won't open mail app in kiosk)
-    // If that fails, the Sheets entry is the primary record
-    try {
-      const a = document.createElement('a');
-      a.href = mailLink;
-      a.click();
-    } catch(e) {
-      // Kiosk mode may block this - that's fine, Sheets has the record
-    }
-
-    // Clear form
-    document.getElementById('reportCategory').value = '';
-    document.getElementById('reportDescription').value = '';
-    showToast('Report submitted');
+  function buildUI() {
+    var container = document.getElementById('help-content');
+    if (!container) return;
+    container.innerHTML =
+      '<div class="hd-header"><h3>Help Desk</h3>' +
+      '<button class="hd-new-btn" onclick="helpDesk.newThread()">+ New</button></div>' +
+      '<div class="hd-category-bar" id="hd-categories"></div>' +
+      '<div class="hd-security-notice">Lil Helper can answer questions and report issues. She cannot change settings, access other accounts, or delete data.</div>' +
+      '<div class="hd-chat-area" id="hd-chat-area">' +
+      '<div class="hd-empty-state" id="hd-empty"><div class="hd-icon">&#128172;</div>' +
+      '<p><strong>Need help?</strong></p><p>Pick a category and describe your issue.</p>' +
+      '<p class="hd-hint">Lil Helper usually responds in under a minute.</p></div></div>' +
+      '<div class="hd-typing" id="hd-typing"><span>.</span><span>.</span><span>.</span> Lil Helper is thinking</div>' +
+      '<div class="hd-input-area">' +
+      '<textarea id="hd-input" rows="1" placeholder="Describe your issue or ask a question..." onkeydown="helpDesk.handleKey(event)"></textarea>' +
+      '<button class="hd-send-btn" id="hd-send-btn" onclick="helpDesk.send()">&#9654;</button></div>';
+    renderCategories();
+    autoGrowTextarea();
   }
+
+  function renderCategories() {
+    var bar = document.getElementById('hd-categories');
+    if (!bar) return;
+    bar.innerHTML = '';
+    CATEGORIES.forEach(function(cat) {
+      var chip = document.createElement('div');
+      chip.className = 'hd-cat-chip' + (cat.id === selectedCategory ? ' active' : '');
+      chip.textContent = cat.label;
+      chip.onclick = function() { selectCategory(cat.id); };
+      bar.appendChild(chip);
+    });
+  }
+
+  function selectCategory(catId) { selectedCategory = catId; renderCategories(); }
+
+  function autoGrowTextarea() {
+    var ta = document.getElementById('hd-input');
+    if (!ta) return;
+    ta.addEventListener('input', function() {
+      this.style.height = 'auto';
+      this.style.height = Math.min(this.scrollHeight, 100) + 'px';
+    });
+  }
+
+  function send() {
+    var input = document.getElementById('hd-input');
+    var text = (input.value || '').trim();
+    if (!text) return;
+    if (!currentThreadId) {
+      currentThreadId = 'HD-' + Date.now() + '-' + Math.random().toString(36).substr(2, 5);
+    }
+    var msg = {threadId:currentThreadId, sender:'driver', driverName:driverName,
+      category:selectedCategory, message:text, timestamp:new Date().toISOString()};
+    messages.push(msg);
+    renderMessages();
+    input.value = '';
+    input.style.height = 'auto';
+    showTyping(true);
+    submitToSheet(msg);
+    startPolling();
+  }
+
+  function submitToSheet(msg) {
+    var url = typeof sheetsSync !== 'undefined' && sheetsSync.getWebAppUrl ? sheetsSync.getWebAppUrl() : (localStorage.getItem('webAppUrl') || '');
+    if (!url) { addSystemMessage('Unable to send. Tell Chad or James.'); showTyping(false); return; }
+    var payload = {action:'helpDeskSubmit', threadId:msg.threadId, driver:msg.driverName,
+      category:msg.category, message:msg.message, timestamp:msg.timestamp};
+    fetch(url, {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'},
+      body:'payload=' + encodeURIComponent(JSON.stringify(payload))})
+    .then(function(r){return r.json();})
+    .then(function(data){ if(data.error){addSystemMessage('Send failed: '+data.error); showTyping(false);} })
+    .catch(function(){
+      addSystemMessage('Network error. Message saved locally.');
+      showTyping(false);
+      try{var q=JSON.parse(localStorage.getItem('hd_offline_queue')||'[]');q.push(msg);localStorage.setItem('hd_offline_queue',JSON.stringify(q));}catch(e){}
+    });
+  }
+
+  function fetchMessages() {
+    var url = typeof sheetsSync !== 'undefined' && sheetsSync.getWebAppUrl ? sheetsSync.getWebAppUrl() : (localStorage.getItem('webAppUrl') || '');
+    if (!url || !currentThreadId) return;
+    fetch(url + '?action=getHelpMessages&threadId=' + encodeURIComponent(currentThreadId) + '&driver=' + encodeURIComponent(driverName))
+    .then(function(r){return r.json();})
+    .then(function(data){
+      if (data.messages && data.messages.length > 0) {
+        var hadNew = false;
+        data.messages.forEach(function(sm){
+          var dup = messages.some(function(m){return m.timestamp===sm.timestamp && m.sender===sm.sender;});
+          if(!dup){messages.push(sm); if(sm.sender==='helper') hadNew=true;}
+        });
+        if(hadNew){showTyping(false); renderMessages();}
+      }
+    }).catch(function(){});
+  }
+
+  function renderMessages() {
+    var area = document.getElementById('hd-chat-area');
+    var empty = document.getElementById('hd-empty');
+    if (!area) return;
+    if (messages.length === 0) { if(empty) empty.style.display='flex'; return; }
+    if (empty) empty.style.display='none';
+    area.innerHTML = '';
+    messages.forEach(function(msg){
+      if(msg.sender==='system'){
+        var sys = document.createElement('div');
+        sys.style.cssText='text-align:center;font-size:12px;color:#999;padding:4px';
+        sys.textContent = msg.message;
+        area.appendChild(sys);
+        return;
+      }
+      var div = document.createElement('div');
+      var isD = msg.sender === 'driver';
+      div.className = 'hd-msg ' + (isD ? 'driver' : 'helper');
+      var senderLabel = isD ? msg.driverName : 'Lil Helper';
+      var ts = '';
+      try{var d=new Date(msg.timestamp);var h=d.getHours();var m=d.getMinutes();var ap=h>=12?'PM':'AM';h=h%12||12;ts=h+':'+(m<10?'0':'')+m+' '+ap;}catch(e){}
+      var se = document.createElement('div'); se.className='hd-sender'; se.textContent=senderLabel;
+      var te = document.createElement('div'); te.textContent=msg.message;
+      var ti = document.createElement('div'); ti.className='hd-time'; ti.textContent=ts;
+      div.appendChild(se); div.appendChild(te); div.appendChild(ti);
+      area.appendChild(div);
+    });
+    area.scrollTop = area.scrollHeight;
+  }
+
+  function addSystemMessage(text) {
+    messages.push({threadId:currentThreadId,sender:'system',message:text,timestamp:new Date().toISOString()});
+    renderMessages();
+  }
+  function startPolling(){if(pollTimer)return;pollTimer=setInterval(fetchMessages,POLL_INTERVAL);}
+  function stopPolling(){if(pollTimer){clearInterval(pollTimer);pollTimer=null;}}
+  function newThread(){currentThreadId=null;messages=[];selectedCategory='app-help';showTyping(false);buildUI();}
+  function showTyping(show){var el=document.getElementById('hd-typing');if(el)el.className='hd-typing'+(show?' visible':'');}
+  function handleKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();}}
+
+  function init(driver){
+    driverName=driver||'Unknown Driver';
+    buildUI();
+    try{var q=JSON.parse(localStorage.getItem('hd_offline_queue')||'[]');if(q.length>0){q.forEach(function(m){submitToSheet(m);});localStorage.setItem('hd_offline_queue','[]');}}catch(e){}
+  }
+
+  return {init:init,send:send,newThread:newThread,handleKey:handleKey,selectCategory:selectCategory,stopPolling:stopPolling};
+})();
+
 
 /* ============================================================
      GPS TRACKING MODULE
@@ -3138,6 +3268,6 @@ if ('serviceWorker' in navigator) {
   });
 }
 </script>
-<div class="version-badge" id="versionBadge">v2.2.0</div>
+<div class="version-badge" id="versionBadge">v2.3.0</div>
 </body>
 </html>
