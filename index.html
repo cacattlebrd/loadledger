@@ -298,7 +298,7 @@ body.locked > *:not(#pin-overlay):not(.toast){display:none!important}
 <body>
 <div id="pin-overlay">
   <h1>&#9878; LOADLEDGER</h1>
-  <div class="pin-subtitle">CA Cattle Co. — Bakery Recycling Division</div>
+  <div class="pin-subtitle">CA Cattle Co. â Bakery Recycling Division</div>
   <select id="pin-user-select">
     <option value="">Select your name...</option>
   </select>
@@ -425,7 +425,7 @@ function setConfig(key, arr) {
   if (window.isAdmin && typeof configSync !== 'undefined') {
     configSync.push(key, arr).then(function() {
       var badge = document.getElementById('versionBadge');
-      if (badge) { badge.textContent = 'v2.1.1 \u2714 synced'; setTimeout(function(){ badge.textContent = 'v2.1.1'; }, 2000); }
+      if (badge) { badge.textContent = 'v2.2.0 \u2714 synced'; setTimeout(function(){ badge.textContent = 'v2.2.0'; }, 2000); }
     });
   }
 }
@@ -464,7 +464,7 @@ document.addEventListener('DOMContentLoaded', initPinSelect);
   <div class="tab" onclick="switchTab('fuel')"><span class="tab-icon">&#9981;</span>Fuel/DEF</div>
   <div class="tab" onclick="switchTab('dvir')"><span class="tab-icon">&#9874;</span>DVIR</div>
   <div class="tab" onclick="switchTab('history')"><span class="tab-icon">&#128203;</span>History</div>
-  <div class="tab" onclick="switchTab('report')"><span class="tab-icon">⚠</span> Report</div>
+  <div class="tab" onclick="switchTab('report')"><span class="tab-icon">â </span> Report</div>
     <div id="tab-admin" class="tab hidden" onclick="switchTab('admin')"><span class="tab-icon">&#9881;</span>Admin</div>
 </div>
 
@@ -517,7 +517,7 @@ document.addEventListener('DOMContentLoaded', initPinSelect);
     </div>
   </div>
 
-  <!-- PRODUCT TYPE (multi-select) — Inbound only -->
+  <!-- PRODUCT TYPE (multi-select) â Inbound only -->
   <div id="product-type-section">
     <div class="section-title">Product Type</div>
     <div class="form-group">
@@ -734,7 +734,7 @@ document.addEventListener('DOMContentLoaded', initPinSelect);
   <!-- Admin-Only: Sync to Workbook -->
   <div id="sync-section" class="hidden">
     <div class="section-title" style="color:#22c55e">&#9889; Sync to Workbook</div>
-    <p style="font-size:12px;color:#94a3b8;margin-bottom:8px">Import LoadLedger data directly into your master workbook. Select the workbook file below — data will be auto-placed into the correct rows.</p>
+    <p style="font-size:12px;color:#94a3b8;margin-bottom:8px">Import LoadLedger data directly into your master workbook. Select the workbook file below â data will be auto-placed into the correct rows.</p>
     <div style="position:relative">
       <button id="syncBtn" onclick="document.getElementById('wbFileInput').click()" style="width:100%;padding:14px;border:none;border-radius:8px;font-size:16px;font-weight:700;cursor:pointer;background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;margin-bottom:8px">&#128218; Sync to Workbook</button>
       <input type="file" id="wbFileInput" accept=".xlsx,.xlsm" style="display:none" onchange="syncToWorkbook(this)">
@@ -1571,51 +1571,112 @@ function submitDvir() {
 
 // ===== HISTORY =====
 function renderHistory() {
+  // Admin sync section still visible for admins
   if(window.isAdmin) {
-    document.getElementById('sync-section').classList.remove('hidden');
-    const unsynced = getUnsyncedLoads();
-    const syncBtn = document.getElementById('syncBtn');
+    document.getElementById("sync-section").classList.remove("hidden");
+    var unsynced = getUnsyncedLoads();
+    var syncBtn = document.getElementById("syncBtn");
     if(unsynced.length > 0) {
-      syncBtn.textContent = '📚 Sync ' + unsynced.length + ' Load' + (unsynced.length>1?'s':'') + ' to Workbook';
+      syncBtn.textContent = "\u{1F4E6} Sync " + unsynced.length + " Loads";
     } else {
-      syncBtn.textContent = '✅ All Loads Synced';
+      syncBtn.textContent = "\u2705 All Loads Synced";
     }
   }
 
-  const loads = getStore('loads').map(e => ({...e, _cat: 'load'}));
-  const fuel = getStore('fuel').map(e => ({...e, _cat: 'fuel'}));
-  const dvirs = getStore('dvir').map(e => ({...e, _cat: 'dvir'}));
-  const all = [...loads, ...fuel, ...dvirs].sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
-  const el = document.getElementById('historyList');
-  if(all.length === 0) { el.innerHTML = '<div style="text-align:center;color:#64748b;padding:40px">No entries yet</div>'; return; }
-  el.innerHTML = all.slice(0, 50).map(e => {
-    if(e._cat === 'load') {
-      const cls = e.type === 'Inbound' ? 'inbound' : 'outbound';
-      const badge = e.type === 'Inbound' ? '<span class="h-type in">IN</span>' : '<span class="h-type out">OUT</span>';
-      const photoIcon = e.hasPhoto ? ' &#128247;' : '';
-      return `<div class="history-item ${cls}">
-        <div class="h-top">${badge}<span style="color:#64748b;font-size:12px">${e.date}</span></div>
-        <div class="h-detail">${e.source} | ${e.driver} | Tkt: ${e.ticket}${photoIcon}</div>
-        <div class="h-detail" style="font-size:11px;color:#94a3b8">${e.products || 'N/A'} | ${e.totalMiles||0} mi | ${e.totalTime||'N/A'}</div>
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px">
-          <span class="h-detail">${e.truck} / ${e.trailer}</span>
-          <span class="h-tons">${e.tons} T</span>
-        </div>
-      </div>`;
-    } else if(e._cat === 'fuel') {
-      return `<div class="history-item fuel">
-        <div class="h-top"><span class="h-type fl">FUEL</span><span style="color:#64748b;font-size:12px">${e.date}</span></div>
-        <div class="h-detail">${e.driver} | ${e.truck} | ${e.station||'N/A'}</div>
-        <div class="h-detail">Diesel: ${e.fuelGal}gal ($${e.fuelCost}) | DEF: ${e.defGal}gal ($${e.defCost})</div>
-      </div>`;
-    } else {
-      return `<div class="history-item dvir">
-        <div class="h-top"><span class="h-type dv">${e.type}</span><span style="color:#64748b;font-size:12px">${e.date}</span></div>
-        <div class="h-detail">${e.driver} | ${e.truck} / ${e.trailer}</div>
-        <div class="h-detail">${e.allClear ? 'All Clear' : 'Defects: ' + e.defects.join(', ')}</div>
-      </div>`;
+  var el = document.getElementById("historyList");
+  el.innerHTML = '<div style="text-align:center;padding:40px;color:#64748b">Loading activity...</div>';
+
+  // Fetch from server (all users, all devices)
+  var url = sheetsSync.getWebAppUrl() + "?action=getHistory&limit=100";
+  fetch(url)
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if(!data.entries || data.entries.length === 0) {
+        // Fall back to local
+        renderHistoryLocal(el);
+        return;
+      }
+      renderHistoryEntries(el, data.entries, false);
+    })
+    .catch(function(err) {
+      console.warn("History fetch failed, using local:", err);
+      renderHistoryLocal(el);
+    });
+}
+
+function renderHistoryLocal(el) {
+  var loads = getStore("loads").map(function(e) { e._type = "load"; return e; });
+  var fuel = getStore("fuel").map(function(e) { e._type = "fuel"; return e; });
+  var dvirs = getStore("dvir").map(function(e) { e._type = "dvir"; return e; });
+  var all = loads.concat(fuel).concat(dvirs);
+  all.sort(function(a,b) { return new Date(b.timestamp) - new Date(a.timestamp); });
+  if(all.length === 0) {
+    el.innerHTML = '<div style="text-align:center;color:#64748b;padding:40px">No entries yet</div>';
+    return;
+  }
+  // Convert local format to server format
+  var entries = all.map(function(e) {
+    if(e._type === "load") return { type:"load", timestamp:e.timestamp, driver:e.driver||"", direction:e.type||"", truck:e.truck||"", trailer:e.trailer||"", ticketNumber:e.ticket||"", supplier:e.source||"", customer:e.source||"", productType:e.products||"", commodity:e.commodity||"", netWeight:"", startWeight:e.startWeight||"", endWeight:e.endWeight||"" };
+    if(e._type === "fuel") return { type:"fuel", timestamp:e.timestamp, driver:e.driver||"", truck:e.truck||"", fuelAmount:e.fuelGal||"", defAmount:e.defGal||"", cost:e.fuelCost||"", supplier:e.station||"" };
+    return { type:"dvir", timestamp:e.timestamp, driver:e.driver||"", truck:e.truck||"", status:e.allClear?"All Clear":"Defects", issues:e.defects||"" };
+  });
+  renderHistoryEntries(el, entries, true);
+}
+
+function renderHistoryEntries(el, entries, isLocal) {
+  var header = isLocal ? '<div style="text-align:center;color:#f59e0b;padding:8px;font-size:12px;background:#fef3c7;border-radius:6px;margin-bottom:8px">\u26a0 Offline mode \u2014 showing this device only</div>' : "";
+  var html = entries.slice(0, 100).map(function(e) {
+    var ts = e.timestamp ? new Date(e.timestamp) : null;
+    var dateStr = ts ? (ts.getMonth()+1) + "/" + ts.getDate() + "/" + ts.getFullYear() + " " + ts.toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"}) : "";
+    var driverTag = '<span style="font-weight:600;color:#1e293b">' + (e.driver || "Unknown") + '</span>';
+
+    if(e.type === "load") {
+      var dir = (e.direction || "").toLowerCase();
+      var isIn = dir === "inbound" || dir === "in";
+      var cls = isIn ? "inbound" : "outbound";
+      var badge = isIn ? '<span class="h-type in">IN</span>' : '<span class="h-type out">OUT</span>';
+      var source = isIn ? (e.supplier || "") : (e.customer || "");
+      var net = e.netWeight ? (Math.round(parseFloat(e.netWeight)/20)/100) + " T" : "";
+      var prod = e.productType || e.commodity || "";
+      return '<div class="history-item ' + cls + '">' +
+        '<div class="h-top">' + badge + '<span style="color:#64748b;font-size:12px">' + dateStr + '</span></div>' +
+        '<div class="h-detail">' + driverTag + ' \u2014 ' + source + ' | Tkt: ' + (e.ticketNumber || "N/A") + '</div>' +
+        '<div class="h-detail" style="font-size:11px;color:#94a3b8">' + (prod || "N/A") + ' | Truck: ' + (e.truck || "N/A") + '</div>' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px">' +
+          '<span class="h-detail">' + (e.truck || "") + ' / ' + (e.trailer || "") + '</span>' +
+          '<span class="h-tons">' + net + '</span>' +
+        '</div>' +
+      '</div>';
     }
-  }).join('');
+    if(e.type === "fuel") {
+      return '<div class="history-item fuel">' +
+        '<div class="h-top"><span class="h-type fl">FUEL</span><span style="color:#64748b;font-size:12px">' + dateStr + '</span></div>' +
+        '<div class="h-detail">' + driverTag + ' \u2014 ' + (e.truck || "N/A") + ' | ' + (e.supplier || "N/A") + '</div>' +
+        '<div class="h-detail">Diesel: ' + (e.fuelAmount || 0) + 'gal | DEF: ' + (e.defAmount || 0) + 'gal | $' + (e.cost || 0) + '</div>' +
+      '</div>';
+    }
+
+    if(e.type === "dvir") {
+      return '<div class="history-item dvir">' +
+        '<div class="h-top"><span class="h-type dv">DVIR</span><span style="color:#64748b;font-size:12px">' + dateStr + '</span></div>' +
+        '<div class="h-detail">' + driverTag + ' \u2014 ' + (e.truck || "N/A") + '</div>' +
+        '<div class="h-detail">' + (e.status === "All Clear" || e.status === "Pass" ? "\u2705 All Clear" : "\u26a0 " + (e.issues || e.status || "Defects noted")) + '</div>' +
+      '</div>';
+    }
+
+    if(e.type === "shift") {
+      var isClockIn = (e.action || "").indexOf("in") > -1;
+      var icon = isClockIn ? "\u{1f7e2}" : "\u{1f534}";
+      var label = isClockIn ? "CLOCKED IN" : "LOGGED OUT";
+      return '<div class="history-item" style="border-left:3px solid ' + (isClockIn ? "#22c55e" : "#ef4444") + '">' +
+        '<div class="h-top"><span class="h-type" style="background:' + (isClockIn ? "#dcfce7;color:#166534" : "#fee2e2;color:#991b1b") + '">' + icon + ' ' + label + '</span><span style="color:#64748b;font-size:12px">' + dateStr + '</span></div>' +
+        '<div class="h-detail">' + driverTag + '</div>' +
+      '</div>';
+    }
+
+    return "";
+  }).join("");
+  el.innerHTML = header + html;
 }
 
 // ===== ADMIN PANEL =====
@@ -1636,7 +1697,7 @@ function renderAdminDrivers() {
   drivers.forEach(d => {
     const item = document.createElement('div');
     item.className = 'admin-list-item';
-    const pinDisplay = d.pin ? '••••' : 'N/A';
+    const pinDisplay = d.pin ? 'â¢â¢â¢â¢' : 'N/A';
     item.innerHTML = `
       <div class="item-info">
         <div style="font-weight:600;color:#e2e8f0">${d.name}</div>
@@ -2500,7 +2561,7 @@ function markAllSynced() {
 
 function clearSyncStatus() {
   localStorage.removeItem('ll_synced_loads');
-  showToast('Sync status cleared — all loads will sync next time');
+  showToast('Sync status cleared â all loads will sync next time');
   renderHistory();
 }
 
@@ -2808,7 +2869,7 @@ const sheetsSync = (() => {
     sheetsSync.send(report);
 
     // Also open mailto as backup notification to assistant@cacattlebrd.com
-    const subject = 'LoadLedger Report: ' + category + ' — ' + driverName;
+    const subject = 'LoadLedger Report: ' + category + ' â ' + driverName;
     const body = 'Driver: ' + driverName + '\nCategory: ' + category + '\nDescription: ' + description + '\nTime: ' + new Date().toLocaleString();
     const mailLink = 'mailto:assistant@cacattlebrd.com?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
 
@@ -3077,6 +3138,6 @@ if ('serviceWorker' in navigator) {
   });
 }
 </script>
-<div class="version-badge" id="versionBadge">v2.1.1</div>
+<div class="version-badge" id="versionBadge">v2.2.0</div>
 </body>
 </html>
