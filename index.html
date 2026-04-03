@@ -480,7 +480,7 @@ function setConfig(key, arr) {
   if (window.isAdmin && typeof configSync !== 'undefined') {
     configSync.push(key, arr).then(function() {
       var badge = document.getElementById('versionBadge');
-      if (badge) { badge.textContent = 'v2.4.4 \u2714 synced'; setTimeout(function(){ badge.textContent = 'v2.4.4'; }, 2000); }
+      if (badge) { badge.textContent = 'v2.4.5 \u2714 synced'; setTimeout(function(){ badge.textContent = 'v2.4.5'; }, 2000); }
     });
   }
 }
@@ -814,6 +814,7 @@ document.addEventListener('DOMContentLoaded', initPinSelect);
       <span class="sys-toggle">+</span>
     </div>
     <div class="sys-update-body" style="display:none">
+      <div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">Apr 3</div><div class="sys-update-text">Config auto-sync on page load - admin changes now propagate to all devices automatically</div></div>
       <div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">Apr 3</div><div class="sys-update-text">Sync Config button now shows confirmation feedback</div></div>
       <div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">Apr 3</div><div class="sys-update-text">Fixed tab switching bug and admin sync section error</div></div>
       <div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">Apr 3</div><div class="sys-update-text">Fixed false offline mode when server returns empty history</div></div>
@@ -992,7 +993,7 @@ document.addEventListener('DOMContentLoaded', () => {
   populateDropdowns();
       loadFieldReqs();
       // Config sync: pull latest config from server, then refresh dropdowns
-      if (typeof configSync !== 'undefined' && configSync.needsSync()) {
+      if (typeof configSync !== 'undefined') {
         configSync.pull().then(function(ok) {
           if (ok) { populateDropdowns(); console.log('[configSync] Dropdowns refreshed from server config'); }
         });
@@ -3475,6 +3476,6 @@ if ('serviceWorker' in navigator) {
   });
 }
 </script>
-<div class="version-badge" id="versionBadge">v2.4.4</div>
+<div class="version-badge" id="versionBadge">v2.4.5</div>
 </body>
 </html>
