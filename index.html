@@ -12,7 +12,7 @@
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0f172a;color:#e2e8f0;min-height:100vh;padding-bottom:80px}
 .header{background:linear-gradient(135deg,#1e3a5f,#2d5a3f);padding:16px;text-align:center;position:sticky;top:0;z-index:100}
 .header h1{font-size:20px;font-weight:700;color:#fff;letter-spacing:1px}
-.header .sub{font-size:11px;color:#94a3b8;margi n-top:2px}
+.header .sub{font-size:11px;color:#94a3b8;margin-top:2px}
 .tabs{display:flex;background:#1e293b;border-bottom:2px solid #334155;overflow-x:auto;position:sticky;top:56px;z-index:99}
 .tab{flex:1;padding:10px 4px;text-align:center;font-size:11px;font-weight:600;color:#64748b;cursor:pointer;border-bottom:3px solid transparent;min-width:70px;transition:all .2s}
 .tab.active{color:#60a5fa;border-bottom-color:#60a5fa;background:#1e293b}
@@ -128,6 +128,8 @@ body.locked > *:not(#pin-overlay):not(.toast){display:none!important}
 .admin-inline-form .form-actions .cancel{background:#334155;color:#94a3b8}
 .danger-zone{background:#3a1e1e;border:2px solid #dc2626;border-radius:8px;padding:12px;margin-top:16px}
 .danger-zone .section-title{color:#ef4444;margin-top:0}
+.admin-action{background:rgba(76,175,80,0.08);border:1px solid rgba(76,175,80,0.25);border-radius:8px;padding:12px;margin-top:16px}
+.admin-action .section-title{color:#4caf50;margin-bottom:8px;font-size:13px;font-weight:600}
 .danger-zone button{width:100%;padding:10px;margin:6px 0;border:none;border-radius:6px;cursor:pointer;font-weight:700;font-size:13px}
 .danger-zone .delete-btn{background:#dc2626;color:#fff;transition:all .2s}
 .danger-zone .delete-btn:active{background:#991b1b}
@@ -425,7 +427,7 @@ function setConfig(key, arr) {
   if (window.isAdmin && typeof configSync !== 'undefined') {
     configSync.push(key, arr).then(function() {
       var badge = document.getElementById('versionBadge');
-      if (badge) { badge.textContent = 'v2.3.3 \u2714 synced'; setTimeout(function(){ badge.textContent = 'v2.3.3'; }, 2000); }
+      if (badge) { badge.textContent = 'v2.3.4 \u2714 synced'; setTimeout(function(){ badge.textContent = 'v2.3.4'; }, 2000); }
     });
   }
 }
@@ -757,7 +759,7 @@ document.addEventListener('DOMContentLoaded', initPinSelect);
     <button onclick="exportCSV('dvir')">&#128229; DVIR CSV</button>
     <button onclick="emailExport()">&#9993; Email All</button>
   </div>
-  <div class="sys-updates"><div class="sys-update-header">System Updates</div><div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">Apr 2</div><div class="sys-update-text">Help Desk launched - message Lil Helper for app help, truck issues, or safety reports</div></div><div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">Apr 2</div><div class="sys-update-text">Added thumbs up/down feedback on Help Desk responses - rate if answers were helpful</div></div><div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">Apr 2</div><div class="sys-update-text">History tab now pulls all activity from the server - loads, fuel, DVIR, and clock entries across all devices</div></div><div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">Apr 2</div><div class="sys-update-text">Display fix applied - resolved text display issues across all tabs</div></div><div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">Apr 2</div><div class="sys-update-text">Config sync added - admin changes push to all phones automatically</div></div><div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">Apr 1</div><div class="sys-update-text">Notifications system live - real-time alerts from dispatch</div></div><div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">Apr 1</div><div class="sys-update-text">GPS tracking active on clock-in - location recorded with each load</div></div></div>
+  <div class="sys-updates"><div class="sys-update-header">System Updates</div><div class="sys-update-item"><span class="sys-update-date">Apr 2</span><span class="sys-update-dot"></span><span class="sys-update-text">Sync Config moved to safe section - danger zone cleanup</span></div><div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">Apr 2</div><div class="sys-update-text">Help Desk launched - message Lil Helper for app help, truck issues, or safety reports</div></div><div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">Apr 2</div><div class="sys-update-text">Added thumbs up/down feedback on Help Desk responses - rate if answers were helpful</div></div><div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">Apr 2</div><div class="sys-update-text">History tab now pulls all activity from the server - loads, fuel, DVIR, and clock entries across all devices</div></div><div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">Apr 2</div><div class="sys-update-text">Display fix applied - resolved text display issues across all tabs</div></div><div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">Apr 2</div><div class="sys-update-text">Config sync added - admin changes push to all phones automatically</div></div><div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">Apr 1</div><div class="sys-update-text">Notifications system live - real-time alerts from dispatch</div></div><div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">Apr 1</div><div class="sys-update-text">GPS tracking active on clock-in - location recorded with each load</div></div></div>
   <div class="section-title">Recent Entries</div>
   <div id="historyList"></div>
 </div>
@@ -888,18 +890,8 @@ document.addEventListener('DOMContentLoaded', initPinSelect);
         </div>
       </div>
 
-  <div class="danger-zone">
-    
-      
-<div class="admin-section" style="border-color:#5cb85c;margin-bottom:15px;">
-      <div class="section-title" style="color:#5cb85c;">Device Sync</div>
-      <button style="background:#5cb85c;color:#fff;border:none;padding:10px 20px;border-radius:6px;font-size:14px;width:100%;cursor:pointer;" onclick="syncAllConfig()">Sync Config to All Devices</button>
-      <div id="syncStatusMsg" class="sync-status" style="margin-top:6px;"></div>
-    </div>
-    <div class="section-title">Danger Zone</div>
-    <button class="delete-btn" onclick="confirmClearAllData()">Clear All Load Data</button>
-    <button class="delete-btn" onclick="confirmResetDefaults()">Reset to Defaults</button>
-  </div>
+  <div class="admin-action"><div class="section-title">Device Sync</div><button style="background:#5cb85c;color:#fff;border:none;padding:10px 20px;border-radius:6px;font-size:14px;width:100%;cursor:pointer;" onclick="syncAllConfig()">Sync Config to All Devices</button></div>
+<div class="danger-zone"><div class="section-title">Danger Zone</div><button class="delete-btn" onclick="confirmClearAllData()">Clear All Load Data</button><button class="delete-btn" onclick="confirmResetDefaults()">Reset to Defaults</button></div>
 </div>
 
 <div class="toast" id="toast">Saved!</div>
@@ -3328,6 +3320,6 @@ if ('serviceWorker' in navigator) {
   });
 }
 </script>
-<div class="version-badge" id="versionBadge">v2.3.3</div>
+<div class="version-badge" id="versionBadge">v2.3.4</div>
 </body>
 </html>
