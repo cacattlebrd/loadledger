@@ -294,6 +294,55 @@ body.locked > *:not(#pin-overlay):not(.toast){display:none!important}
 .sync-status.synced { color:#5cb85c; }
 .sync-status.error { color:#d9534f; }
 
+
+.hist-tabs{display:flex;gap:4px;margin-bottom:12px;overflow-x:auto;-webkit-overflow-scrolling:touch}
+.hist-tab{flex:1;padding:8px 4px;border:1px solid #ddd;border-radius:6px;background:#f5f5f5;font-size:12px;font-weight:600;color:#555;cursor:pointer;text-align:center;white-space:nowrap}
+.hist-tab.active{background:#1a73e8;color:#fff;border-color:#1a73e8}
+.hist-section-hdr{font-size:13px;font-weight:700;color:#333;margin-bottom:8px;padding-bottom:4px;border-bottom:2px solid #1a73e8}
+.hist-list{max-height:60vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.hist-empty{text-align:center;color:#999;padding:24px 8px;font-size:13px}
+.act-item{padding:8px 10px;border-bottom:1px solid #eee;font-size:12px}
+.act-item:last-child{border-bottom:none}
+.act-item .act-time{color:#888;font-size:11px}
+.act-item .act-user{font-weight:700;color:#333}
+.act-item .act-action{color:#555}
+.act-item.act-login{border-left:3px solid #4caf50}
+.act-item.act-logout{border-left:3px solid #ff9800}
+.act-item.act-fail{border-left:3px solid #ef4444}
+.act-item.act-load{border-left:3px solid #1a73e8}
+.act-item.act-fuel{border-left:3px solid #9c27b0}
+.act-item.act-dvir{border-left:3px solid #607d8b}
+.act-item.act-admin{border-left:3px solid #ff5722}
+.lh-item{padding:10px;border-bottom:1px solid #eee;font-size:12px}
+.lh-item:last-child{border-bottom:none}
+.lh-item .lh-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
+.lh-item .lh-driver{font-weight:700;color:#333}
+.lh-item .lh-date{color:#888;font-size:11px}
+.lh-item .lh-detail{color:#555}
+.lh-item .lh-tons{font-weight:700;color:#1a73e8;font-size:14px}
+.lh-item .lh-dir{display:inline-block;padding:1px 6px;border-radius:3px;font-size:10px;font-weight:700;color:#fff}
+.lh-dir.in{background:#4caf50}
+.lh-dir.out{background:#ff9800}
+.fh-item{padding:10px;border-bottom:1px solid #eee;font-size:12px}
+.fh-item:last-child{border-bottom:none}
+.fh-item .fh-top{display:flex;justify-content:space-between;margin-bottom:4px}
+.fh-item .fh-driver{font-weight:700;color:#333}
+.fh-item .fh-date{color:#888;font-size:11px}
+.fh-item .fh-detail{color:#555}
+.fh-item .fh-gal{font-weight:700;color:#9c27b0}
+.dh-item{padding:10px;border-bottom:1px solid #eee;font-size:12px}
+.dh-item:last-child{border-bottom:none}
+.dh-item .dh-top{display:flex;justify-content:space-between;margin-bottom:4px}
+.dh-item .dh-driver{font-weight:700;color:#333}
+.dh-item .dh-date{color:#888;font-size:11px}
+.dh-item .dh-detail{color:#555}
+.dh-item .dh-defect{color:#ef4444;font-weight:600}
+.dh-item .dh-ok{color:#4caf50;font-weight:600}
+.sys-updates .sys-update-body{display:none}
+.sys-updates.expanded .sys-update-body{display:block}
+.sys-updates.expanded .sys-toggle{transform:rotate(45deg)}
+.sys-toggle{display:inline-block;font-weight:700;transition:transform 0.2s}
+
 </style>
 <link rel="manifest" href="/manifest.json">
 </head>
@@ -353,6 +402,7 @@ function checkPin(){
   if(driver && driver.pin && driver.pin === pinEntry){
     window.currentUser = user;
     window.isAdmin = (driver.role === 'admin');
+    logActivity("Login", window.currentUser + " logged in" + (window.isAdmin ? " (admin)" : ""));
     document.getElementById('pin-overlay').classList.add('hidden');
       gpsTracker.start(); // Start GPS tracking on clock-in
       notifModule.startPolling(); // Start notification polling
@@ -366,6 +416,7 @@ function checkPin(){
   }else{
     failCount++;
     const r=MAX_FAILS-failCount;
+    logActivity("PIN Failed", (document.getElementById("driverSelect") ? document.getElementById("driverSelect").value : "unknown") + " - wrong PIN attempt");
     err.textContent=r>0?'Wrong PIN ('+r+' attempts left)':'Too many attempts. Reload page.';
     pinEntry='';updateDots();
   }
@@ -427,7 +478,7 @@ function setConfig(key, arr) {
   if (window.isAdmin && typeof configSync !== 'undefined') {
     configSync.push(key, arr).then(function() {
       var badge = document.getElementById('versionBadge');
-      if (badge) { badge.textContent = 'v2.3.4 \u2714 synced'; setTimeout(function(){ badge.textContent = 'v2.3.4'; }, 2000); }
+      if (badge) { badge.textContent = 'v2.4.0 \u2714 synced'; setTimeout(function(){ badge.textContent = 'v2.4.0'; }, 2000); }
     });
   }
 }
@@ -733,35 +784,46 @@ document.addEventListener('DOMContentLoaded', initPinSelect);
 
 <!-- ===== HISTORY TAB ===== -->
 <div id="panel-history" class="panel">
-  <!-- Admin-Only: Sync to Workbook -->
-  <div id="sync-section" class="hidden">
-    <div class="section-title" style="color:#22c55e">&#9889; Sync to Workbook</div>
-    <p style="font-size:12px;color:#94a3b8;margin-bottom:8px">Import LoadLedger data directly into your master workbook. Select the workbook file below  -  data will be auto-placed into the correct rows.</p>
-    <div style="position:relative">
-      <button id="syncBtn" onclick="document.getElementById('wbFileInput').click()" style="width:100%;padding:14px;border:none;border-radius:8px;font-size:16px;font-weight:700;cursor:pointer;background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;margin-bottom:8px">&#128218; Sync to Workbook</button>
-      <input type="file" id="wbFileInput" accept=".xlsx,.xlsm" style="display:none" onchange="syncToWorkbook(this)">
+  <div class="hist-tabs">
+    <button class="hist-tab active" onclick="switchHistTab('activity')">Activity Log</button>
+    <button class="hist-tab" onclick="switchHistTab('loads')">Loads</button>
+    <button class="hist-tab" onclick="switchHistTab('fuel')">Fuel/DEF</button>
+    <button class="hist-tab" onclick="switchHistTab('dvir')">DVIR</button>
+  </div>
+  <div id="hist-activity" class="hist-section">
+    <div class="hist-section-hdr">Activity Log</div>
+    <div id="activityList" class="hist-list"><div class="hist-empty">Loading activity...</div></div>
+  </div>
+  <div id="hist-loads" class="hist-section" style="display:none">
+    <div class="hist-section-hdr">Load History</div>
+    <div id="loadHistList" class="hist-list"><div class="hist-empty">Loading history...</div></div>
+  </div>
+  <div id="hist-fuel" class="hist-section" style="display:none">
+    <div class="hist-section-hdr">Fuel/DEF History</div>
+    <div id="fuelHistList" class="hist-list"><div class="hist-empty">Loading history...</div></div>
+  </div>
+  <div id="hist-dvir" class="hist-section" style="display:none">
+    <div class="hist-section-hdr">DVIR History</div>
+    <div id="dvirHistList" class="hist-list"><div class="hist-empty">Loading history...</div></div>
+  </div>
+  <div class="sys-updates" style="margin-top:16px">
+    <div class="sys-update-header" onclick="this.parentElement.classList.toggle('expanded')" style="cursor:pointer">
+      <span>System Updates</span>
+      <span class="sys-toggle">+</span>
     </div>
-    <div id="syncStatus" style="display:none;background:#1e293b;border-radius:8px;padding:12px;margin-bottom:12px;font-size:13px"></div>
-    <div style="display:flex;gap:8px;margin-bottom:12px">
-      <button onclick="markAllSynced()" style="flex:1;padding:8px;background:#334155;border:none;border-radius:6px;color:#94a3b8;font-size:11px;cursor:pointer">Mark All as Synced</button>
-      <button onclick="clearSyncStatus()" style="flex:1;padding:8px;background:#334155;border:none;border-radius:6px;color:#94a3b8;font-size:11px;cursor:pointer">Reset Sync Status</button>
+    <div class="sys-update-body" style="display:none">
+      <div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">Apr 3</div><div class="sys-update-text">History tab rebuilt - Activity Log, Load/Fuel/DVIR history sections</div></div>
+      <div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">Apr 2</div><div class="sys-update-text">Sync Config moved to safe section - danger zone cleanup</div></div>
+      <div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">Apr 2</div><div class="sys-update-text">System Updates section added to History</div></div>
+      <div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">Apr 2</div><div class="sys-update-text">Help Desk launched - AI-powered driver support</div></div>
+      <div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">Apr 2</div><div class="sys-update-text">Thumbs up/down feedback on Lil Helper responses</div></div>
+      <div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">Apr 2</div><div class="sys-update-text">History tab rebuilt - shows all activity from all devices</div></div>
+      <div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">Apr 2</div><div class="sys-update-text">Display fix - driver name and clock times show correctly</div></div>
+      <div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">Apr 1</div><div class="sys-update-text">Config sync - admin settings push to all devices automatically</div></div>
+      <div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">Apr 1</div><div class="sys-update-text">Notifications system - bell icon with unread count</div></div>
+      <div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">Apr 1</div><div class="sys-update-text">GPS tracking - location recorded with every load submission</div></div>
     </div>
   </div>
-
-  <div class="section-title">Export to Excel</div>
-  <div class="export-bar">
-    <button onclick="exportExcel()" style="background:linear-gradient(135deg,#217346,#2d8a56);color:#fff;font-weight:700;flex:2;font-size:14px">&#128218; Download Excel Workbook</button>
-  </div>
-  <div class="section-title" style="margin-top:12px">Export CSV / Email</div>
-  <div class="export-bar">
-    <button onclick="exportCSV('loads')">&#128229; Loads CSV</button>
-    <button onclick="exportCSV('fuel')">&#128229; Fuel CSV</button>
-    <button onclick="exportCSV('dvir')">&#128229; DVIR CSV</button>
-    <button onclick="emailExport()">&#9993; Email All</button>
-  </div>
-  <div class="sys-updates"><div class="sys-update-header">System Updates</div><div class="sys-update-item"><span class="sys-update-date">Apr 2</span><span class="sys-update-dot"></span><span class="sys-update-text">Sync Config moved to safe section - danger zone cleanup</span></div><div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">Apr 2</div><div class="sys-update-text">Help Desk launched - message Lil Helper for app help, truck issues, or safety reports</div></div><div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">Apr 2</div><div class="sys-update-text">Added thumbs up/down feedback on Help Desk responses - rate if answers were helpful</div></div><div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">Apr 2</div><div class="sys-update-text">History tab now pulls all activity from the server - loads, fuel, DVIR, and clock entries across all devices</div></div><div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">Apr 2</div><div class="sys-update-text">Display fix applied - resolved text display issues across all tabs</div></div><div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">Apr 2</div><div class="sys-update-text">Config sync added - admin changes push to all phones automatically</div></div><div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">Apr 1</div><div class="sys-update-text">Notifications system live - real-time alerts from dispatch</div></div><div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">Apr 1</div><div class="sys-update-text">GPS tracking active on clock-in - location recorded with each load</div></div></div>
-  <div class="section-title">Recent Entries</div>
-  <div id="historyList"></div>
 </div>
 
 <!-- ===== ADMIN TAB ===== -->
@@ -1478,6 +1540,7 @@ function submitLoad() {
 
   addStore('loads', entry);
   sheetsSync.send('load', entry);
+  logActivity("Load Submitted", (entry.driver||"?") + " - " + (entry.type||"?") + " - " + (entry.tons||"?") + " tons");
   showToast(entry.type + ' load saved - ' + entry.tons + ' tons');
   clearFieldErrors();
   ['loadGross','loadTare','loadTicket','loadNotes','loadMileStart','loadMileEnd','loadTimeStart','loadTimeEnd','loadTruckOther'].forEach(id => {
@@ -1511,6 +1574,7 @@ function submitFuel() {
   if(!entry.driver || !entry.date) { showToast('Please fill required fields'); return; }
   addStore('fuel', entry);
   sheetsSync.send('fuel', entry);
+  logActivity("Fuel/DEF Submitted", (entry.driver||"?") + " - " + (entry.fuelGal||"0") + " gal fuel, " + (entry.defGal||"0") + " gal DEF");
   showToast('Fuel log saved');
   ['fuelGal','defGal','fuelCost','defCost','fuelOdo','fuelStation','fuelNotes'].forEach(id => document.getElementById(id).value = '');
 }
@@ -1534,6 +1598,7 @@ function submitDvir() {
   if(!entry.driver || !entry.date || !entry.truck) { showToast('Please fill required fields'); return; }
   addStore('dvir', entry);
   sheetsSync.send('dvir', entry);
+  logActivity("DVIR Submitted", (entry.driver||"?") + " - Truck: " + (entry.truck||"?"));
   showToast('DVIR saved' + (defects.length > 0 ? ' - ' + defects.length + ' defect(s)' : ' - All Clear'));
   document.getElementById('dvirNotes').value = '';
   dvirItems.forEach(i => dvirState[i] = 'ok');
@@ -1541,114 +1606,194 @@ function submitDvir() {
 }
 
 // ===== HISTORY =====
-function renderHistory() {
-  // Admin sync section still visible for admins
-  if(window.isAdmin) {
-    document.getElementById("sync-section").classList.remove("hidden");
-    var unsynced = getUnsyncedLoads();
-    var syncBtn = document.getElementById("syncBtn");
-    if(unsynced.length > 0) {
-      syncBtn.textContent = "\u{1F4E6} Sync " + unsynced.length + " Loads";
-    } else {
-      syncBtn.textContent = "\u2705 All Loads Synced";
+function logActivity(action, details) {
+  var entry = {
+    timestamp: new Date().toISOString(),
+    user: window.currentUser || "unknown",
+    action: action,
+    details: details || ""
+  };
+  var log = [];
+  try { log = JSON.parse(localStorage.getItem("ll_activity") || "[]"); } catch(e) {}
+  log.unshift(entry);
+  if(log.length > 500) log = log.slice(0, 500);
+  localStorage.setItem("ll_activity", JSON.stringify(log));
+  try {
+    var url = sheetsSync.getWebAppUrl();
+    if(url) {
+      fetch(url, {
+        method: "POST",
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({type:"activity", payload: entry})
+      }).catch(function(){});
     }
-  }
+  } catch(e) {}
+}
 
-  var el = document.getElementById("historyList");
-  el.innerHTML = '<div style="text-align:center;padding:40px;color:#64748b">Loading activity...</div>';
+var currentHistTab = "activity";
 
-  // Fetch from server (all users, all devices)
-  var url = sheetsSync.getWebAppUrl() + "?action=getHistory&limit=100";
-  fetch(url)
+function switchHistTab(tab) {
+  currentHistTab = tab;
+  var tabs = document.querySelectorAll(".hist-tab");
+  var names = ["activity","loads","fuel","dvir"];
+  for(var i=0;i<tabs.length;i++) tabs[i].classList.toggle("active", i===names.indexOf(tab));
+  var sections = document.querySelectorAll(".hist-section");
+  for(var i=0;i<sections.length;i++) sections[i].style.display = sections[i].id==="hist-"+tab?"":"none";
+  renderHistoryTab(tab);
+}
+
+function renderHistory() { renderHistoryTab(currentHistTab); }
+
+function renderHistoryTab(tab) {
+  var url = sheetsSync.getWebAppUrl();
+  if(!url) { renderHistoryLocal(tab); return; }
+  var endpoint = url + "?action=getHistory&tab=" + tab + "&limit=100";
+  fetch(endpoint)
     .then(function(r) { return r.json(); })
     .then(function(data) {
-      if(!data.entries || data.entries.length === 0) {
-        // Fall back to local
-        renderHistoryLocal(el);
-        return;
-      }
-      renderHistoryEntries(el, data.entries, false);
+      if(!data || !data.entries || data.entries.length===0) { renderHistoryLocal(tab); return; }
+      if(tab==="activity") renderActivityEntries(data.entries, false);
+      else if(tab==="loads") renderLoadEntries(data.entries, false);
+      else if(tab==="fuel") renderFuelEntries(data.entries, false);
+      else if(tab==="dvir") renderDvirEntries(data.entries, false);
     })
-    .catch(function(err) {
-      console.warn("History fetch failed, using local:", err);
-      renderHistoryLocal(el);
-    });
+    .catch(function() { renderHistoryLocal(tab); });
 }
 
-function renderHistoryLocal(el) {
-  var loads = getStore("loads").map(function(e) { e._type = "load"; return e; });
-  var fuel = getStore("fuel").map(function(e) { e._type = "fuel"; return e; });
-  var dvirs = getStore("dvir").map(function(e) { e._type = "dvir"; return e; });
-  var all = loads.concat(fuel).concat(dvirs);
-  all.sort(function(a,b) { return new Date(b.timestamp) - new Date(a.timestamp); });
-  if(all.length === 0) {
-    el.innerHTML = '<div style="text-align:center;color:#64748b;padding:40px">No entries yet</div>';
+function renderHistoryLocal(tab) {
+  var key = tab==="activity"?"ll_activity":tab==="loads"?"ll_loads":tab==="fuel"?"ll_fuel":"ll_dvir";
+  var data = [];
+  try { data = JSON.parse(localStorage.getItem(key) || "[]"); } catch(e) {}
+  if(tab==="activity") renderActivityEntries(data, true);
+  else if(tab==="loads") renderLoadEntries(data, true);
+  else if(tab==="fuel") renderFuelEntries(data, true);
+  else if(tab==="dvir") renderDvirEntries(data, true);
+}
+
+function fmtTime(ts) {
+  if(!ts) return "";
+  var d = new Date(ts);
+  if(isNaN(d.getTime())) return String(ts);
+  var mo=d.getMonth()+1, dy=d.getDate();
+  var hr=d.getHours(), mn=d.getMinutes();
+  var ampm=hr>=12?"PM":"AM";
+  hr=hr%12||12;
+  return mo+"/"+dy+" "+hr+":"+(mn<10?"0":"")+mn+" "+ampm;
+}
+
+function renderActivityEntries(entries, isLocal) {
+  var el = document.getElementById("activityList");
+  if(!el) return;
+  if(!entries || entries.length===0) {
+    el.innerHTML = '<div class="hist-empty">No activity recorded yet'+(isLocal?" (offline mode)":"")+"</div>";
     return;
   }
-  // Convert local format to server format
-  var entries = all.map(function(e) {
-    if(e._type === "load") return { type:"load", timestamp:e.timestamp, driver:e.driver||"", direction:e.type||"", truck:e.truck||"", trailer:e.trailer||"", ticketNumber:e.ticket||"", supplier:e.source||"", customer:e.source||"", productType:e.products||"", commodity:e.commodity||"", netWeight:"", startWeight:e.startWeight||"", endWeight:e.endWeight||"" };
-    if(e._type === "fuel") return { type:"fuel", timestamp:e.timestamp, driver:e.driver||"", truck:e.truck||"", fuelAmount:e.fuelGal||"", defAmount:e.defGal||"", cost:e.fuelCost||"", supplier:e.station||"" };
-    return { type:"dvir", timestamp:e.timestamp, driver:e.driver||"", truck:e.truck||"", status:e.allClear?"All Clear":"Defects", issues:e.defects||"" };
-  });
-  renderHistoryEntries(el, entries, true);
+  var html = "";
+  if(isLocal) html += '<div style="background:#fff3cd;color:#856404;padding:6px 10px;border-radius:4px;font-size:11px;margin-bottom:8px">Offline mode - showing local data only</div>';
+  for(var i=0;i<entries.length;i++) {
+    var e = entries[i];
+    var cls = "act-item";
+    var act = (e.action||"").toLowerCase();
+    if(act.indexOf("login")>-1) cls+=" act-login";
+    else if(act.indexOf("logout")>-1||act.indexOf("clock")>-1) cls+=" act-logout";
+    else if(act.indexOf("fail")>-1||act.indexOf("locked")>-1) cls+=" act-fail";
+    else if(act.indexOf("load")>-1) cls+=" act-load";
+    else if(act.indexOf("fuel")>-1) cls+=" act-fuel";
+    else if(act.indexOf("dvir")>-1) cls+=" act-dvir";
+    else if(act.indexOf("admin")>-1||act.indexOf("config")>-1) cls+=" act-admin";
+    html += '<div class="'+cls+'">';
+    html += '<div><span class="act-time">'+fmtTime(e.timestamp)+"</span></div>";
+    html += '<span class="act-user">'+(e.user||"System")+"</span> ";
+    html += '<span class="act-action">'+(e.action||"")+"</span>";
+    if(e.details) html += '<div style="color:#777;font-size:11px;margin-top:2px">'+(e.details)+"</div>";
+    html += "</div>";
+  }
+  el.innerHTML = html;
 }
 
-function renderHistoryEntries(el, entries, isLocal) {
-  var header = isLocal ? '<div style="text-align:center;color:#f59e0b;padding:8px;font-size:12px;background:#fef3c7;border-radius:6px;margin-bottom:8px">\u26a0 Offline mode \u2014 showing this device only</div>' : "";
-  var html = entries.slice(0, 100).map(function(e) {
-    var ts = e.timestamp ? new Date(e.timestamp) : null;
-    var dateStr = ts ? (ts.getMonth()+1) + "/" + ts.getDate() + "/" + ts.getFullYear() + " " + ts.toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"}) : "";
-    var driverTag = '<span style="font-weight:600;color:#1e293b">' + (e.driver || "Unknown") + '</span>';
-
-    if(e.type === "load") {
-      var dir = (e.direction || "").toLowerCase();
-      var isIn = dir === "inbound" || dir === "in";
-      var cls = isIn ? "inbound" : "outbound";
-      var badge = isIn ? '<span class="h-type in">IN</span>' : '<span class="h-type out">OUT</span>';
-      var source = isIn ? (e.supplier || "") : (e.customer || "");
-      var net = e.netWeight ? (Math.round(parseFloat(e.netWeight)/20)/100) + " T" : "";
-      var prod = e.productType || e.commodity || "";
-      return '<div class="history-item ' + cls + '">' +
-        '<div class="h-top">' + badge + '<span style="color:#64748b;font-size:12px">' + dateStr + '</span></div>' +
-        '<div class="h-detail">' + driverTag + ' \u2014 ' + source + ' | Tkt: ' + (e.ticketNumber || "N/A") + '</div>' +
-        '<div class="h-detail" style="font-size:11px;color:#94a3b8">' + (prod || "N/A") + ' | Truck: ' + (e.truck || "N/A") + '</div>' +
-        '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px">' +
-          '<span class="h-detail">' + (e.truck || "") + ' / ' + (e.trailer || "") + '</span>' +
-          '<span class="h-tons">' + net + '</span>' +
-        '</div>' +
-      '</div>';
-    }
-    if(e.type === "fuel") {
-      return '<div class="history-item fuel">' +
-        '<div class="h-top"><span class="h-type fl">FUEL</span><span style="color:#64748b;font-size:12px">' + dateStr + '</span></div>' +
-        '<div class="h-detail">' + driverTag + ' \u2014 ' + (e.truck || "N/A") + ' | ' + (e.supplier || "N/A") + '</div>' +
-        '<div class="h-detail">Diesel: ' + (e.fuelAmount || 0) + 'gal | DEF: ' + (e.defAmount || 0) + 'gal | $' + (e.cost || 0) + '</div>' +
-      '</div>';
-    }
-
-    if(e.type === "dvir") {
-      return '<div class="history-item dvir">' +
-        '<div class="h-top"><span class="h-type dv">DVIR</span><span style="color:#64748b;font-size:12px">' + dateStr + '</span></div>' +
-        '<div class="h-detail">' + driverTag + ' \u2014 ' + (e.truck || "N/A") + '</div>' +
-        '<div class="h-detail">' + (e.status === "All Clear" || e.status === "Pass" ? "\u2705 All Clear" : "\u26a0 " + (e.issues || e.status || "Defects noted")) + '</div>' +
-      '</div>';
-    }
-
-    if(e.type === "shift") {
-      var isClockIn = (e.action || "").indexOf("in") > -1;
-      var icon = isClockIn ? "\u{1f7e2}" : "\u{1f534}";
-      var label = isClockIn ? "CLOCKED IN" : "LOGGED OUT";
-      return '<div class="history-item" style="border-left:3px solid ' + (isClockIn ? "#22c55e" : "#ef4444") + '">' +
-        '<div class="h-top"><span class="h-type" style="background:' + (isClockIn ? "#dcfce7;color:#166534" : "#fee2e2;color:#991b1b") + '">' + icon + ' ' + label + '</span><span style="color:#64748b;font-size:12px">' + dateStr + '</span></div>' +
-        '<div class="h-detail">' + driverTag + '</div>' +
-      '</div>';
-    }
-
-    return "";
-  }).join("");
-  el.innerHTML = header + html;
+function renderLoadEntries(entries, isLocal) {
+  var el = document.getElementById("loadHistList");
+  if(!el) return;
+  if(!entries || entries.length===0) {
+    el.innerHTML = '<div class="hist-empty">No loads recorded yet'+(isLocal?" (offline mode)":"")+"</div>";
+    return;
+  }
+  var html = "";
+  if(isLocal) html += '<div style="background:#fff3cd;color:#856404;padding:6px 10px;border-radius:4px;font-size:11px;margin-bottom:8px">Offline mode - showing local data only</div>';
+  for(var i=0;i<entries.length;i++) {
+    var e = entries[i];
+    var dir = (e.type||e.direction||"").toLowerCase();
+    var dirLabel = (dir==="in"||dir==="inbound")?"IN":"OUT";
+    var dirCls = (dir==="in"||dir==="inbound")?"in":"out";
+    var source = (dir==="in"||dir==="inbound")?(e.supplier||e.source||"-"):(e.customer||e.source||"-");
+    var product = e.commodity||e.products||e.product||"-";
+    var tons = e.tons||e.net||"-";
+    html += '<div class="lh-item">';
+    html += '<div class="lh-top"><span class="lh-driver">'+(e.driver||"-")+'</span><span class="lh-date">'+fmtTime(e.timestamp||e.date)+"</span></div>";
+    html += '<div class="lh-detail"><span class="lh-dir '+dirCls+'">'+ dirLabel +"</span> ";
+    html += source+" - "+product+"</div>";
+    html += '<div style="margin-top:4px"><span class="lh-tons">'+tons+" tons</span></div>";
+    html += "</div>";
+  }
+  el.innerHTML = html;
 }
+
+function renderFuelEntries(entries, isLocal) {
+  var el = document.getElementById("fuelHistList");
+  if(!el) return;
+  if(!entries || entries.length===0) {
+    el.innerHTML = '<div class="hist-empty">No fuel entries yet'+(isLocal?" (offline mode)":"")+"</div>";
+    return;
+  }
+  var html = "";
+  if(isLocal) html += '<div style="background:#fff3cd;color:#856404;padding:6px 10px;border-radius:4px;font-size:11px;margin-bottom:8px">Offline mode - showing local data only</div>';
+  for(var i=0;i<entries.length;i++) {
+    var e = entries[i];
+    html += '<div class="fh-item">';
+    html += '<div class="fh-top"><span class="fh-driver">'+(e.driver||"-")+'</span><span class="fh-date">'+fmtTime(e.timestamp||e.date)+"</span></div>";
+    html += '<div class="fh-detail">';
+    if(e.fuelGal&&parseFloat(e.fuelGal)>0) html += '<span class="fh-gal">'+e.fuelGal+" gal fuel</span> ";
+    if(e.defGal&&parseFloat(e.defGal)>0) html += '<span class="fh-gal">'+e.defGal+" gal DEF</span> ";
+    html += "</div>";
+    if(e.odometer) html += '<div style="color:#777;font-size:11px;margin-top:2px">Odometer: '+e.odometer+"</div>";
+    if(e.truck) html += '<div style="color:#777;font-size:11px">Truck: '+e.truck+"</div>";
+    html += "</div>";
+  }
+  el.innerHTML = html;
+}
+
+function renderDvirEntries(entries, isLocal) {
+  var el = document.getElementById("dvirHistList");
+  if(!el) return;
+  if(!entries || entries.length===0) {
+    el.innerHTML = '<div class="hist-empty">No DVIR entries yet'+(isLocal?" (offline mode)":"")+"</div>";
+    return;
+  }
+  var html = "";
+  if(isLocal) html += '<div style="background:#fff3cd;color:#856404;padding:6px 10px;border-radius:4px;font-size:11px;margin-bottom:8px">Offline mode - showing local data only</div>';
+  for(var i=0;i<entries.length;i++) {
+    var e = entries[i];
+    var items = e.items||e.defects||[];
+    var hasDefects = false;
+    var defectList = [];
+    if(typeof items==="string") { try{items=JSON.parse(items);}catch(ex){items=[];} }
+    for(var k=0;k<items.length;k++) {
+      var it = items[k];
+      if(it&&(it.status==="defect"||it.defect===true||it.condition==="defect")) {
+        hasDefects = true;
+        defectList.push(it.name||it.item||it.label||("Item "+(k+1)));
+      }
+    }
+    html += '<div class="dh-item">';
+    html += '<div class="dh-top"><span class="dh-driver">'+(e.driver||"-")+'</span><span class="dh-date">'+fmtTime(e.timestamp||e.date)+"</span></div>";
+    html += '<div class="dh-detail">Truck: '+(e.truck||"-")+(e.trailer?" / Trailer: "+e.trailer:"")+"</div>";
+    if(hasDefects) html += '<div class="dh-defect">DEFECTS: '+defectList.join(", ")+"</div>";
+    else html += '<div class="dh-ok">No defects</div>';
+    html += "</div>";
+  }
+  el.innerHTML = html;
+}
+
 
 // ===== ADMIN PANEL =====
 function renderAdminPanel() {
@@ -3287,6 +3432,7 @@ function toggleNotifPanel() { notifModule.toggle(); }
 
 
   function clockOut() {
+  logActivity("Logout", (window.currentUser || "unknown") + " logged out");
     gpsTracker.stop();
     notifModule.stopPolling();
     document.getElementById('pin-overlay').classList.remove('hidden');
@@ -3320,6 +3466,6 @@ if ('serviceWorker' in navigator) {
   });
 }
 </script>
-<div class="version-badge" id="versionBadge">v2.3.4</div>
+<div class="version-badge" id="versionBadge">v2.4.0</div>
 </body>
 </html>
