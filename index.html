@@ -19,7 +19,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .tab-icon{font-size:18px;display:block;margin-bottom:2px}
 .panel{display:none;padding:16px;max-width:500px;margin:0 auto}
 .panel.active{display:block}
-.section-title{font-size:14px;font-weight:700;color:#60a5fa;margin:16px 0 8px;text-transform:uppercase;letter-spacing:.5px}
+.section-title{font-size:14px;font-weight:700;color:#60a5fa;margin:16px 0 8px;text-transform:uppercase;letter-spacing:.5px}.sys-updates{margin-bottom:16px;padding:12px;background:rgba(76,175,80,0.08);border:1px solid rgba(76,175,80,0.25);border-radius:10px}.sys-update-header{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:#4caf50;margin-bottom:8px}.sys-update-item{display:flex;align-items:flex-start;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05);font-size:12px;color:#ccc}.sys-update-item:last-child{border-bottom:none}.sys-update-date{color:#888;white-space:nowrap;min-width:60px}.sys-update-dot{width:6px;height:6px;border-radius:50%;background:#4caf50;margin-top:5px;flex-shrink:0}.sys-update-text{flex:1}
 .section-title:first-child{margin-top:0}
 .form-group{margin-bottom:12px}
 .form-group label{display:block;font-size:12px;font-weight:600;color:#94a3b8;margin-bottom:4px}
@@ -425,7 +425,7 @@ function setConfig(key, arr) {
   if (window.isAdmin && typeof configSync !== 'undefined') {
     configSync.push(key, arr).then(function() {
       var badge = document.getElementById('versionBadge');
-      if (badge) { badge.textContent = 'v2.3.1 \u2714 synced'; setTimeout(function(){ badge.textContent = 'v2.3.1'; }, 2000); }
+      if (badge) { badge.textContent = 'v2.3.3 \u2714 synced'; setTimeout(function(){ badge.textContent = 'v2.3.3'; }, 2000); }
     });
   }
 }
@@ -757,6 +757,7 @@ document.addEventListener('DOMContentLoaded', initPinSelect);
     <button onclick="exportCSV('dvir')">&#128229; DVIR CSV</button>
     <button onclick="emailExport()">&#9993; Email All</button>
   </div>
+  <div class="sys-updates"><div class="sys-update-header">System Updates</div><div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">Apr 2</div><div class="sys-update-text">Help Desk launched - message Lil Helper for app help, truck issues, or safety reports</div></div><div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">Apr 2</div><div class="sys-update-text">Added thumbs up/down feedback on Help Desk responses - rate if answers were helpful</div></div><div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">Apr 2</div><div class="sys-update-text">History tab now pulls all activity from the server - loads, fuel, DVIR, and clock entries across all devices</div></div><div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">Apr 2</div><div class="sys-update-text">Display fix applied - resolved text display issues across all tabs</div></div><div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">Apr 2</div><div class="sys-update-text">Config sync added - admin changes push to all phones automatically</div></div><div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">Apr 1</div><div class="sys-update-text">Notifications system live - real-time alerts from dispatch</div></div><div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">Apr 1</div><div class="sys-update-text">GPS tracking active on clock-in - location recorded with each load</div></div></div>
   <div class="section-title">Recent Entries</div>
   <div id="historyList"></div>
 </div>
@@ -3327,6 +3328,6 @@ if ('serviceWorker' in navigator) {
   });
 }
 </script>
-<div class="version-badge" id="versionBadge">v2.3.1</div>
+<div class="version-badge" id="versionBadge">v2.3.3</div>
 </body>
 </html>
