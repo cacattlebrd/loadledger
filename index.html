@@ -478,7 +478,7 @@ function setConfig(key, arr) {
   if (window.isAdmin && typeof configSync !== 'undefined') {
     configSync.push(key, arr).then(function() {
       var badge = document.getElementById('versionBadge');
-      if (badge) { badge.textContent = 'v2.4.0 \u2714 synced'; setTimeout(function(){ badge.textContent = 'v2.4.0'; }, 2000); }
+      if (badge) { badge.textContent = 'v2.4.1 \u2714 synced'; setTimeout(function(){ badge.textContent = 'v2.4.1'; }, 2000); }
     });
   }
 }
@@ -812,6 +812,7 @@ document.addEventListener('DOMContentLoaded', initPinSelect);
       <span class="sys-toggle">+</span>
     </div>
     <div class="sys-update-body" style="display:none">
+      <div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">Apr 3</div><div class="sys-update-text">Backend upgraded - History now syncs from Google Sheets across all devices</div></div>
       <div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">Apr 3</div><div class="sys-update-text">History tab rebuilt - Activity Log, Load/Fuel/DVIR history sections</div></div>
       <div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">Apr 2</div><div class="sys-update-text">Sync Config moved to safe section - danger zone cleanup</div></div>
       <div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">Apr 2</div><div class="sys-update-text">System Updates section added to History</div></div>
@@ -2827,7 +2828,7 @@ const configSync = (() => {
 
 // ===== SHEETS SYNC MODULE =====
 const sheetsSync = (() => {
-  const WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbx4Hc4uKNPNNdkRpSaZx_n0QOe_STBISIzbKfLeRkPIRf-BzZIkiYQQHk85-uXRqCfgLA/exec';
+  const WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbwn7pA48Q-hh2kTYwnnXsHps1CCwkYLclVpMR2qrPijzHCqGATArHeq4FOlJJPlQwOa/exec';
   const QUEUE_KEY = 'll_sync_queue';
 
   function getQueue() {
@@ -3466,6 +3467,6 @@ if ('serviceWorker' in navigator) {
   });
 }
 </script>
-<div class="version-badge" id="versionBadge">v2.4.0</div>
+<div class="version-badge" id="versionBadge">v2.4.1</div>
 </body>
 </html>
