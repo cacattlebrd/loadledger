@@ -194,98 +194,6 @@ body.locked > *:not(#pin-overlay):not(.toast){display:none!important}
       background: #991b1b;
     }
 
-    /* Notification Bell & Panel */
-    .notif-bell-wrap {
-      position: relative;
-      cursor: pointer;
-      padding: 2px 6px;
-    }
-    .notif-bell {
-      font-size: 20px;
-      filter: grayscale(1) brightness(1.5);
-    }
-    .notif-badge {
-      position: absolute;
-      top: -4px;
-      right: -4px;
-      background: #ef4444;
-      color: #fff;
-      font-size: 10px;
-      font-weight: 700;
-      min-width: 16px;
-      height: 16px;
-      line-height: 16px;
-      text-align: center;
-      border-radius: 8px;
-      padding: 0 3px;
-    }
-    .notif-panel {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: #0f1a26;
-      z-index: 9000;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
-    .notif-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 14px 16px;
-      border-bottom: 1px solid #1e3a5f;
-      background: #0a1520;
-    }
-    .notif-title {
-      font-size: 16px;
-      font-weight: 700;
-      color: #e2e8f0;
-    }
-    .notif-close {
-      background: none;
-      border: none;
-      color: #94a3b8;
-      font-size: 28px;
-      cursor: pointer;
-      padding: 0 4px;
-      line-height: 1;
-    }
-    .notif-list {
-      flex: 1;
-      overflow-y: auto;
-      padding: 8px;
-    }
-    .notif-item {
-      background: #1a2a3e;
-      border: 1px solid #1e3a5f;
-      border-radius: 8px;
-      padding: 12px;
-      margin-bottom: 8px;
-    }
-    .notif-item.unread {
-      border-left: 3px solid #3b82f6;
-      background: #1a2a42;
-    }
-    .notif-item-time {
-      font-size: 11px;
-      color: #64748b;
-      margin-bottom: 4px;
-    }
-    .notif-item-msg {
-      font-size: 14px;
-      color: #e2e8f0;
-      line-height: 1.4;
-    }
-    .notif-empty {
-      text-align: center;
-      color: #64748b;
-      padding: 40px 16px;
-      font-size: 14px;
-    }
-
 /* Version Badge */
 .version-badge { position:fixed; bottom:4px; right:8px; font-size:10px; color:#999; z-index:1; pointer-events:none; }
 /* Config Sync Indicator */
@@ -299,7 +207,22 @@ body.locked > *:not(#pin-overlay):not(.toast){display:none!important}
 .hist-tab{flex:1;padding:8px 4px;border:1px solid #ddd;border-radius:6px;background:#f5f5f5;font-size:12px;font-weight:600;color:#555;cursor:pointer;text-align:center;white-space:nowrap}
 .hist-tab.active{background:#1a73e8;color:#fff;border-color:#1a73e8}
 .hist-section-hdr{font-size:13px;font-weight:700;color:#333;margin-bottom:8px;padding-bottom:4px;border-bottom:2px solid #1a73e8}
-.hist-list{max-height:60vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.hist-list{max-height:55vh;overflow-y:auto;-webkit-overflow-scrolling:touch;border:1px solid #eee;border-radius:6px;background:#fff}
+.hist-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin-bottom:12px}
+.hist-sum-card{background:#f8f9fa;border:1px solid #e5e7eb;border-left:3px solid #1a73e8;border-radius:6px;padding:8px 10px}
+.hist-sum-card.stale{border-left-color:#ef4444;background:#fef2f2}
+.hist-sum-card.active{border-left-color:#16a34a;background:#f0fdf4}
+.hist-sum-name{font-size:13px;font-weight:700;color:#111;margin-bottom:4px}
+.hist-sum-counts{font-size:11px;color:#555;line-height:1.4}
+.hist-sum-last{font-size:10px;color:#888;margin-top:4px}
+.hist-filters{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px}
+.hist-filters select,.hist-filters input{width:100%;padding:6px 8px;border:1px solid #ccc;border-radius:6px;font-size:13px;background:#fff}
+.hist-filters input{grid-column:1/-1}
+.act-item.expanded{background:#f8fafc}
+.act-item.expandable{cursor:pointer}
+.act-detail{display:none;padding:8px 10px;background:#f1f5f9;font-size:11px;color:#333;border-top:1px dashed #cbd5e1;line-height:1.5}
+.act-item.expanded .act-detail{display:block}
+.act-count-badge{float:right;font-size:10px;color:#666;background:#e5e7eb;padding:1px 6px;border-radius:8px}
 .hist-empty{text-align:center;color:#999;padding:24px 8px;font-size:13px}
 .act-item{padding:8px 10px;border-bottom:1px solid #eee;font-size:12px}
 .act-item:last-child{border-bottom:none}
@@ -407,7 +330,6 @@ function checkPin(){
     logActivity("Login", window.currentUser + " logged in" + (window.isAdmin ? " (admin)" : ""));
     document.getElementById('pin-overlay').classList.add('hidden');
       gpsTracker.start(); // Start GPS tracking on clock-in
-      notifModule.startPolling(); // Start notification polling
     document.body.classList.remove('locked');
     if(window.isAdmin) {
       document.getElementById('sync-section').classList.remove('hidden');
@@ -505,10 +427,6 @@ document.addEventListener('DOMContentLoaded', initPinSelect);
   <h1>LOADLEDGER</h1>
   <div class="sub">CA Cattle Co. - Bakery Recycling Division</div>
     <div class="header-controls">
-      <div class="notif-bell-wrap" onclick="toggleNotifPanel()">
-        <span class="notif-bell">&#128276;</span>
-        <span id="notif-badge" class="notif-badge" style="display:none">0</span>
-      </div>
       <span id="gps-indicator" class="gps-indicator gps-off">GPS: OFF</span>
       <button class="clock-out-btn" onclick="clockOut()">Log Out</button>
     </div>
@@ -519,7 +437,6 @@ document.addEventListener('DOMContentLoaded', initPinSelect);
   <div class="tab" onclick="switchTab('fuel')"><span class="tab-icon">&#9981;</span>Fuel/DEF</div>
   <div class="tab" onclick="switchTab('dvir')"><span class="tab-icon">&#9874;</span>DVIR</div>
   <div class="tab" onclick="switchTab('history')"><span class="tab-icon">&#128203;</span>History</div>
-  <div class="tab" onclick="switchTab('report')"><span class="tab-icon">!</span> Help</div>
     <div id="tab-admin" class="tab hidden" onclick="switchTab('admin')"><span class="tab-icon">&#9881;</span>Admin</div>
 </div>
 
@@ -786,34 +703,49 @@ document.addEventListener('DOMContentLoaded', initPinSelect);
 
 <!-- ===== HISTORY TAB ===== -->
 <div id="panel-history" class="panel">
-  <div class="hist-tabs">
-    <button class="hist-tab active" onclick="switchHistTab('activity')">Activity Log</button>
-    <button class="hist-tab" onclick="switchHistTab('loads')">Loads</button>
-    <button class="hist-tab" onclick="switchHistTab('fuel')">Fuel/DEF</button>
-    <button class="hist-tab" onclick="switchHistTab('dvir')">DVIR</button>
+  <!-- Driver view: Coming Soon placeholder -->
+  <div id="hist-driver-view" style="display:none;text-align:center;padding:40px 20px;color:#555">
+    <div style="font-size:42px;margin-bottom:12px">&#128203;</div>
+    <div style="font-size:16px;font-weight:600;margin-bottom:8px">History Coming Soon</div>
+    <div style="font-size:13px;color:#777">Your personal activity log is in the works. Ask Chad if you need to check something.</div>
   </div>
-  <div id="hist-activity" class="hist-section">
-    <div class="hist-section-hdr">Activity Log</div>
-    <div id="activityList" class="hist-list"><div class="hist-empty">Loading activity...</div></div>
-  </div>
-  <div id="hist-loads" class="hist-section" style="display:none">
-    <div class="hist-section-hdr">Load History</div>
-    <div id="loadHistList" class="hist-list"><div class="hist-empty">Loading history...</div></div>
-  </div>
-  <div id="hist-fuel" class="hist-section" style="display:none">
-    <div class="hist-section-hdr">Fuel/DEF History</div>
-    <div id="fuelHistList" class="hist-list"><div class="hist-empty">Loading history...</div></div>
-  </div>
-  <div id="hist-dvir" class="hist-section" style="display:none">
-    <div class="hist-section-hdr">DVIR History</div>
-    <div id="dvirHistList" class="hist-list"><div class="hist-empty">Loading history...</div></div>
-  </div>
-  <div class="sys-updates" style="margin-top:16px">
+
+  <!-- Admin view: full activity audit -->
+  <div id="hist-admin-view" style="display:none">
+    <div id="hist-summary" class="hist-summary"></div>
+
+    <div class="hist-filters">
+      <select id="histFilterDriver" onchange="renderHistory()">
+        <option value="">All drivers</option>
+      </select>
+      <select id="histFilterRange" onchange="renderHistory()">
+        <option value="1">Today</option>
+        <option value="7" selected>Last 7 days</option>
+        <option value="30">Last 30 days</option>
+        <option value="0">All time</option>
+      </select>
+      <select id="histFilterType" onchange="renderHistory()">
+        <option value="">All events</option>
+        <option value="login">Logins</option>
+        <option value="logout">Logouts</option>
+        <option value="load">Loads</option>
+        <option value="fuel">Fuel/DEF</option>
+        <option value="dvir">DVIR</option>
+        <option value="admin">Admin</option>
+        <option value="fail">Failed PIN</option>
+      </select>
+      <input type="text" id="histFilterSearch" placeholder="Search..." oninput="renderHistory()">
+    </div>
+
+    <div id="hist-feed" class="hist-list"><div class="hist-empty">Loading activity...</div></div>
+
+    <div class="sys-updates" style="margin-top:16px">
     <div class="sys-update-header" onclick="this.parentElement.classList.toggle('expanded')" style="cursor:pointer">
       <span>System Updates</span>
       <span class="sys-toggle">+</span>
     </div>
     <div class="sys-update-body" style="display:none">
+      <div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">Apr 18</div><div class="sys-update-text">App simplified - Help Desk and Notifications removed (unused). History tab rebuilt as admin activity audit with 7-day default view, filters, and per-driver summary.</div></div>
       <div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">Apr 4</div><div class="sys-update-text">New app icon - BRD monogram replaces bull emoji. To refresh: remove old Home Screen shortcut, reinstall via Chrome menu &gt; Add to Home Screen</div></div><div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">Apr 4</div><div class="sys-update-text">PWA install fixed - Add to Home Screen now works on custom domain (loadledger.cacattlebrd.com)</div></div><div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">Apr 3</div><div class="sys-update-text">Config auto-sync on page load - admin changes now propagate to all devices automatically</div></div>
       <div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">Apr 3</div><div class="sys-update-text">Sync Config button now shows confirmation feedback</div></div>
       <div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">Apr 3</div><div class="sys-update-text">Fixed tab switching bug and admin sync section error</div></div>
@@ -830,6 +762,7 @@ document.addEventListener('DOMContentLoaded', initPinSelect);
       <div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">Apr 1</div><div class="sys-update-text">Notifications system - bell icon with unread count</div></div>
       <div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">Apr 1</div><div class="sys-update-text">GPS tracking - location recorded with every load submission</div></div>
     </div>
+    </div>
   </div>
 </div>
 
@@ -837,19 +770,6 @@ document.addEventListener('DOMContentLoaded', initPinSelect);
 <div id="panel-admin" class="panel">
   <div class="section-title">Drivers &amp; PINs</div>
 
-  <!-- Report Issue Panel -->
-  <div id="panel-report" class="panel" style="display:none">
-    <div id="notif-panel" class="notif-panel" style="display:none">
-    <div class="notif-header">
-      <span class="notif-title">Notifications</span>
-      <button class="notif-close" onclick="toggleNotifPanel()">&times;</button>
-    </div>
-    <div id="notif-list" class="notif-list">
-      <div class="notif-empty">No messages</div>
-    </div>
-  </div>
-    <div id="help-content"></div>
-  </div>
   <div id="adminDriversList" class="admin-list"></div>
   <button class="admin-btn-add" onclick="showAddDriverForm()">+ Add Driver</button>
   <div id="adminAddDriverForm" class="admin-inline-form" style="display:none">
@@ -1307,14 +1227,7 @@ function switchTab(name) {
   event.currentTarget.classList.add('active');
   if(name==='history') renderHistory();
   if(name==='admin') renderAdminPanel();
-
-    // Auto-fill driver name on Help tab
-    if (name === 'help') {
-      var sel = document.getElementById('pin-user-select');
-      var dn = sel && sel.selectedIndex > 0 ? sel.options[sel.selectedIndex].text : 'Driver';
-      helpDesk.init(dn);
-    } else { helpDesk.stopPolling(); }
-    }
+}
 
 // ===== DIRECTION =====
 function setDirection(dir) {
@@ -1638,170 +1551,209 @@ function logActivity(action, details) {
   } catch(e) {}
 }
 
-var currentHistTab = "activity";
+// ===== HISTORY (v2.5.0 - admin activity audit) =====
+// Holds the merged event list from backend + local so filters can re-render without refetching
+var histCache = [];
 
-function switchHistTab(tab) {
-  currentHistTab = tab;
-  var tabs = document.querySelectorAll(".hist-tab");
-  var names = ["activity","loads","fuel","dvir"];
-  for(var i=0;i<tabs.length;i++) tabs[i].classList.toggle("active", i===names.indexOf(tab));
-  var sections = document.querySelectorAll(".hist-section");
-  for(var i=0;i<sections.length;i++) sections[i].style.display = sections[i].id==="hist-"+tab?"":"none";
-  renderHistoryTab(tab);
-}
-
-function renderHistory() { renderHistoryTab(currentHistTab); }
-
-function renderHistoryTab(tab) {
-  var url = sheetsSync.getWebAppUrl();
-  if(!url) { renderHistoryLocal(tab); return; }
-  var endpoint = url + "?action=getHistory&tab=" + tab + "&limit=100";
-  fetch(endpoint)
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-      if(!data || !data.entries ) { renderHistoryLocal(tab); return; }
-      if(tab==="activity") renderActivityEntries(data.entries, false);
-      else if(tab==="loads") renderLoadEntries(data.entries, false);
-      else if(tab==="fuel") renderFuelEntries(data.entries, false);
-      else if(tab==="dvir") renderDvirEntries(data.entries, false);
-    })
-    .catch(function() { renderHistoryLocal(tab); });
-}
-
-function renderHistoryLocal(tab) {
-  var key = tab==="activity"?"ll_activity":tab==="loads"?"ll_loads":tab==="fuel"?"ll_fuel":"ll_dvir";
-  var data = [];
-  try { data = JSON.parse(localStorage.getItem(key) || "[]"); } catch(e) {}
-  if(tab==="activity") renderActivityEntries(data, true);
-  else if(tab==="loads") renderLoadEntries(data, true);
-  else if(tab==="fuel") renderFuelEntries(data, true);
-  else if(tab==="dvir") renderDvirEntries(data, true);
-}
-
-function fmtTime(ts) {
+function fmtHistTime(ts) {
   if(!ts) return "";
   var d = new Date(ts);
   if(isNaN(d.getTime())) return String(ts);
-  var mo=d.getMonth()+1, dy=d.getDate();
+  var mo=d.getMonth()+1, dy=d.getDate(), yr=d.getFullYear();
   var hr=d.getHours(), mn=d.getMinutes();
   var ampm=hr>=12?"PM":"AM";
   hr=hr%12||12;
-  return mo+"/"+dy+" "+hr+":"+(mn<10?"0":"")+mn+" "+ampm;
+  return mo+"/"+dy+"/"+String(yr).slice(2)+" "+hr+":"+(mn<10?"0":"")+mn+" "+ampm;
 }
 
-function renderActivityEntries(entries, isLocal) {
-  var el = document.getElementById("activityList");
+function fmtRelative(ts) {
+  if(!ts) return "never";
+  var d = new Date(ts);
+  if(isNaN(d.getTime())) return "never";
+  var diffMs = Date.now() - d.getTime();
+  var mins = Math.floor(diffMs / 60000);
+  if(mins < 1) return "just now";
+  if(mins < 60) return mins + " min ago";
+  var hrs = Math.floor(mins / 60);
+  if(hrs < 24) return hrs + "h ago";
+  var days = Math.floor(hrs / 24);
+  if(days < 7) return days + "d ago";
+  return fmtHistTime(ts);
+}
+
+function classifyEvent(action) {
+  var a = (action||"").toLowerCase();
+  if(a.indexOf("login")>-1) return "login";
+  if(a.indexOf("logout")>-1 || a.indexOf("clock")>-1) return "logout";
+  if(a.indexOf("fail")>-1 || a.indexOf("lock")>-1) return "fail";
+  if(a.indexOf("load")>-1) return "load";
+  if(a.indexOf("fuel")>-1 || a.indexOf("def")>-1) return "fuel";
+  if(a.indexOf("dvir")>-1) return "dvir";
+  if(a.indexOf("admin")>-1 || a.indexOf("config")>-1 || a.indexOf("driver added")>-1 || a.indexOf("driver edited")>-1 || a.indexOf("driver deleted")>-1) return "admin";
+  return "other";
+}
+
+function renderHistory() {
+  var driverView = document.getElementById("hist-driver-view");
+  var adminView = document.getElementById("hist-admin-view");
+  if(!driverView || !adminView) return;
+  if(!window.isAdmin) {
+    driverView.style.display = "block";
+    adminView.style.display = "none";
+    return;
+  }
+  driverView.style.display = "none";
+  adminView.style.display = "block";
+  populateDriverFilter();
+  loadHistoryData();
+}
+
+function populateDriverFilter() {
+  var sel = document.getElementById("histFilterDriver");
+  if(!sel) return;
+  var currentVal = sel.value;
+  var drivers = [];
+  try { drivers = getConfig('drivers') || []; } catch(e) {}
+  var opts = '<option value="">All drivers</option>';
+  drivers.forEach(function(d) {
+    opts += '<option value="' + (d.name||"") + '">' + (d.name||"") + '</option>';
+  });
+  sel.innerHTML = opts;
+  if(currentVal) sel.value = currentVal;
+}
+
+function loadHistoryData() {
+  var url = (typeof sheetsSync !== "undefined" && sheetsSync.getWebAppUrl) ? sheetsSync.getWebAppUrl() : "";
+  var local = [];
+  try { local = JSON.parse(localStorage.getItem("ll_activity") || "[]"); } catch(e) {}
+  if(!url) {
+    histCache = local;
+    applyFiltersAndRender(true);
+    return;
+  }
+  fetch(url + "?action=getHistory&tab=activity&limit=500")
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      var remote = (data && data.entries) ? data.entries : [];
+      // Merge remote + local, dedupe by timestamp+user+action
+      var seen = {};
+      var merged = [];
+      remote.concat(local).forEach(function(e){
+        var key = (e.timestamp||"")+"|"+(e.user||"")+"|"+(e.action||"");
+        if(!seen[key]) { seen[key] = 1; merged.push(e); }
+      });
+      histCache = merged;
+      applyFiltersAndRender(false);
+    })
+    .catch(function(){
+      histCache = local;
+      applyFiltersAndRender(true);
+    });
+}
+
+function applyFiltersAndRender(isLocal) {
+  var driverF = document.getElementById("histFilterDriver").value || "";
+  var rangeF = parseInt(document.getElementById("histFilterRange").value || "7", 10);
+  var typeF = document.getElementById("histFilterType").value || "";
+  var searchF = (document.getElementById("histFilterSearch").value || "").toLowerCase().trim();
+
+  var cutoff = 0;
+  if(rangeF > 0) cutoff = Date.now() - (rangeF * 24 * 60 * 60 * 1000);
+
+  var filtered = histCache.filter(function(e){
+    if(driverF && (e.user||"") !== driverF) return false;
+    if(cutoff > 0) {
+      var t = new Date(e.timestamp).getTime();
+      if(isNaN(t) || t < cutoff) return false;
+    }
+    if(typeF && classifyEvent(e.action) !== typeF) return false;
+    if(searchF) {
+      var blob = ((e.user||"")+" "+(e.action||"")+" "+(e.details||"")).toLowerCase();
+      if(blob.indexOf(searchF) === -1) return false;
+    }
+    return true;
+  });
+
+  // Sort newest first
+  filtered.sort(function(a,b){
+    return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+  });
+
+  renderSummaryStrip();
+  renderActivityFeed(filtered, isLocal);
+}
+
+function renderSummaryStrip() {
+  var el = document.getElementById("hist-summary");
   if(!el) return;
-  if(!entries || entries.length===0) {
-    el.innerHTML = '<div class="hist-empty">No activity recorded yet'+(isLocal?" (offline mode)":"")+"</div>";
+  var drivers = [];
+  try { drivers = getConfig('drivers') || []; } catch(e) {}
+  // Build per-driver stats for today
+  var todayStart = new Date(); todayStart.setHours(0,0,0,0);
+  var todayMs = todayStart.getTime();
+  var stats = {};
+  drivers.forEach(function(d){
+    stats[d.name] = { loads:0, fuel:0, dvir:0, logins:0, last:null };
+  });
+  histCache.forEach(function(e){
+    var name = e.user || "";
+    if(!stats[name]) stats[name] = { loads:0, fuel:0, dvir:0, logins:0, last:null };
+    var t = new Date(e.timestamp).getTime();
+    if(!stats[name].last || t > new Date(stats[name].last).getTime()) stats[name].last = e.timestamp;
+    if(isNaN(t) || t < todayMs) return;
+    var cls = classifyEvent(e.action);
+    if(cls === "load") stats[name].loads++;
+    else if(cls === "fuel") stats[name].fuel++;
+    else if(cls === "dvir") stats[name].dvir++;
+    else if(cls === "login") stats[name].logins++;
+  });
+  var html = "";
+  var names = Object.keys(stats);
+  names.forEach(function(name){
+    if(!name || name === "unknown") return;
+    var s = stats[name];
+    var totalToday = s.loads + s.fuel + s.dvir;
+    var lastT = s.last ? new Date(s.last).getTime() : 0;
+    var hoursAgo = lastT ? (Date.now() - lastT) / 3600000 : 999;
+    var cls = "hist-sum-card";
+    if(totalToday > 0) cls += " active";
+    else if(hoursAgo > 24) cls += " stale";
+    html += '<div class="'+cls+'">';
+    html += '<div class="hist-sum-name">'+name+'</div>';
+    html += '<div class="hist-sum-counts">Today: '+s.loads+' loads, '+s.fuel+' fuel, '+s.dvir+' DVIR</div>';
+    html += '<div class="hist-sum-last">Last seen: '+fmtRelative(s.last)+'</div>';
+    html += '</div>';
+  });
+  if(!html) html = '<div class="hist-empty" style="grid-column:1/-1">No drivers configured</div>';
+  el.innerHTML = html;
+}
+
+function renderActivityFeed(entries, isLocal) {
+  var el = document.getElementById("hist-feed");
+  if(!el) return;
+  if(!entries || entries.length === 0) {
+    el.innerHTML = '<div class="hist-empty">No activity in this filter'+(isLocal?" (offline mode)":"")+'</div>';
     return;
   }
   var html = "";
-  if(isLocal) html += '<div style="background:#fff3cd;color:#856404;padding:6px 10px;border-radius:4px;font-size:11px;margin-bottom:8px">Offline mode - showing local data only</div>';
+  if(isLocal) html += '<div style="background:#fff3cd;color:#856404;padding:6px 10px;border-radius:4px;font-size:11px;margin:8px">Offline - showing local data only</div>';
   for(var i=0;i<entries.length;i++) {
     var e = entries[i];
-    var cls = "act-item";
-    var act = (e.action||"").toLowerCase();
-    if(act.indexOf("login")>-1) cls+=" act-login";
-    else if(act.indexOf("logout")>-1||act.indexOf("clock")>-1) cls+=" act-logout";
-    else if(act.indexOf("fail")>-1||act.indexOf("locked")>-1) cls+=" act-fail";
-    else if(act.indexOf("load")>-1) cls+=" act-load";
-    else if(act.indexOf("fuel")>-1) cls+=" act-fuel";
-    else if(act.indexOf("dvir")>-1) cls+=" act-dvir";
-    else if(act.indexOf("admin")>-1||act.indexOf("config")>-1) cls+=" act-admin";
-    html += '<div class="'+cls+'">';
-    html += '<div><span class="act-time">'+fmtTime(e.timestamp)+"</span></div>";
+    var cls = classifyEvent(e.action);
+    var hasDetail = !!e.details;
+    var itemCls = "act-item act-"+cls + (hasDetail?" expandable":"");
+    var onclick = hasDetail ? ' onclick="this.classList.toggle(&quot;expanded&quot;)"' : '';
+    html += '<div class="'+itemCls+'"'+onclick+'>';
+    html += '<div><span class="act-time">'+fmtHistTime(e.timestamp)+"</span></div>";
     html += '<span class="act-user">'+(e.user||"System")+"</span> ";
     html += '<span class="act-action">'+(e.action||"")+"</span>";
-    if(e.details) html += '<div style="color:#777;font-size:11px;margin-top:2px">'+(e.details)+"</div>";
-    html += "</div>";
-  }
-  el.innerHTML = html;
-}
-
-function renderLoadEntries(entries, isLocal) {
-  var el = document.getElementById("loadHistList");
-  if(!el) return;
-  if(!entries || entries.length===0) {
-    el.innerHTML = '<div class="hist-empty">No loads recorded yet'+(isLocal?" (offline mode)":"")+"</div>";
-    return;
-  }
-  var html = "";
-  if(isLocal) html += '<div style="background:#fff3cd;color:#856404;padding:6px 10px;border-radius:4px;font-size:11px;margin-bottom:8px">Offline mode - showing local data only</div>';
-  for(var i=0;i<entries.length;i++) {
-    var e = entries[i];
-    var dir = (e.type||e.direction||"").toLowerCase();
-    var dirLabel = (dir==="in"||dir==="inbound")?"IN":"OUT";
-    var dirCls = (dir==="in"||dir==="inbound")?"in":"out";
-    var source = (dir==="in"||dir==="inbound")?(e.supplier||e.source||"-"):(e.customer||e.source||"-");
-    var product = e.commodity||e.products||e.product||"-";
-    var tons = e.tons||e.net||"-";
-    html += '<div class="lh-item">';
-    html += '<div class="lh-top"><span class="lh-driver">'+(e.driver||"-")+'</span><span class="lh-date">'+fmtTime(e.timestamp||e.date)+"</span></div>";
-    html += '<div class="lh-detail"><span class="lh-dir '+dirCls+'">'+ dirLabel +"</span> ";
-    html += source+" - "+product+"</div>";
-    html += '<div style="margin-top:4px"><span class="lh-tons">'+tons+" tons</span></div>";
-    html += "</div>";
-  }
-  el.innerHTML = html;
-}
-
-function renderFuelEntries(entries, isLocal) {
-  var el = document.getElementById("fuelHistList");
-  if(!el) return;
-  if(!entries || entries.length===0) {
-    el.innerHTML = '<div class="hist-empty">No fuel entries yet'+(isLocal?" (offline mode)":"")+"</div>";
-    return;
-  }
-  var html = "";
-  if(isLocal) html += '<div style="background:#fff3cd;color:#856404;padding:6px 10px;border-radius:4px;font-size:11px;margin-bottom:8px">Offline mode - showing local data only</div>';
-  for(var i=0;i<entries.length;i++) {
-    var e = entries[i];
-    html += '<div class="fh-item">';
-    html += '<div class="fh-top"><span class="fh-driver">'+(e.driver||"-")+'</span><span class="fh-date">'+fmtTime(e.timestamp||e.date)+"</span></div>";
-    html += '<div class="fh-detail">';
-    if(e.fuelGal&&parseFloat(e.fuelGal)>0) html += '<span class="fh-gal">'+e.fuelGal+" gal fuel</span> ";
-    if(e.defGal&&parseFloat(e.defGal)>0) html += '<span class="fh-gal">'+e.defGal+" gal DEF</span> ";
-    html += "</div>";
-    if(e.odometer) html += '<div style="color:#777;font-size:11px;margin-top:2px">Odometer: '+e.odometer+"</div>";
-    if(e.truck) html += '<div style="color:#777;font-size:11px">Truck: '+e.truck+"</div>";
-    html += "</div>";
-  }
-  el.innerHTML = html;
-}
-
-function renderDvirEntries(entries, isLocal) {
-  var el = document.getElementById("dvirHistList");
-  if(!el) return;
-  if(!entries || entries.length===0) {
-    el.innerHTML = '<div class="hist-empty">No DVIR entries yet'+(isLocal?" (offline mode)":"")+"</div>";
-    return;
-  }
-  var html = "";
-  if(isLocal) html += '<div style="background:#fff3cd;color:#856404;padding:6px 10px;border-radius:4px;font-size:11px;margin-bottom:8px">Offline mode - showing local data only</div>';
-  for(var i=0;i<entries.length;i++) {
-    var e = entries[i];
-    var items = e.items||e.defects||[];
-    var hasDefects = false;
-    var defectList = [];
-    if(typeof items==="string") { try{items=JSON.parse(items);}catch(ex){items=[];} }
-    for(var k=0;k<items.length;k++) {
-      var it = items[k];
-      if(it&&(it.status==="defect"||it.defect===true||it.condition==="defect")) {
-        hasDefects = true;
-        defectList.push(it.name||it.item||it.label||("Item "+(k+1)));
-      }
+    if(hasDetail) {
+      html += '<div class="act-detail">'+String(e.details).replace(/</g,"&lt;")+"</div>";
     }
-    html += '<div class="dh-item">';
-    html += '<div class="dh-top"><span class="dh-driver">'+(e.driver||"-")+'</span><span class="dh-date">'+fmtTime(e.timestamp||e.date)+"</span></div>";
-    html += '<div class="dh-detail">Truck: '+(e.truck||"-")+(e.trailer?" / Trailer: "+e.trailer:"")+"</div>";
-    if(hasDefects) html += '<div class="dh-defect">DEFECTS: '+defectList.join(", ")+"</div>";
-    else html += '<div class="dh-ok">No defects</div>';
     html += "</div>";
   }
   el.innerHTML = html;
 }
-
 
 // ===== ADMIN PANEL =====
 function renderAdminPanel() {
@@ -1890,16 +1842,19 @@ function saveDriver() {
   populateDropdowns();
   renderAdminDrivers();
   hideAddDriverForm();
+  logActivity("Admin - Driver " + (editingDriver?"Edited":"Added"), name + " (" + role + ", " + group + ")");
   showToast('Driver saved');
 }
 
 function deleteDriver(id) {
   if (!confirm('Delete this driver?')) return;
   let drivers = getConfig('drivers');
+  const target = drivers.find(d => d.id === id);
   drivers = drivers.filter(d => d.id !== id);
   setConfig('drivers', drivers);
   populateDropdowns();
   renderAdminDrivers();
+  logActivity("Admin - Driver Deleted", target ? target.name : id);
   showToast('Driver deleted');
 }
 
@@ -1957,6 +1912,7 @@ function saveTruck() {
   populateDropdowns();
   renderAdminTrucks();
   hideAddTruckForm();
+  logActivity("Admin - Truck " + (wasEditing?"Edited":"Added"), name);
   showToast(wasEditing ? 'Truck updated' : 'Truck added');
 }
 
@@ -1967,6 +1923,7 @@ function deleteTruck(name) {
   setConfig('trucks', trucks);
   populateDropdowns();
   renderAdminTrucks();
+  logActivity("Admin - Truck Deleted", name);
   showToast('Truck deleted');
 }
 
@@ -2043,6 +2000,7 @@ function saveTrailer() {
   populateDropdowns();
   renderAdminTrailers();
   hideAddTrailerForm();
+  logActivity("Admin - Trailer " + (wasEditingT?"Edited":"Added"), id + " (" + group + ")");
   showToast(wasEditingT ? 'Trailer updated' : 'Trailer added');
 }
 
@@ -2053,6 +2011,7 @@ function deleteTrailer(id) {
   setConfig('trailers', trailers);
   populateDropdowns();
   renderAdminTrailers();
+  logActivity("Admin - Trailer Deleted", id);
   showToast('Trailer deleted');
 }
 
@@ -2110,6 +2069,7 @@ function saveSupplier() {
   populateDropdowns();
   renderAdminSuppliers();
   hideAddSupplierForm();
+  logActivity("Admin - Supplier " + (wasEditingS?"Edited":"Added"), name);
   showToast(wasEditingS ? 'Supplier updated' : 'Supplier added');
 }
 
@@ -2120,6 +2080,7 @@ function deleteSupplier(name) {
   setConfig('suppliers', suppliers);
   populateDropdowns();
   renderAdminSuppliers();
+  logActivity("Admin - Supplier Deleted", name);
   showToast('Supplier deleted');
 }
 
@@ -2188,16 +2149,19 @@ function saveCustomer() {
   populateDropdowns();
   renderAdminCustomers();
   hideAddCustomerForm();
+  logActivity("Admin - Customer " + (wasEditingC?"Edited":"Added"), id + " - " + name);
   showToast(wasEditingC ? 'Customer updated' : 'Customer added');
 }
 
 function deleteCustomer(id) {
   if (!confirm('Delete this customer?')) return;
   let customers = getConfig('customers');
+  const target = customers.find(c => c.id === id);
   customers = customers.filter(c => c.id !== id);
   setConfig('customers', customers);
   populateDropdowns();
   renderAdminCustomers();
+  logActivity("Admin - Customer Deleted", target ? (target.id+" - "+target.name) : id);
   showToast('Customer deleted');
 }
 
@@ -2255,6 +2219,7 @@ function saveProduct() {
   populateDropdowns();
   renderAdminProducts();
   hideAddProductForm();
+  logActivity("Admin - Product " + (wasEditingP?"Edited":"Added"), name);
   showToast(wasEditingP ? 'Product updated' : 'Product added');
 }
 
@@ -2265,6 +2230,7 @@ function deleteProduct(name) {
   setConfig('products', products);
   populateDropdowns();
   renderAdminProducts();
+  logActivity("Admin - Product Deleted", name);
   showToast('Product deleted');
 }
 
@@ -2333,16 +2299,19 @@ function saveCommodity() {
   populateDropdowns();
   renderAdminCommodities();
   hideAddCommodityForm();
+  logActivity("Admin - Commodity " + (wasEditingCo?"Edited":"Added"), id + " - " + name);
   showToast(wasEditingCo ? 'Commodity updated' : 'Commodity added');
 }
 
 function deleteCommodity(id) {
   if (!confirm('Delete this commodity?')) return;
   let commodities = getConfig('commodities');
+  const target = commodities.find(c => c.id === id);
   commodities = commodities.filter(c => c.id !== id);
   setConfig('commodities', commodities);
   populateDropdowns();
   renderAdminCommodities();
+  logActivity("Admin - Commodity Deleted", target ? (target.id+" - "+target.name) : id);
   showToast('Commodity deleted');
 }
 
@@ -2959,271 +2928,6 @@ const sheetsSync = (() => {
 })();
 
 
-  
-  /* ============================================================
-     REPORT ISSUE
-     ============================================================ */
-  
-// ============================================================
-// LoadLedger Help Desk Module v1.0
-// Chat-style AI help desk powered by Lil Helper
-// ============================================================
-var helpDeskStyles = document.createElement('style');
-helpDeskStyles.textContent = `
-#help-content{display:flex;flex-direction:column;height:calc(100vh - 140px);background:#f5f5f5;position:relative}
-.hd-header{background:#1a237e;color:#fff;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
-.hd-header h3{margin:0;font-size:16px;font-weight:600}
-.hd-new-btn{background:#fff;color:#1a237e;border:none;border-radius:6px;padding:6px 14px;font-size:13px;font-weight:600;cursor:pointer}
-.hd-category-bar{background:#e8eaf6;padding:8px 12px;display:flex;gap:6px;flex-wrap:wrap;flex-shrink:0;border-bottom:1px solid #c5cae9}
-.hd-cat-chip{background:#fff;border:1px solid #9fa8da;border-radius:16px;padding:4px 12px;font-size:12px;cursor:pointer;transition:all 0.2s;color:#333}
-.hd-cat-chip.active{background:#1a237e;color:#fff;border-color:#1a237e}
-.hd-chat-area{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;-webkit-overflow-scrolling:touch}
-.hd-msg{max-width:82%;padding:10px 14px;border-radius:16px;font-size:14px;line-height:1.4;word-wrap:break-word;position:relative}
-.hd-msg.driver{align-self:flex-end;background:#1a237e;color:#fff;border-bottom-right-radius:4px}
-.hd-msg.helper{align-self:flex-start;background:#fff;color:#333;border:1px solid #e0e0e0;border-bottom-left-radius:4px}
-.hd-msg .hd-sender{font-size:11px;font-weight:600;margin-bottom:4px;opacity:0.8}
-.hd-msg.helper .hd-sender{color:#1a237e}
-.hd-msg .hd-time{font-size:10px;opacity:0.6;margin-top:4px;text-align:right}
-.hd-msg.helper .hd-time{text-align:left}
-.hd-typing{align-self:flex-start;background:#fff;border:1px solid #e0e0e0;border-radius:16px;padding:10px 14px;font-size:14px;color:#999;display:none}
-.hd-typing.visible{display:block}
-.hd-typing span{animation:hdBlink 1.4s infinite}
-.hd-typing span:nth-child(2){animation-delay:0.2s}
-.hd-typing span:nth-child(3){animation-delay:0.4s}
-@keyframes hdBlink{0%,60%,100%{opacity:0.3}30%{opacity:1}}
-.hd-input-area{flex-shrink:0;background:#fff;border-top:1px solid #e0e0e0;padding:10px 12px;display:flex;gap:8px;align-items:flex-end}
-.hd-input-area textarea{flex:1;border:1px solid #ccc;border-radius:20px;padding:10px 16px;font-size:14px;resize:none;max-height:100px;min-height:40px;font-family:inherit;line-height:1.4}
-.hd-input-area textarea:focus{outline:none;border-color:#1a237e}
-.hd-send-btn{background:#1a237e;color:#fff;border:none;border-radius:50%;width:42px;height:42px;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.hd-send-btn:disabled{background:#ccc;cursor:not-allowed}
-.hd-empty-state{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#999;text-align:center;padding:40px 20px}
-.hd-empty-state .hd-icon{font-size:48px;margin-bottom:12px}
-.hd-empty-state p{margin:4px 0;font-size:14px}
-.hd-empty-state .hd-hint{font-size:12px;margin-top:8px;color:#bbb}
-.hd-feedback{display:flex;gap:8px;margin-top:6px;align-items:center}.hd-feedback-btn{background:none;border:1px solid #e0e0e0;border-radius:50%;width:32px;height:32px;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s;padding:0}.hd-feedback-btn:hover{background:#f5f5f5;transform:scale(1.1)}.hd-feedback-btn.selected-up{background:#e8f5e9;border-color:#4caf50}.hd-feedback-btn.selected-down{background:#fce4ec;border-color:#e53935}.hd-feedback-btn.disabled{opacity:0.4;cursor:default;pointer-events:none}.hd-feedback-label{font-size:11px;color:#999}
-.hd-security-notice{background:#fff8e1;border:1px solid #ffcc02;border-radius:8px;padding:8px 12px;margin:8px 16px 0;font-size:11px;color:#666;text-align:center;flex-shrink:0}
-`;
-document.head.appendChild(helpDeskStyles);
-
-
-var helpDesk = (function() {
-  'use strict';
-  var POLL_INTERVAL = 30000;
-  var pollTimer = null;
-  var currentThreadId = null;
-  var driverName = '';
-  var CATEGORIES = [
-    {id:'app-help',label:'App Help'},
-    {id:'truck-issue',label:'Truck Issue'},
-    {id:'equipment',label:'Equipment'},
-    {id:'safety',label:'Safety'},
-    {id:'other',label:'Other'}
-  ];
-  var selectedCategory = 'app-help';
-  var messages = [];
-
-  function buildUI() {
-    var container = document.getElementById('help-content');
-    if (!container) return;
-    container.innerHTML =
-      '<div class="hd-header"><h3>Help Desk</h3>' +
-      '<button class="hd-new-btn" onclick="helpDesk.newThread()">+ New</button></div>' +
-      '<div class="hd-category-bar" id="hd-categories"></div>' +
-      '<div class="hd-security-notice">Lil Helper can answer questions and report issues. She cannot change settings, access other accounts, or delete data.</div>' +
-      '<div class="hd-chat-area" id="hd-chat-area">' +
-      '<div class="hd-empty-state" id="hd-empty"><div class="hd-icon">&#128172;</div>' +
-      '<p><strong>Need help?</strong></p><p>Pick a category and describe your issue.</p>' +
-      '<p class="hd-hint">Lil Helper usually responds in under a minute.</p></div></div>' +
-      '<div class="hd-typing" id="hd-typing"><span>.</span><span>.</span><span>.</span> Lil Helper is thinking</div>' +
-      '<div class="hd-input-area">' +
-      '<textarea id="hd-input" rows="1" placeholder="Describe your issue or ask a question..." onkeydown="helpDesk.handleKey(event)"></textarea>' +
-      '<button class="hd-send-btn" id="hd-send-btn" onclick="helpDesk.send()">&#9654;</button></div>';
-    renderCategories();
-    autoGrowTextarea();
-  }
-
-  function renderCategories() {
-    var bar = document.getElementById('hd-categories');
-    if (!bar) return;
-    bar.innerHTML = '';
-    CATEGORIES.forEach(function(cat) {
-      var chip = document.createElement('div');
-      chip.className = 'hd-cat-chip' + (cat.id === selectedCategory ? ' active' : '');
-      chip.textContent = cat.label;
-      chip.onclick = function() { selectCategory(cat.id); };
-      bar.appendChild(chip);
-    });
-  }
-
-  function selectCategory(catId) { selectedCategory = catId; renderCategories(); }
-
-  function autoGrowTextarea() {
-    var ta = document.getElementById('hd-input');
-    if (!ta) return;
-    ta.addEventListener('input', function() {
-      this.style.height = 'auto';
-      this.style.height = Math.min(this.scrollHeight, 100) + 'px';
-    });
-  }
-
-  function send() {
-    var input = document.getElementById('hd-input');
-    var text = (input.value || '').trim();
-    if (!text) return;
-    if (!currentThreadId) {
-      currentThreadId = 'HD-' + Date.now() + '-' + Math.random().toString(36).substr(2, 5);
-    }
-    var msg = {threadId:currentThreadId, sender:'driver', driverName:driverName,
-      category:selectedCategory, message:text, timestamp:new Date().toISOString()};
-    messages.push(msg);
-    renderMessages();
-    input.value = '';
-    input.style.height = 'auto';
-    showTyping(true);
-    submitToSheet(msg);
-    startPolling();
-  }
-
-  function submitToSheet(msg) {
-    var url = typeof sheetsSync !== 'undefined' && sheetsSync.getWebAppUrl ? sheetsSync.getWebAppUrl() : (localStorage.getItem('webAppUrl') || '');
-    if (!url) { addSystemMessage('Unable to send. Tell Chad or James.'); showTyping(false); return; }
-    var payload = {action:'helpDeskSubmit', threadId:msg.threadId, driver:msg.driverName,
-      category:msg.category, message:msg.message, timestamp:msg.timestamp};
-    fetch(url, {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'},
-      body:'payload=' + encodeURIComponent(JSON.stringify(payload))})
-    .then(function(r){return r.json();})
-    .then(function(data){ if(data.error){addSystemMessage('Send failed: '+data.error); showTyping(false);} })
-    .catch(function(){
-      addSystemMessage('Network error. Message saved locally.');
-      showTyping(false);
-      try{var q=JSON.parse(localStorage.getItem('hd_offline_queue')||'[]');q.push(msg);localStorage.setItem('hd_offline_queue',JSON.stringify(q));}catch(e){}
-    });
-  }
-
-  function fetchMessages() {
-    var url = typeof sheetsSync !== 'undefined' && sheetsSync.getWebAppUrl ? sheetsSync.getWebAppUrl() : (localStorage.getItem('webAppUrl') || '');
-    if (!url || !currentThreadId) return;
-    fetch(url + '?action=getHelpMessages&threadId=' + encodeURIComponent(currentThreadId) + '&driver=' + encodeURIComponent(driverName))
-    .then(function(r){return r.json();})
-    .then(function(data){
-      if (data.messages && data.messages.length > 0) {
-        var hadNew = false;
-        data.messages.forEach(function(sm){
-          var dup = messages.some(function(m){return m.timestamp===sm.timestamp && m.sender===sm.sender;});
-          if(!dup){messages.push(sm); if(sm.sender==='helper') hadNew=true;}
-        });
-        if(hadNew){showTyping(false); renderMessages();}
-      }
-    }).catch(function(){});
-  }
-
-  var feedbackGiven = {};
-  function renderMessages() {
-    var area = document.getElementById('hd-chat-area');
-    var empty = document.getElementById('hd-empty');
-    if (!area) return;
-    if (messages.length === 0) { if(empty) empty.style.display='flex'; return; }
-    if (empty) empty.style.display='none';
-    area.innerHTML = '';
-    messages.forEach(function(msg){
-      if(msg.sender==='system'){
-        var sys = document.createElement('div');
-        sys.style.cssText='text-align:center;font-size:12px;color:#999;padding:4px';
-        sys.textContent = msg.message;
-        area.appendChild(sys);
-        return;
-      }
-      var div = document.createElement('div');
-      var isD = msg.sender === 'driver';
-      div.className = 'hd-msg ' + (isD ? 'driver' : 'helper');
-      div.dataset.sender = isD ? 'driver' : 'helper';
-      div.dataset.ts = msg.timestamp || '';
-      div.dataset.tid = msg.threadId || currentThreadId;
-      var senderLabel = isD ? msg.driverName : 'Lil Helper';
-      var ts = '';
-      try{var d=new Date(msg.timestamp);var h=d.getHours();var m=d.getMinutes();var ap=h>=12?'PM':'AM';h=h%12||12;ts=h+':'+(m<10?'0':'')+m+' '+ap;}catch(e){}
-      var se = document.createElement('div'); se.className='hd-sender'; se.textContent=senderLabel;
-      var te = document.createElement('div'); te.textContent=msg.message;
-      var ti = document.createElement('div'); ti.className='hd-time'; ti.textContent=ts;
-      div.appendChild(se); div.appendChild(te); div.appendChild(ti);
-      area.appendChild(div);
-    });
-    addThumbsFeedback();
-    area.scrollTop = area.scrollHeight;
-  }
-
-
-  function addThumbsFeedback() {
-    var msgs = document.querySelectorAll(".hd-msg");
-    msgs.forEach(function(el) {
-      if (el.dataset.fbDone) return;
-      var sender = el.dataset.sender;
-      if (sender !== "helper") return;
-      var ts = el.dataset.ts || "";
-      var tid = el.dataset.tid || currentThreadId;
-      var txt = el.querySelector(".hd-msg-text");
-      if (!txt) return;
-      if (txt.textContent.indexOf("I can't help with that") > -1) return;
-      var fbKey = tid + "_" + ts;
-      var fb = feedbackGiven[fbKey];
-      var div = document.createElement("div");
-      div.className = "hd-feedback";
-      if (fb) {
-        var u = document.createElement("button");
-        u.className = "hd-feedback-btn " + (fb==="up"?"selected-up":"disabled");
-        u.disabled = true;
-        u.textContent = "\ud83d\udc4d";
-        var d = document.createElement("button");
-        d.className = "hd-feedback-btn " + (fb==="down"?"selected-down":"disabled");
-        d.disabled = true;
-        d.textContent = "\ud83d\udc4e";
-        div.appendChild(u); div.appendChild(d);
-      } else {
-        var upBtn = document.createElement("button");
-        upBtn.className = "hd-feedback-btn";
-        upBtn.textContent = "\ud83d\udc4d";
-        upBtn.onclick = function() { submitFeedback(fbKey, ts, "up"); };
-        var dnBtn = document.createElement("button");
-        dnBtn.className = "hd-feedback-btn";
-        dnBtn.textContent = "\ud83d\udc4e";
-        dnBtn.onclick = function() { submitFeedback(fbKey, ts, "down"); };
-        var lbl = document.createElement("span");
-        lbl.className = "hd-feedback-label";
-        lbl.textContent = "Helpful?";
-        div.appendChild(upBtn); div.appendChild(dnBtn); div.appendChild(lbl);
-      }
-      el.appendChild(div);
-      el.dataset.fbDone = "1";
-    });
-  }
-
-  function submitFeedback(fbKey, msgTimestamp, rating) {
-    feedbackGiven[fbKey] = rating;
-    document.querySelectorAll(".hd-msg").forEach(function(el){ el.dataset.fbDone=""; });
-    addThumbsFeedback();
-    var url = getWebAppUrl();
-    if (!url) return;
-    var p = { action:"helpDeskFeedback", threadId:currentThreadId, driver:driverName, messageTimestamp:msgTimestamp, rating:rating };
-    fetch(url, { method:"POST", headers:{"Content-Type":"application/x-www-form-urlencoded"}, body:"payload="+encodeURIComponent(JSON.stringify(p)) });
-  }
-  function addSystemMessage(text) {
-    messages.push({threadId:currentThreadId,sender:'system',message:text,timestamp:new Date().toISOString()});
-    renderMessages();
-  }
-  function startPolling(){if(pollTimer)return;pollTimer=setInterval(fetchMessages,POLL_INTERVAL);}
-  function stopPolling(){if(pollTimer){clearInterval(pollTimer);pollTimer=null;}}
-  function newThread(){currentThreadId=null;messages=[];selectedCategory='app-help';showTyping(false);buildUI();}
-  function showTyping(show){var el=document.getElementById('hd-typing');if(el)el.className='hd-typing'+(show?' visible':'');}
-  function handleKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();}}
-
-  function init(driver){
-    driverName=driver||'Unknown Driver';
-    buildUI();
-    try{var q=JSON.parse(localStorage.getItem('hd_offline_queue')||'[]');if(q.length>0){q.forEach(function(m){submitToSheet(m);});localStorage.setItem('hd_offline_queue','[]');}}catch(e){}
-  }
-
-  return {init:init,send:send,newThread:newThread,handleKey:handleKey,selectCategory:selectCategory,stopPolling:stopPolling};
-})();
 
 
 /* ============================================================
@@ -3317,134 +3021,11 @@ var helpDesk = (function() {
     return { start: start, stop: stop, getPosition: getPosition, isTracking: isTracking, getLog: getLog };
   })();
 
-// === NOTIFICATION MODULE ===
-const notifModule = (function() {
-  let notifications = [];
-  let pollTimer = null;
-  const POLL_INTERVAL = 60000; // check every 60 seconds
-
-  function getDriverName() {
-    var sel = document.getElementById("pin-user-select");
-    var opt = sel ? sel.options[sel.selectedIndex] : null;
-    return opt ? opt.textContent.trim().replace(" (Admin)", "") : "";
-  }
-
-  function toggle() {
-    var panel = document.getElementById("notif-panel");
-    if (!panel) return;
-    var isHidden = panel.style.display === "none";
-    panel.style.display = isHidden ? "flex" : "none";
-    if (isHidden) fetchAndRender();
-  }
-
-  function fetchAndRender() {
-    var driver = getDriverName();
-    if (!driver) { renderEmpty(); return; }
-    var url = sheetsSync.getWebAppUrl ? sheetsSync.getWebAppUrl() : null;
-    if (!url) { renderFromLocal(driver); return; }
-    fetch(url + "?action=getNotifications&driver=" + encodeURIComponent(driver))
-      .then(function(r) { return r.json(); })
-      .then(function(data) {
-        if (data && data.notifications) {
-          notifications = data.notifications;
-          saveLocal(driver, notifications);
-          render(notifications);
-          updateBadge(notifications);
-        } else { renderFromLocal(driver); }
-      })
-      .catch(function() { renderFromLocal(driver); });
-  }
-
-  function renderFromLocal(driver) {
-    var key = "ll_notif_" + driver;
-    try { notifications = JSON.parse(localStorage.getItem(key) || "[]"); } catch(e) { notifications = []; }
-    render(notifications);
-    updateBadge(notifications);
-  }
-
-  function saveLocal(driver, notifs) {
-    try { localStorage.setItem("ll_notif_" + driver, JSON.stringify(notifs)); } catch(e) {}
-  }
-
-  function render(notifs) {
-    var list = document.getElementById("notif-list");
-    if (!list) return;
-    if (!notifs || notifs.length === 0) { renderEmpty(); return; }
-    var sorted = notifs.slice().sort(function(a, b) { return new Date(b.timestamp) - new Date(a.timestamp); });
-    var html = "";
-    sorted.forEach(function(n, i) {
-      var cls = n.read ? "notif-item" : "notif-item unread";
-      var time = new Date(n.timestamp).toLocaleString();
-      html += '<div class="' + cls + '" onclick="notifModule.markRead(' + n.row + ')" data-row="' + n.row + '">' +
-        '<div class="notif-item-time">' + time + '</div>' +
-        '<div class="notif-item-msg">' + (n.message || "") + '</div>' +
-        '</div>';
-    });
-    list.innerHTML = html;
-  }
-
-  function renderEmpty() {
-    var list = document.getElementById("notif-list");
-    if (list) list.innerHTML = '<div class="notif-empty">No messages</div>';
-  }
-
-  function updateBadge(notifs) {
-    var badge = document.getElementById("notif-badge");
-    if (!badge) return;
-    var unread = (notifs || []).filter(function(n) { return !n.read; }).length;
-    badge.textContent = unread;
-    badge.style.display = unread > 0 ? "flex" : "none";
-  }
-
-  function markRead(row) {
-    var driver = getDriverName();
-    // Update locally immediately
-    notifications.forEach(function(n) { if (n.row === row) n.read = true; });
-    render(notifications);
-    updateBadge(notifications);
-    saveLocal(driver, notifications);
-    // Update server
-    var url = sheetsSync.getWebAppUrl ? sheetsSync.getWebAppUrl() : null;
-    if (!url) return;
-    fetch(url + "?action=markRead&row=" + row).catch(function() {});
-  }
-
-  function startPolling() {
-    stopPolling();
-    checkUnread();
-    pollTimer = setInterval(checkUnread, POLL_INTERVAL);
-  }
-
-  function stopPolling() {
-    if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
-  }
-
-  function checkUnread() {
-    var driver = getDriverName();
-    if (!driver) return;
-    var url = sheetsSync.getWebAppUrl ? sheetsSync.getWebAppUrl() : null;
-    if (!url) return;
-    fetch(url + "?action=getNotifications&driver=" + encodeURIComponent(driver))
-      .then(function(r) { return r.json(); })
-      .then(function(data) {
-        if (data && data.notifications) {
-          notifications = data.notifications;
-          saveLocal(driver, notifications);
-          updateBadge(notifications);
-        }
-      }).catch(function() {});
-  }
-
-  return { toggle: toggle, fetchAndRender: fetchAndRender, markRead: markRead, startPolling: startPolling, stopPolling: stopPolling, updateBadge: updateBadge };
-})();
-
-function toggleNotifPanel() { notifModule.toggle(); }
 
 
   function clockOut() {
   logActivity("Logout", (window.currentUser || "unknown") + " logged out");
     gpsTracker.stop();
-    notifModule.stopPolling();
     document.getElementById('pin-overlay').classList.remove('hidden');
     document.body.classList.add('locked');
     pinEntry = '';
@@ -3476,6 +3057,6 @@ if ('serviceWorker' in navigator) {
   });
 }
 </script>
-<div class="version-badge" id="versionBadge">v2.4.5</div>
+<div class="version-badge" id="versionBadge">v2.5.0</div>
 </body>
 </html>
