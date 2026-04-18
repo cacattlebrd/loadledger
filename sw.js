@@ -1,3 +1,5 @@
+// APP_VERSION bump forces browsers to install this SW (byte change required for update detection)
+const APP_VERSION = '2.4.6';
 const CACHE_VERSION = 'v' + Date.now();
 const CACHE_NAME = 'loadledger-' + CACHE_VERSION;
 const EXTERNAL_LIBS = [
