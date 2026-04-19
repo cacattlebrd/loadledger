@@ -2867,7 +2867,7 @@ const sheetsSync = (() => {
         await fetch(WEBAPP_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'text/plain' },
-          body: JSON.stringify({ ...item.data, type: item.action, action: item.action }),
+          body: JSON.stringify({ data: item.data, type: item.action, action: item.action }),
           mode: 'no-cors'
         });
         markSynced(item.data.timestamp);
