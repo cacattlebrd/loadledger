@@ -745,6 +745,7 @@ document.addEventListener('DOMContentLoaded', initPinSelect);
       <span class="sys-toggle">+</span>
     </div>
     <div class="sys-update-body" style="display:none">
+      <div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">Apr 18</div><div class="sys-update-text">Backend sync FIXED - activity events (loads, fuel, DVIR, logins, admin actions) now correctly write to Master Sheet and sync across all devices. CORS + payload shape bugs resolved.</div></div>
       <div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">Apr 18</div><div class="sys-update-text">App simplified - Help Desk and Notifications removed (unused). History tab rebuilt as admin activity audit with 7-day default view, filters, and per-driver summary.</div></div>
       <div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">Apr 4</div><div class="sys-update-text">New app icon - BRD monogram replaces bull emoji. To refresh: remove old Home Screen shortcut, reinstall via Chrome menu &gt; Add to Home Screen</div></div><div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">Apr 4</div><div class="sys-update-text">PWA install fixed - Add to Home Screen now works on custom domain (loadledger.cacattlebrd.com)</div></div><div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">Apr 3</div><div class="sys-update-text">Config auto-sync on page load - admin changes now propagate to all devices automatically</div></div>
       <div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">Apr 3</div><div class="sys-update-text">Sync Config button now shows confirmation feedback</div></div>
@@ -1544,8 +1545,8 @@ function logActivity(action, details) {
     if(url) {
       fetch(url, {
         method: "POST",
-        headers: {"Content-Type":"application/json"},
-        body: JSON.stringify({type:"activity", payload: entry})
+        headers: {"Content-Type":"text/plain"},
+        body: JSON.stringify(Object.assign({type:"activity"}, entry))
       }).catch(function(){});
     }
   } catch(e) {}
@@ -3057,6 +3058,6 @@ if ('serviceWorker' in navigator) {
   });
 }
 </script>
-<div class="version-badge" id="versionBadge">v2.5.0</div>
+<div class="version-badge" id="versionBadge">v2.5.1</div>
 </body>
 </html>
