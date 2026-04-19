@@ -1412,7 +1412,9 @@ function submitLoad() {
   const products = getSelectedProducts();
 
   let source = '';
-  if(direction === 'in') {
+  // FIX: read direction from DOM (btn-in has 'active-in' class when Inbound selected)
+  const _isInboundForSource = document.getElementById('btn-in').classList.contains('active-in');
+  if(_isInboundForSource) {
     source = document.getElementById('loadSupplier').value === 'Other' ?
       document.getElementById('loadSupplierOther').value : document.getElementById('loadSupplier').value;
   } else {
@@ -1442,11 +1444,13 @@ function submitLoad() {
   const mileEnd = parseFloat(document.getElementById('loadMileEnd').value) || 0;
   const totalMiles = mileEnd > mileStart ? mileEnd - mileStart : 0;
 
+  // FIX: read direction from DOM at submit time, not closure-scoped var
+  const _isInboundAtSubmit = document.getElementById('btn-in').classList.contains('active-in');
   const entry = {
-    type: direction === 'in' ? 'Inbound' : 'Outbound',
+    type: _isInboundAtSubmit ? 'Inbound' : 'Outbound',
     date, driver, source,
     products: products.join(', '),
-    commodity: direction === 'out' ? document.getElementById('loadCommodity').value : '',
+    commodity: _isInboundAtSubmit ? '' : document.getElementById('loadCommodity').value,
     truck, trailer,
     ticket: document.getElementById('loadTicket').value,
     gross, tare, net: gross - tare, tons: ((gross - tare) / 2000).toFixed(2),
