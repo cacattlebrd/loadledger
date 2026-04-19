@@ -746,6 +746,7 @@ document.addEventListener('DOMContentLoaded', initPinSelect);
       <span class="sys-toggle">+</span>
     </div>
     <div class="sys-update-body" style="display:none">
+      <div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">Apr 18</div><div class="sys-update-text">MAJOR FIX - Master Workbook sync restored. Loads, fuel, DVIR submissions now correctly write to Inbound Log / Outbound Log / Fuel &amp; DEF / DVIR tabs. App was pointing at an old webhook deployment (V2) instead of the current V7. Also sends correct type field backend expects.</div></div>
       <div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">Apr 18</div><div class="sys-update-text">Driver identity fixed - activity log now uses proper driver name (John Hightower) instead of lowercase id (john). No more phantom drivers in History summary.</div></div>
       <div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">Apr 18</div><div class="sys-update-text">Backend sync FIXED - activity events (loads, fuel, DVIR, logins, admin actions) now correctly write to Master Sheet and sync across all devices. CORS + payload shape bugs resolved.</div></div>
       <div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">Apr 18</div><div class="sys-update-text">App simplified - Help Desk and Notifications removed (unused). History tab rebuilt as admin activity audit with 7-day default view, filters, and per-driver summary.</div></div>
@@ -2809,7 +2810,7 @@ const configSync = (() => {
 
 // ===== SHEETS SYNC MODULE =====
 const sheetsSync = (() => {
-  const WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbwn7pA48Q-hh2kTYwnnXsHps1CCwkYLclVpMR2qrPijzHCqGATArHeq4FOlJJPlQwOa/exec';
+  const WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbwjDeDTHZ5ca97RVZL-jizNgs6fXgjij8y8McPyieqVeadAkdr0FW5E_iQSRa7W2nKjkw/exec';
   const QUEUE_KEY = 'll_sync_queue';
 
   function getQueue() {
@@ -2822,7 +2823,8 @@ const sheetsSync = (() => {
   }
 
   async function send(action, data) {
-    const payload = { ...data, action };
+    // Backend WebApp.gs dispatches on data.type (not data.action). Include both for safety.
+    const payload = { ...data, type: action, action };
     try {
       const resp = await fetch(WEBAPP_URL, {
         method: 'POST',
@@ -2865,7 +2867,7 @@ const sheetsSync = (() => {
         await fetch(WEBAPP_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'text/plain' },
-          body: JSON.stringify({ ...item.data, action: item.action }),
+          body: JSON.stringify({ ...item.data, type: item.action, action: item.action }),
           mode: 'no-cors'
         });
         markSynced(item.data.timestamp);
@@ -3060,6 +3062,6 @@ if ('serviceWorker' in navigator) {
   });
 }
 </script>
-<div class="version-badge" id="versionBadge">v2.5.2</div>
+<div class="version-badge" id="versionBadge">v2.5.3</div>
 </body>
 </html>
