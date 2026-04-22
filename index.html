@@ -63,8 +63,9 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:#60a5fa;box-sh
 .history-item .h-tons{font-size:18px;font-weight:800;color:#fbbf24}
 .export-bar{display:flex;gap:8px;margin-bottom:12px}
 .export-bar button{flex:1;padding:10px;background:#334155;border:none;border-radius:8px;color:#e2e8f0;font-size:12px;font-weight:600;cursor:pointer}
-.toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#22c55e;color:#fff;padding:12px 24px;border-radius:8px;font-weight:600;z-index:200;display:none;animation:fadeup .3s ease}
-@keyframes fadeup{from{opacity:0;transform:translateX(-50%) translateY(10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+.toast{position:fixed;top:72px;left:50%;transform:translateX(-50%);background:#22c55e;color:#fff;padding:14px 24px;border-radius:8px;font-weight:600;font-size:15px;z-index:9999;display:none;animation:fadeup .3s ease;box-shadow:0 6px 20px rgba(0,0,0,0.4);max-width:92vw;text-align:center}
+.toast.toast-error{background:#dc2626}
+@keyframes fadeup{from{opacity:0;transform:translateX(-50%) translateY(-10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
 .hidden{display:none!important}
 .conditional-field{margin-top:8px}
 /* Validation error highlight */
@@ -596,7 +597,7 @@ document.addEventListener('DOMContentLoaded', initPinSelect);
     </div>
   </label>
 
-  <button class="btn-submit green" onclick="submitLoad()">SUBMIT LOAD</button>
+  <button type="button" class="btn-submit green" onclick="submitLoad()">SUBMIT LOAD</button>
 </div>
 
 <!-- ===== FUEL/DEF TAB ===== -->
@@ -650,7 +651,7 @@ document.addEventListener('DOMContentLoaded', initPinSelect);
     <label>Notes</label>
     <textarea id="fuelNotes" placeholder="Optional..."></textarea>
   </div>
-  <button class="btn-submit amber" onclick="submitFuel()">SUBMIT FUEL LOG</button>
+  <button type="button" class="btn-submit amber" onclick="submitFuel()">SUBMIT FUEL LOG</button>
 </div>
 
 <!-- ===== DVIR TAB ===== -->
@@ -699,7 +700,7 @@ document.addEventListener('DOMContentLoaded', initPinSelect);
     <label>Defects / Notes</label>
     <textarea id="dvirNotes" placeholder="Describe any defects found..."></textarea>
   </div>
-  <button class="btn-submit blue" onclick="submitDvir()">SUBMIT DVIR</button>
+  <button type="button" class="btn-submit blue" onclick="submitDvir()">SUBMIT DVIR</button>
 </div>
 
 <!-- ===== HISTORY TAB ===== -->
@@ -746,6 +747,7 @@ document.addEventListener('DOMContentLoaded', initPinSelect);
       <span class="sys-toggle">+</span>
     </div>
     <div class="sys-update-body" style="display:none">
+      <div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">Apr 22</div><div class="sys-update-text">v2.5.4 - Submit button reliability fix. If you ever tap SUBMIT and nothing seems to happen, check the top of the screen - you will see either a green confirmation or a red error explaining what is wrong. No more silent failures. Thanks Juan for the heads up.</div></div>
       <div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">Apr 18</div><div class="sys-update-text">MAJOR FIX - Master Workbook sync restored. Loads, fuel, DVIR submissions now correctly write to Inbound Log / Outbound Log / Fuel &amp; DEF / DVIR tabs. App was pointing at an old webhook deployment (V2) instead of the current V7. Also sends correct type field backend expects.</div></div>
       <div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">Apr 18</div><div class="sys-update-text">Driver identity fixed - activity log now uses proper driver name (John Hightower) instead of lowercase id (john). No more phantom drivers in History summary.</div></div>
       <div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">Apr 18</div><div class="sys-update-text">Backend sync FIXED - activity events (loads, fuel, DVIR, logins, admin actions) now correctly write to Master Sheet and sync across all devices. CORS + payload shape bugs resolved.</div></div>
@@ -1366,7 +1368,7 @@ function validateLoadForm() {
 
       if (errors.length > 0) {
         errors.forEach(e => markError(e));
-        showToast('Missing: ' + errors.join(', '));
+        showToast('Missing: ' + errors.join(', '), true);
         return false;
       }
       return true;
@@ -1402,6 +1404,7 @@ function validateLoadForm() {
 
 // ===== SUBMIT LOAD =====
 function submitLoad() {
+  try {
   if(!validateLoadForm()) return;
 
   const driver = document.getElementById('loadDriver').value === 'Other' ?
@@ -1483,10 +1486,15 @@ function submitLoad() {
   clearPhoto();
   if(document.getElementById('overrideValidation')) document.getElementById('overrideValidation').checked = false;
   toggleOverrideUI();
+  } catch(err) {
+    console.error('[submitLoad]', err);
+    showToast('Submit error: ' + (err && err.message ? err.message : String(err)), true);
+  }
 }
 
 // ===== SUBMIT FUEL =====
 function submitFuel() {
+  try {
   const entry = {
     date: document.getElementById('fuelDate').value,
     driver: document.getElementById('fuelDriver').value,
@@ -1505,11 +1513,16 @@ function submitFuel() {
   sheetsSync.send('fuel', entry);
   logActivity("Fuel/DEF Submitted", (entry.driver||"?") + " - " + (entry.fuelGal||"0") + " gal fuel, " + (entry.defGal||"0") + " gal DEF");
   showToast('Fuel log saved');
-  ['fuelGal','defGal','fuelCost','defCost','fuelOdo','fuelStation','fuelNotes'].forEach(id => document.getElementById(id).value = '');
+  ['fuelGal','defGal','fuelCost','defCost','fuelOdo','fuelStation','fuelNotes'].forEach(id => { var _el = document.getElementById(id); if(_el) _el.value = ''; });
+  } catch(err) {
+    console.error('[submitFuel]', err);
+    showToast('Submit error: ' + (err && err.message ? err.message : String(err)), true);
+  }
 }
 
 // ===== SUBMIT DVIR =====
 function submitDvir() {
+  try {
   const defects = dvirItems.filter(i => dvirState[i] === 'def');
   const entry = {
     date: document.getElementById('dvirDate').value,
@@ -1532,6 +1545,10 @@ function submitDvir() {
   document.getElementById('dvirNotes').value = '';
   dvirItems.forEach(i => dvirState[i] = 'ok');
   buildDvirChecklist();
+  } catch(err) {
+    console.error('[submitDvir]', err);
+    showToast('Submit error: ' + (err && err.message ? err.message : String(err)), true);
+  }
 }
 
 // ===== HISTORY =====
@@ -2705,10 +2722,14 @@ function emailExport() {
 }
 
 // ===== TOAST =====
-function showToast(msg) {
+function showToast(msg, isError) {
   const t = document.getElementById('toast');
-  t.textContent = msg; t.style.display = 'block';
-  setTimeout(() => t.style.display = 'none', 2500);
+  if (!t) { try { alert(msg); } catch(e) {} return; }
+  t.textContent = msg;
+  t.classList.toggle('toast-error', !!isError);
+  t.style.display = 'block';
+  if (t._hideTimer) clearTimeout(t._hideTimer);
+  t._hideTimer = setTimeout(function(){ t.style.display = 'none'; t.classList.remove('toast-error'); }, isError ? 6000 : 4500);
 }
 
 
@@ -3066,6 +3087,6 @@ if ('serviceWorker' in navigator) {
   });
 }
 </script>
-<div class="version-badge" id="versionBadge">v2.5.3</div>
+<div class="version-badge" id="versionBadge">v2.5.4</div>
 </body>
 </html>

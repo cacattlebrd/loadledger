@@ -1,7 +1,7 @@
 // APP_VERSION bump forces browsers to install this SW (byte change required for update detection)
-const APP_VERSION = 'v2.5.4-20260418-sat';
+const APP_VERSION = 'v2.5.4-20260422-wed';
 const CACHE_VERSION = 'v' + Date.now();
-const CACHE_NAME = 'loadledger-v2.5.4-20260418-sat' + CACHE_VERSION;
+const CACHE_NAME = 'loadledger-v2.5.4-20260422-wed' + CACHE_VERSION;
 const EXTERNAL_LIBS = [
   'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'
 ];
