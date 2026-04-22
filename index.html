@@ -747,6 +747,7 @@ document.addEventListener('DOMContentLoaded', initPinSelect);
       <span class="sys-toggle">+</span>
     </div>
     <div class="sys-update-body" style="display:none">
+      <div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">Apr 22</div><div class="sys-update-text">v2.5.5 - Storage cleanup fix. The app now automatically clears out ticket photos from the phone after they have been saved to the Sheet, so your phone storage will not fill up over time. If it ever does fill up, the app will trim old records and keep working instead of failing.</div></div>
       <div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">Apr 22</div><div class="sys-update-text">v2.5.4 - Submit button reliability fix. If you ever tap SUBMIT and nothing seems to happen, check the top of the screen - you will see either a green confirmation or a red error explaining what is wrong. No more silent failures. Thanks Juan for the heads up.</div></div>
       <div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">Apr 18</div><div class="sys-update-text">MAJOR FIX - Master Workbook sync restored. Loads, fuel, DVIR submissions now correctly write to Inbound Log / Outbound Log / Fuel &amp; DEF / DVIR tabs. App was pointing at an old webhook deployment (V2) instead of the current V7. Also sends correct type field backend expects.</div></div>
       <div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">Apr 18</div><div class="sys-update-text">Driver identity fixed - activity log now uses proper driver name (John Hightower) instead of lowercase id (john). No more phantom drivers in History summary.</div></div>
@@ -1282,7 +1283,97 @@ function setDvirType(type) {
 
 // ===== STORAGE =====
 function getStore(key) { try { return JSON.parse(localStorage.getItem('ll_'+key)) || []; } catch(e) { return []; } }
-function addStore(key, obj) { const arr = getStore(key); arr.unshift(obj); localStorage.setItem('ll_'+key, JSON.stringify(arr)); }
+
+// v2.5.5: quota-aware storage writer. Before v2.5.5, addStore used raw setItem
+// which threw QuotaExceededError once base64 ticket photos accumulated past the
+// browser's ~5-10MB localStorage cap (Juan Android, 2026-04-22). This version:
+//   1. Tries the normal write first.
+//   2. On QuotaExceededError: for 'loads', first strips photoData from already-
+//      synced entries (the ticket photo has already been uploaded to the Sheet
+//      via sheetsSync, so the local base64 copy is pure bloat). Retries.
+//   3. Still full? Drops the oldest synced entries entirely (keeps unsynced).
+//   4. For other keys ('fuel', 'dvir', 'activity'): caps at 200 newest entries.
+function _isQuotaError(e) {
+  return e && (e.name === 'QuotaExceededError' || e.code === 22 || e.code === 1014 || /quota|exceeded/i.test(e.message || ''));
+}
+function addStore(key, obj) {
+  const arr = getStore(key);
+  arr.unshift(obj);
+  try {
+    localStorage.setItem('ll_'+key, JSON.stringify(arr));
+    return true;
+  } catch(e) {
+    if (!_isQuotaError(e)) throw e;
+    console.warn('[Storage] Quota hit on ll_' + key + ', attempting recovery...');
+    if (key === 'loads') {
+      const synced = (() => { try { return JSON.parse(localStorage.getItem('ll_sheets_synced') || '[]'); } catch(_){ return []; } })();
+      // Pass 1: strip photoData from synced loads
+      let stripped = 0;
+      for (const item of arr) {
+        if (item && item.timestamp && synced.includes(item.timestamp) && item.photoData) {
+          item.photoData = '';
+          stripped++;
+        }
+      }
+      if (stripped > 0) {
+        try {
+          localStorage.setItem('ll_loads', JSON.stringify(arr));
+          console.log('[Storage] Recovered: stripped ' + stripped + ' synced photos');
+          return true;
+        } catch(_) {}
+      }
+      // Pass 2: drop all synced entries entirely, keep unsynced
+      const kept = arr.filter(item => !item || !item.timestamp || !synced.includes(item.timestamp));
+      try {
+        localStorage.setItem('ll_loads', JSON.stringify(kept));
+        console.log('[Storage] Recovered: dropped ' + (arr.length - kept.length) + ' synced loads');
+        return true;
+      } catch(_) {}
+      // Pass 3: keep only the newest 50 unsynced
+      const cap = kept.slice(0, 50);
+      try {
+        localStorage.setItem('ll_loads', JSON.stringify(cap));
+        showToast('Storage full - trimmed old records. ' + cap.length + ' kept.', true);
+        return true;
+      } catch(err3) {
+        showToast('Storage full. Clear site data in Chrome settings.', true);
+        throw err3;
+      }
+    }
+    // Non-loads: just cap to 200 newest
+    const cap = arr.slice(0, 200);
+    try {
+      localStorage.setItem('ll_'+key, JSON.stringify(cap));
+      return true;
+    } catch(err2) {
+      showToast('Storage full. Clear site data in Chrome settings.', true);
+      throw err2;
+    }
+  }
+}
+
+// v2.5.5: run once per install. Strips photoData from any already-synced loads
+// that were stored before the post-sync strip logic existed. Reclaims 80-90%
+// of localStorage on existing installs immediately.
+(function v255StartupCleanup(){
+  try {
+    if (localStorage.getItem('ll_v255_migrated') === '1') return;
+    const synced = JSON.parse(localStorage.getItem('ll_sheets_synced') || '[]');
+    const loads = JSON.parse(localStorage.getItem('ll_loads') || '[]');
+    let stripped = 0;
+    for (const l of loads) {
+      if (l && l.timestamp && synced.includes(l.timestamp) && l.photoData) {
+        l.photoData = '';
+        stripped++;
+      }
+    }
+    if (stripped > 0) localStorage.setItem('ll_loads', JSON.stringify(loads));
+    localStorage.setItem('ll_v255_migrated', '1');
+    if (stripped > 0) console.log('[v2.5.5 migration] Stripped ' + stripped + ' synced photos from local cache');
+  } catch(e) {
+    console.warn('[v2.5.5 migration] failed:', e);
+  }
+})();
 
 // ===== ADMIN OVERRIDE =====
 function toggleOverrideUI() {
@@ -2873,8 +2964,23 @@ const sheetsSync = (() => {
     const synced = JSON.parse(localStorage.getItem('ll_sheets_synced') || '[]');
     if (!synced.includes(timestamp)) {
       synced.push(timestamp);
-      localStorage.setItem('ll_sheets_synced', JSON.stringify(synced));
+      try { localStorage.setItem('ll_sheets_synced', JSON.stringify(synced)); } catch(_){}
     }
+    // v2.5.5: strip the local base64 photo from the synced load. The Sheet now
+    // has it (posted via the Apps Script webhook). Keeping a second copy in
+    // localStorage on the driver's phone is what filled up Juan's storage and
+    // caused the "exceeded the quota" submit error.
+    try {
+      const loads = JSON.parse(localStorage.getItem('ll_loads') || '[]');
+      let changed = false;
+      for (const l of loads) {
+        if (l && l.timestamp === timestamp && l.photoData) {
+          l.photoData = '';
+          changed = true;
+        }
+      }
+      if (changed) localStorage.setItem('ll_loads', JSON.stringify(loads));
+    } catch(_){}
   }
 
   function isSynced(timestamp) {
@@ -3087,6 +3193,6 @@ if ('serviceWorker' in navigator) {
   });
 }
 </script>
-<div class="version-badge" id="versionBadge">v2.5.4</div>
+<div class="version-badge" id="versionBadge">v2.5.5</div>
 </body>
 </html>
