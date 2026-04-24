@@ -404,7 +404,7 @@ function setConfig(key, arr) {
   if (window.isAdmin && typeof configSync !== 'undefined') {
     configSync.push(key, arr).then(function() {
       var badge = document.getElementById('versionBadge');
-      if (badge) { badge.textContent = 'v2.4.5 \u2714 synced'; setTimeout(function(){ badge.textContent = 'v2.4.5'; }, 2000); }
+      if (badge) { badge.textContent = 'v2.5.6 \u2714 synced'; setTimeout(function(){ badge.textContent = 'v2.5.6'; }, 2000); }
     });
   }
 }
@@ -747,6 +747,7 @@ document.addEventListener('DOMContentLoaded', initPinSelect);
       <span class="sys-toggle">+</span>
     </div>
     <div class="sys-update-body" style="display:none">
+      <div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">Apr 24</div><div class="sys-update-text">v2.5.6 - Photo size fix. Ticket photos are now automatically resized and compressed on your phone before being saved, so one big photo can no longer fill up the app's storage. This fixes the "quota exceeded" error some drivers saw when submitting their first load on a fresh phone. Photos still look clear - just smaller files.</div></div>
       <div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">Apr 22</div><div class="sys-update-text">v2.5.5 - Storage cleanup fix. The app now automatically clears out ticket photos from the phone after they have been saved to the Sheet, so your phone storage will not fill up over time. If it ever does fill up, the app will trim old records and keep working instead of failing.</div></div>
       <div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">Apr 22</div><div class="sys-update-text">v2.5.4 - Submit button reliability fix. If you ever tap SUBMIT and nothing seems to happen, check the top of the screen - you will see either a green confirmation or a red error explaining what is wrong. No more silent failures. Thanks Juan for the heads up.</div></div>
       <div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">Apr 18</div><div class="sys-update-text">MAJOR FIX - Master Workbook sync restored. Loads, fuel, DVIR submissions now correctly write to Inbound Log / Outbound Log / Fuel &amp; DEF / DVIR tabs. App was pointing at an old webhook deployment (V2) instead of the current V7. Also sends correct type field backend expects.</div></div>
@@ -1185,13 +1186,50 @@ function handlePhotoDrop(e) {
   const file = e.dataTransfer.files[0];
   if(file && file.type.startsWith('image/')) processPhoto(file);
 }
+// v2.5.6: Compress/resize photo BEFORE it hits localStorage. Root cause of the
+// iPhone v2.5.5 "quota exceeded" submit error (Chad, 2026-04-24): an iPhone
+// photo is 3-5MB of base64, which blows Safari iOS's 5MB localStorage cap on
+// the FIRST photo. The v2.5.5 recovery logic only helps AFTER a successful
+// write - it can't save you when the single new item doesn't fit.
+// Fix: resize to max 1400px on the long edge, re-encode as JPEG q=0.75.
+// Ticket photos only need to be legible. Typical result: 4MB -> 200-400KB.
 function processPhoto(file) {
   const reader = new FileReader();
-  reader.onload = function(e) {
-    ticketPhotoData = e.target.result;
-    document.getElementById('photoPreview').innerHTML =
-      '<img src="' + ticketPhotoData + '" alt="Ticket photo">' +
-      '<div class="upload-text" style="margin-top:8px">Tap to replace photo</div>';
+  reader.onload = function(ev) {
+    const img = new Image();
+    img.onload = function() {
+      try {
+        const MAX_DIM = 1400;
+        let w = img.naturalWidth || img.width;
+        let h = img.naturalHeight || img.height;
+        if (w > MAX_DIM || h > MAX_DIM) {
+          if (w >= h) { h = Math.round(h * (MAX_DIM / w)); w = MAX_DIM; }
+          else        { w = Math.round(w * (MAX_DIM / h)); h = MAX_DIM; }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, w, h);
+        ticketPhotoData = canvas.toDataURL('image/jpeg', 0.75);
+        const origKB = Math.round((ev.target.result.length * 3 / 4) / 1024);
+        const newKB  = Math.round((ticketPhotoData.length * 3 / 4) / 1024);
+        console.log('[Photo] compressed ' + origKB + 'KB -> ' + newKB + 'KB (' + w + 'x' + h + ')');
+      } catch(err) {
+        console.warn('[Photo] compression failed, using original:', err);
+        ticketPhotoData = ev.target.result;
+      }
+      document.getElementById('photoPreview').innerHTML =
+        '<img src="' + ticketPhotoData + '" alt="Ticket photo">' +
+        '<div class="upload-text" style="margin-top:8px">Tap to replace photo</div>';
+    };
+    img.onerror = function() {
+      console.warn('[Photo] image decode failed, using raw file data');
+      ticketPhotoData = ev.target.result;
+      document.getElementById('photoPreview').innerHTML =
+        '<img src="' + ticketPhotoData + '" alt="Ticket photo">' +
+        '<div class="upload-text" style="margin-top:8px">Tap to replace photo</div>';
+    };
+    img.src = ev.target.result;
   };
   reader.readAsDataURL(file);
 }
@@ -3193,6 +3231,6 @@ if ('serviceWorker' in navigator) {
   });
 }
 </script>
-<div class="version-badge" id="versionBadge">v2.5.5</div>
+<div class="version-badge" id="versionBadge">v2.5.6</div>
 </body>
 </html>
