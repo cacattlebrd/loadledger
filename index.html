@@ -404,7 +404,7 @@ function setConfig(key, arr) {
   if (window.isAdmin && typeof configSync !== 'undefined') {
     configSync.push(key, arr).then(function() {
       var badge = document.getElementById('versionBadge');
-      if (badge) { badge.textContent = 'v2.5.6 \u2714 synced'; setTimeout(function(){ badge.textContent = 'v2.5.6'; }, 2000); }
+      if (badge) { badge.textContent = 'v2.5.7 \u2714 synced'; setTimeout(function(){ badge.textContent = 'v2.5.7'; }, 2000); }
     });
   }
 }
@@ -747,6 +747,7 @@ document.addEventListener('DOMContentLoaded', initPinSelect);
       <span class="sys-toggle">+</span>
     </div>
     <div class="sys-update-body" style="display:none">
+      <div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">Apr 28</div><div class="sys-update-text">v2.5.7 - Permanent quota fix + auto-update. Photos now live in their own storage area so one big photo can never break the app. Compression hard-caps at 500KB - oversized photos get refused with a clear error. NEW: when we ship a fix, the app shows a banner at the top asking you to update. Tap UPDATE NOW and you're on the latest version. Thanks John for the catch.</div></div>
       <div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">Apr 24</div><div class="sys-update-text">v2.5.6 - Photo size fix. Ticket photos are now automatically resized and compressed on your phone before being saved, so one big photo can no longer fill up the app's storage. This fixes the "quota exceeded" error some drivers saw when submitting their first load on a fresh phone. Photos still look clear - just smaller files.</div></div>
       <div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">Apr 22</div><div class="sys-update-text">v2.5.5 - Storage cleanup fix. The app now automatically clears out ticket photos from the phone after they have been saved to the Sheet, so your phone storage will not fill up over time. If it ever does fill up, the app will trim old records and keep working instead of failing.</div></div>
       <div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">Apr 22</div><div class="sys-update-text">v2.5.4 - Submit button reliability fix. If you ever tap SUBMIT and nothing seems to happen, check the top of the screen - you will see either a green confirmation or a red error explaining what is wrong. No more silent failures. Thanks Juan for the heads up.</div></div>
@@ -1186,50 +1187,67 @@ function handlePhotoDrop(e) {
   const file = e.dataTransfer.files[0];
   if(file && file.type.startsWith('image/')) processPhoto(file);
 }
-// v2.5.6: Compress/resize photo BEFORE it hits localStorage. Root cause of the
-// iPhone v2.5.5 "quota exceeded" submit error (Chad, 2026-04-24): an iPhone
-// photo is 3-5MB of base64, which blows Safari iOS's 5MB localStorage cap on
-// the FIRST photo. The v2.5.5 recovery logic only helps AFTER a successful
-// write - it can't save you when the single new item doesn't fit.
-// Fix: resize to max 1400px on the long edge, re-encode as JPEG q=0.75.
-// Ticket photos only need to be legible. Typical result: 4MB -> 200-400KB.
+// v2.5.7: Hard-capped compression. v2.5.6 had a silent fallback to the raw 4MB
+// image if canvas.toDataURL threw - which caused John's 4/28 quota error on a
+// fresh phone. Now we re-compress harder if the first pass exceeds 500KB, and
+// refuse the photo entirely if even the harder passes are too big.
+const PHOTO_MAX_BYTES = 500 * 1024; // 500KB hard cap
+
+function _compressOnce(img, maxDim, quality) {
+  let w = img.naturalWidth || img.width;
+  let h = img.naturalHeight || img.height;
+  if (w > maxDim || h > maxDim) {
+    if (w >= h) { h = Math.round(h * (maxDim / w)); w = maxDim; }
+    else        { w = Math.round(w * (maxDim / h)); h = maxDim; }
+  }
+  const canvas = document.createElement('canvas');
+  canvas.width = w; canvas.height = h;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(img, 0, 0, w, h);
+  const dataUrl = canvas.toDataURL('image/jpeg', quality);
+  return { dataUrl: dataUrl, w: w, h: h, bytes: Math.round(dataUrl.length * 3 / 4) };
+}
+
 function processPhoto(file) {
   const reader = new FileReader();
   reader.onload = function(ev) {
     const img = new Image();
     img.onload = function() {
+      let result = null;
       try {
-        const MAX_DIM = 1400;
-        let w = img.naturalWidth || img.width;
-        let h = img.naturalHeight || img.height;
-        if (w > MAX_DIM || h > MAX_DIM) {
-          if (w >= h) { h = Math.round(h * (MAX_DIM / w)); w = MAX_DIM; }
-          else        { w = Math.round(w * (MAX_DIM / h)); h = MAX_DIM; }
+        result = _compressOnce(img, 1400, 0.75);
+        if (result.bytes > PHOTO_MAX_BYTES) result = _compressOnce(img, 1000, 0.5);
+        if (result.bytes > PHOTO_MAX_BYTES) result = _compressOnce(img, 800, 0.4);
+        if (result.bytes > PHOTO_MAX_BYTES) {
+          ticketPhotoData = null;
+          showToast('Photo too large (' + Math.round(result.bytes/1024) + 'KB). Please retake.', true);
+          clearPhoto();
+          return;
         }
-        const canvas = document.createElement('canvas');
-        canvas.width = w; canvas.height = h;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, w, h);
-        ticketPhotoData = canvas.toDataURL('image/jpeg', 0.75);
-        const origKB = Math.round((ev.target.result.length * 3 / 4) / 1024);
-        const newKB  = Math.round((ticketPhotoData.length * 3 / 4) / 1024);
-        console.log('[Photo] compressed ' + origKB + 'KB -> ' + newKB + 'KB (' + w + 'x' + h + ')');
-      } catch(err) {
-        console.warn('[Photo] compression failed, using original:', err);
-        ticketPhotoData = ev.target.result;
+        ticketPhotoData = result.dataUrl;
+        console.log('[Photo] compressed to ' + Math.round(result.bytes/1024) + 'KB (' + result.w + 'x' + result.h + ')');
+      } catch (err) {
+        console.warn('[Photo] compression failed:', err);
+        ticketPhotoData = null;
+        showToast('Photo processing failed. Please retake.', true);
+        clearPhoto();
+        return;
       }
       document.getElementById('photoPreview').innerHTML =
         '<img src="' + ticketPhotoData + '" alt="Ticket photo">' +
         '<div class="upload-text" style="margin-top:8px">Tap to replace photo</div>';
     };
     img.onerror = function() {
-      console.warn('[Photo] image decode failed, using raw file data');
-      ticketPhotoData = ev.target.result;
-      document.getElementById('photoPreview').innerHTML =
-        '<img src="' + ticketPhotoData + '" alt="Ticket photo">' +
-        '<div class="upload-text" style="margin-top:8px">Tap to replace photo</div>';
+      ticketPhotoData = null;
+      showToast('Could not read photo. Please retake.', true);
+      clearPhoto();
     };
     img.src = ev.target.result;
+  };
+  reader.onerror = function() {
+    ticketPhotoData = null;
+    showToast('Could not read photo. Please retake.', true);
+    clearPhoto();
   };
   reader.readAsDataURL(file);
 }
@@ -1413,6 +1431,117 @@ function addStore(key, obj) {
   }
 })();
 
+// ===== PHOTO STORE (v2.5.7) =====
+// Photos live in their own localStorage key, indexed by timestamp.
+// One bad photo can no longer poison the loads array.
+function _getPhotoStore() {
+  try { return JSON.parse(localStorage.getItem('ll_photos') || '{}'); } catch(_) { return {}; }
+}
+function _setPhotoStore(obj) {
+  try { localStorage.setItem('ll_photos', JSON.stringify(obj)); return true; }
+  catch(e) {
+    if (!_isQuotaError(e)) throw e;
+    const keys = Object.keys(obj).sort();
+    while (keys.length > 0) {
+      const oldest = keys.shift();
+      delete obj[oldest];
+      try { localStorage.setItem('ll_photos', JSON.stringify(obj)); return true; }
+      catch(_) {}
+    }
+    return false;
+  }
+}
+function savePhoto(timestamp, dataUrl) {
+  if (!dataUrl) return false;
+  const store = _getPhotoStore();
+  store[timestamp] = dataUrl;
+  return _setPhotoStore(store);
+}
+function getPhoto(timestamp) {
+  return _getPhotoStore()[timestamp] || null;
+}
+function deletePhoto(timestamp) {
+  const store = _getPhotoStore();
+  if (store[timestamp]) {
+    delete store[timestamp];
+    try { localStorage.setItem('ll_photos', JSON.stringify(store)); } catch(_) {}
+  }
+}
+
+// ===== AUTO-UPDATE (v2.5.7) =====
+const APP_VERSION = '2.5.7';
+const UPDATE_CHECK_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
+
+async function checkForUpdate() {
+  try {
+    const url = './version.json?_=' + Date.now();
+    const res = await fetch(url, { cache: 'no-cache' });
+    if (!res.ok) return;
+    const remote = await res.json();
+    if (!remote || !remote.version) return;
+    if (compareVersions(remote.version, APP_VERSION) > 0) {
+      showUpdateBanner(remote.version, remote.notes || '', !!remote.forceUpdate);
+    }
+  } catch (e) {
+    // Silent - offline / version.json missing is fine
+  }
+}
+
+function compareVersions(a, b) {
+  const pa = String(a).split('.').map(Number);
+  const pb = String(b).split('.').map(Number);
+  for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+    const da = pa[i] || 0, db = pb[i] || 0;
+    if (da > db) return 1;
+    if (da < db) return -1;
+  }
+  return 0;
+}
+
+function showUpdateBanner(newVersion, notes, isForced) {
+  if (document.getElementById('update-banner')) return;
+  const banner = document.createElement('div');
+  banner.id = 'update-banner';
+  banner.innerHTML =
+    '<div style="background:#0d1626;color:#00bfff;padding:14px 16px;display:flex;align-items:center;gap:10px;border-bottom:2px solid #00bfff;font-size:14px;font-weight:600;position:fixed;top:0;left:0;right:0;z-index:99999;box-shadow:0 4px 12px rgba(0,0,0,0.6);">' +
+      '<span style="font-size:20px;">&#11015;</span>' +
+      '<div style="flex:1;">' +
+        '<div>Update Required - v' + newVersion + '</div>' +
+        (notes ? '<div style="font-size:12px;font-weight:normal;color:#a0d8ef;margin-top:2px;">' + notes + '</div>' : '') +
+      '</div>' +
+      '<button id="update-now-btn" style="background:#00bfff;color:#0d1626;border:none;padding:10px 16px;border-radius:6px;font-weight:700;cursor:pointer;font-size:14px;">UPDATE NOW</button>' +
+    '</div>';
+  document.body.insertBefore(banner, document.body.firstChild);
+
+  // MANDATORY: full-screen overlay blocks the UI behind the banner
+  const overlay = document.createElement('div');
+  overlay.id = 'update-overlay';
+  overlay.style.cssText = 'position:fixed;top:60px;left:0;right:0;bottom:0;background:rgba(0,0,0,0.85);z-index:99998;display:flex;align-items:center;justify-content:center;color:#fff;text-align:center;padding:24px;font-size:16px;';
+  overlay.innerHTML =
+    '<div>' +
+      '<div style="font-size:48px;margin-bottom:12px;">&#128260;</div>' +
+      '<div style="font-size:18px;font-weight:700;margin-bottom:8px;">A new version is ready.</div>' +
+      '<div style="color:#a0d8ef;max-width:320px;margin:0 auto;">Tap UPDATE NOW at the top to install v' + newVersion + ' and continue.</div>' +
+    '</div>';
+  document.body.appendChild(overlay);
+
+  document.getElementById('update-now-btn').onclick = forceUpdate;
+}
+
+function forceUpdate() {
+  try { showToast('Updating...'); } catch(_) {}
+  setTimeout(function() {
+    const url = window.location.href.split('?')[0] + '?v=' + Date.now();
+    window.location.href = url;
+  }, 400);
+}
+
+checkForUpdate();
+setInterval(checkForUpdate, UPDATE_CHECK_INTERVAL_MS);
+document.addEventListener('visibilitychange', function() {
+  if (document.visibilityState === 'visible') checkForUpdate();
+});
+
 // ===== ADMIN OVERRIDE =====
 function toggleOverrideUI() {
   const on = document.getElementById('overrideValidation').checked;
@@ -1589,7 +1718,7 @@ function submitLoad() {
     timeStart, timeEnd, totalTime,
     mileStart, mileEnd, totalMiles,
     hasPhoto: !!ticketPhotoData,
-    photoData: ticketPhotoData || '',
+    photoData: '', // v2.5.7: photo lives in ll_photos store, not in load record
     notes: document.getElementById('loadNotes').value,
     adminOverride: window.isAdmin && document.getElementById('overrideValidation').checked,
     timestamp: new Date().toISOString(),
@@ -1599,8 +1728,11 @@ function submitLoad() {
       gpsTimestamp: gpsTracker.getPosition() ? gpsTracker.getPosition().timestamp : null
   };
 
+  // v2.5.7: photo goes to its own store; sheetsSync gets a copy via syncEntry
+  if (ticketPhotoData) savePhoto(entry.timestamp, ticketPhotoData);
   addStore('loads', entry);
-  sheetsSync.send('load', entry);
+  const syncEntry = Object.assign({}, entry, { photoData: ticketPhotoData || '' });
+  sheetsSync.send('load', syncEntry);
   logActivity("Load Submitted", (entry.driver||"?") + " - " + (entry.type||"?") + " - " + (entry.tons||"?") + " tons");
   showToast(entry.type + ' load saved - ' + entry.tons + ' tons');
   clearFieldErrors();
@@ -3019,6 +3151,8 @@ const sheetsSync = (() => {
       }
       if (changed) localStorage.setItem('ll_loads', JSON.stringify(loads));
     } catch(_){}
+    // v2.5.7: also drop from the photo store once synced
+    try { deletePhoto(timestamp); } catch(_){}
   }
 
   function isSynced(timestamp) {
@@ -3231,6 +3365,6 @@ if ('serviceWorker' in navigator) {
   });
 }
 </script>
-<div class="version-badge" id="versionBadge">v2.5.6</div>
+<div class="version-badge" id="versionBadge">v2.5.7</div>
 </body>
 </html>
