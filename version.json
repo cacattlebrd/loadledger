@@ -1,0 +1,5 @@
+{
+    "version": "2.5.7",
+    "notes": "Quota error fix + auto-update banner. Photos no longer fill up phone storage.",
+    "forceUpdate": false
+}
