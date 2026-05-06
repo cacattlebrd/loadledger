@@ -1,5 +1,5 @@
 {
-  "version": "2.5.12",
-  "notes": "Internal version sync fix. Clears the stuck Update Required banner. After this update you should land on the load form normally.",
+  "version": "2.5.13",
+  "notes": "Load submits now push directly to the BRD Load Cost Tracker workbook. No more waiting for a scheduled pull — your numbers update within seconds of every driver submit.",
   "forceUpdate": false
 }
