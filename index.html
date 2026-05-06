@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<!-- v2.5.11: self-heal — kill any leftover service worker and caches every page load.
+<!-- v2.5.12: self-heal (APP_VERSION sync fix) — kill any leftover service worker and caches every page load.
      This runs BEFORE the body so it nukes the broken SW from earlier versions
      before anything else happens. After this ships, no driver ever has to
      hard-refresh again. -->
@@ -298,7 +298,7 @@ body.locked > *:not(#pin-overlay):not(.toast){display:none!important}
 <div id="pin-overlay">
   <h1>&#9878; LOADLEDGER</h1>
   <div class="pin-subtitle">CA Cattle Co.  -  Bakery Recycling Division</div>
-  <div class="pin-version" id="pinVersion">v2.5.11</div>
+  <div class="pin-version" id="pinVersion">v2.5.12</div>
   <select id="pin-user-select">
     <option value="">Select your name...</option>
   </select>
@@ -427,7 +427,7 @@ function setConfig(key, arr) {
   if (window.isAdmin && typeof configSync !== 'undefined') {
     configSync.push(key, arr).then(function() {
       var badge = document.getElementById('versionBadge');
-      var hv = document.getElementById('headerVersion'); var pv = document.getElementById('pinVersion'); if (hv) { hv.textContent = 'v2.5.8 \u2714 synced'; setTimeout(function(){ hv.textContent = 'v2.5.8'; }, 2000); } if (pv) { pv.textContent = 'v2.5.8 \u2714 synced'; setTimeout(function(){ pv.textContent = 'v2.5.8'; }, 2000); } if (badge) { badge.textContent = 'v2.5.8'; }
+      var hv = document.getElementById('headerVersion'); var pv = document.getElementById('pinVersion'); if (hv) { hv.textContent = 'v2.5.12 \u2714 synced'; setTimeout(function(){ hv.textContent = 'v2.5.12'; }, 2000); } if (pv) { pv.textContent = 'v2.5.12 \u2714 synced'; setTimeout(function(){ pv.textContent = 'v2.5.12'; }, 2000); } if (badge) { badge.textContent = 'v2.5.12'; }
     });
   }
 }
@@ -451,7 +451,7 @@ document.addEventListener('DOMContentLoaded', initPinSelect);
 <div class="header">
   <h1>LOADLEDGER</h1>
   <div class="sub">CA Cattle Co. - Bakery Recycling Division</div>
-  <div class="header-version" id="headerVersion">v2.5.11</div>
+  <div class="header-version" id="headerVersion">v2.5.12</div>
     <div class="header-controls">
       <span id="gps-indicator" class="gps-indicator gps-off">GPS: OFF</span>
       <button class="clock-out-btn" onclick="clockOut()">Log Out</button>
@@ -1494,7 +1494,7 @@ function deletePhoto(timestamp) {
 }
 
 // ===== AUTO-UPDATE (v2.5.7) =====
-const APP_VERSION = '2.5.8';
+const APP_VERSION = '2.5.12';
 const UPDATE_CHECK_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
 
 async function checkForUpdate() {
