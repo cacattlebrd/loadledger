@@ -278,7 +278,7 @@ body.locked > *:not(#pin-overlay):not(.toast){display:none!important}
 <div id="pin-overlay">
   <h1>&#9878; LOADLEDGER</h1>
   <div class="pin-subtitle">CA Cattle Co.  -  Bakery Recycling Division</div>
-  <div class="pin-version" id="pinVersion">v2.5.8</div>
+  <div class="pin-version" id="pinVersion">v2.5.9</div>
   <select id="pin-user-select">
     <option value="">Select your name...</option>
   </select>
@@ -431,7 +431,7 @@ document.addEventListener('DOMContentLoaded', initPinSelect);
 <div class="header">
   <h1>LOADLEDGER</h1>
   <div class="sub">CA Cattle Co. - Bakery Recycling Division</div>
-  <div class="header-version" id="headerVersion">v2.5.8</div>
+  <div class="header-version" id="headerVersion">v2.5.9</div>
     <div class="header-controls">
       <span id="gps-indicator" class="gps-indicator gps-off">GPS: OFF</span>
       <button class="clock-out-btn" onclick="clockOut()">Log Out</button>
@@ -1535,10 +1535,42 @@ function showUpdateBanner(newVersion, notes, isForced) {
 
 function forceUpdate() {
   try { showToast('Updating...'); } catch(_) {}
-  setTimeout(function() {
-    const url = window.location.href.split('?')[0] + '?v=' + Date.now();
-    window.location.href = url;
-  }, 400);
+  // v2.5.9: real update — kill caches, kill service worker, then hard reload.
+  Promise.resolve()
+    .then(function() {
+      // 1. Tell the waiting service worker to skip waiting (if there is one)
+      if ('serviceWorker' in navigator) {
+        return navigator.serviceWorker.getRegistrations().then(function(regs) {
+          var promises = [];
+          regs.forEach(function(reg) {
+            if (reg.waiting) {
+              try { reg.waiting.postMessage({ type: 'SKIP_WAITING' }); } catch(_) {}
+            }
+            // Also unregister so the next page load reinstalls fresh
+            promises.push(reg.unregister().catch(function(){}));
+          });
+          return Promise.all(promises);
+        }).catch(function(){});
+      }
+    })
+    .then(function() {
+      // 2. Nuke ALL caches
+      if (window.caches && caches.keys) {
+        return caches.keys().then(function(keys) {
+          return Promise.all(keys.map(function(k) { return caches.delete(k); }));
+        }).catch(function(){});
+      }
+    })
+    .then(function() {
+      // 3. Hard reload with cache-bust
+      var url = window.location.href.split('?')[0] + '?v=' + Date.now();
+      window.location.replace(url);
+    })
+    .catch(function(err) {
+      // Fallback: just reload
+      try { showToast('Update fallback'); } catch(_) {}
+      window.location.reload();
+    });
 }
 
 checkForUpdate();
@@ -3370,6 +3402,6 @@ if ('serviceWorker' in navigator) {
   });
 }
 </script>
-<div class="version-badge" id="versionBadge">v2.5.8</div>
+<div class="version-badge" id="versionBadge">v2.5.9</div>
 </body>
 </html>
