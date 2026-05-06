@@ -1,6 +1,26 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<!-- v2.5.11: self-heal — kill any leftover service worker and caches every page load.
+     This runs BEFORE the body so it nukes the broken SW from earlier versions
+     before anything else happens. After this ships, no driver ever has to
+     hard-refresh again. -->
+<script>
+(function() {
+  try {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(function(regs) {
+        regs.forEach(function(reg) { reg.unregister().catch(function(){}); });
+      }).catch(function(){});
+    }
+    if (window.caches && caches.keys) {
+      caches.keys().then(function(keys) {
+        keys.forEach(function(k) { caches.delete(k).catch(function(){}); });
+      }).catch(function(){});
+    }
+  } catch(e) {}
+})();
+</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -278,7 +298,7 @@ body.locked > *:not(#pin-overlay):not(.toast){display:none!important}
 <div id="pin-overlay">
   <h1>&#9878; LOADLEDGER</h1>
   <div class="pin-subtitle">CA Cattle Co.  -  Bakery Recycling Division</div>
-  <div class="pin-version" id="pinVersion">v2.5.9</div>
+  <div class="pin-version" id="pinVersion">v2.5.11</div>
   <select id="pin-user-select">
     <option value="">Select your name...</option>
   </select>
@@ -431,7 +451,7 @@ document.addEventListener('DOMContentLoaded', initPinSelect);
 <div class="header">
   <h1>LOADLEDGER</h1>
   <div class="sub">CA Cattle Co. - Bakery Recycling Division</div>
-  <div class="header-version" id="headerVersion">v2.5.9</div>
+  <div class="header-version" id="headerVersion">v2.5.11</div>
     <div class="header-controls">
       <span id="gps-indicator" class="gps-indicator gps-off">GPS: OFF</span>
       <button class="clock-out-btn" onclick="clockOut()">Log Out</button>
@@ -3386,22 +3406,10 @@ const sheetsSync = (() => {
 </script>
 
 <script>
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/sw.js').then(reg => {
-    reg.addEventListener('updatefound', () => {
-      const newWorker = reg.installing;
-      newWorker.addEventListener('statechange', () => {
-        if (newWorker.state === 'activated') {
-          window.location.reload();
-        }
-      });
-    });
-  });
-  navigator.serviceWorker.addEventListener('controllerchange', () => {
-    window.location.reload();
-  });
-}
+// v2.5.11: SW disabled — self-heal block in <head> handles cleanup.
+// We rely on browser cache only (network-first via Cache-Control headers from GitHub Pages).
+// Drivers need signal to use the app; offline mode is OFF until SW strategy is rebuilt.
 </script>
-<div class="version-badge" id="versionBadge">v2.5.9</div>
+<div class="version-badge" id="versionBadge">v2.5.11</div>
 </body>
 </html>
