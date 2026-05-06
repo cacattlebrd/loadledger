@@ -1,5 +1,5 @@
 {
-  "version": "2.5.9",
-  "notes": "Direction tag fix - Inbound/Outbound now correctly written to Master Sheet.",
+  "version": "2.5.10",
+  "notes": "Update button fix - the UPDATE NOW button now actually updates the app instead of doing nothing.",
   "forceUpdate": true
 }
