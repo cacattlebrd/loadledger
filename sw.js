@@ -1,7 +1,7 @@
 // APP_VERSION bump forces browsers to install this SW (byte change required for update detection)
-const APP_VERSION = 'v2.5.8-20260428-tue-b';
+const APP_VERSION = 'v2.5.9-20260506-wed-a';
 const CACHE_VERSION = 'v' + Date.now();
-const CACHE_NAME = 'loadledger-v2.5.8-20260428-tue-b' + CACHE_VERSION;
+const CACHE_NAME = 'loadledger-v2.5.9-20260506-wed-a' + CACHE_VERSION;
 const EXTERNAL_LIBS = [
   'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'
 ];
@@ -20,6 +20,13 @@ self.addEventListener('activate', e => {
       Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
     ).then(() => self.clients.claim())
   );
+});
+
+// v2.5.9: listen for SKIP_WAITING message from forceUpdate() so the new SW activates immediately
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });
 
 self.addEventListener('fetch', e => {
