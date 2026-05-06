@@ -1,5 +1,5 @@
 {
-  "version": "2.5.10",
-  "notes": "Update button fix - the UPDATE NOW button now actually updates the app instead of doing nothing.",
+  "version": "2.5.11",
+  "notes": "PERMANENT update fix - no more stuck phones. The app now refreshes itself every time you open it.",
   "forceUpdate": true
 }
