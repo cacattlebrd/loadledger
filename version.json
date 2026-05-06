@@ -1,5 +1,5 @@
 {
-  "version": "2.5.11",
-  "notes": "PERMANENT update fix - no more stuck phones. The app now refreshes itself every time you open it.",
-  "forceUpdate": true
+  "version": "2.5.12",
+  "notes": "Internal version sync fix. Clears the stuck Update Required banner. After this update you should land on the load form normally.",
+  "forceUpdate": false
 }
