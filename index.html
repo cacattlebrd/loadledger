@@ -3115,7 +3115,7 @@ const sheetsSync = (() => {
 
   async function send(action, data) {
     // Backend WebApp.gs dispatches on data.type (not data.action). Include both for safety.
-    const payload = { ...data, type: action, action };
+    const payload = { ...data, action, messageType: action };
     try {
       const resp = await fetch(WEBAPP_URL, {
         method: 'POST',
