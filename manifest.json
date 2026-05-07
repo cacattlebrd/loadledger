@@ -2,7 +2,7 @@
   "name": "LoadLedger - CA Cattle BRD",
   "short_name": "LoadLedger",
   "description": "Bakery Recycling Division load tracking and fleet management",
-  "start_url": "/",
+  "start_url": "/?v=2516",
   "scope": "/",
   "display": "standalone",
   "background_color": "#0f172a",

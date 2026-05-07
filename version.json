@@ -1,5 +1,5 @@
 {
-  "version": "2.5.15",
-  "notes": "Silent auto-update on app open. DEF tracked by boxes. Admin tab restored after clock-out.",
+  "version": "2.5.16",
+  "notes": "Admin Force Update button + cache-busted manifest start_url so iOS/Android phones force-fetch latest.",
   "forceUpdate": false
 }

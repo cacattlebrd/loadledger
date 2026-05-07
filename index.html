@@ -954,6 +954,11 @@ document.addEventListener('DOMContentLoaded', initPinSelect);
 
   <div id="sync-section" class="admin-action"><div class="section-title">Device Sync</div><button style="background:#5cb85c;color:#fff;border:none;padding:10px 20px;border-radius:6px;font-size:14px;width:100%;cursor:pointer;" onclick="syncAllConfig()">Sync Config to All Devices</button>
       <div id="syncStatusMsg" class="sync-status" style="margin-top:8px;font-size:13px;text-align:center"></div></div>
+      <div class="admin-action" style="background:rgba(0,191,255,0.08);border:1px solid rgba(0,191,255,0.25);"><div class="section-title" style="color:#00bfff;">App Version</div>
+        <div style="font-size:14px;color:#cbd5e1;margin-bottom:10px;text-align:center;">Currently running <strong id="adminVersionDisplay">v?.?.?</strong></div>
+        <button style="background:#00bfff;color:#0d1626;border:none;padding:10px 20px;border-radius:6px;font-size:14px;width:100%;cursor:pointer;font-weight:700;" onclick="adminForceUpdate()">FORCE UPDATE NOW</button>
+        <div style="font-size:11px;color:#94a3b8;margin-top:6px;text-align:center;">Wipes cache + reloads to latest version. Use if app is stuck on an old version.</div>
+      </div>
 <div class="danger-zone"><div class="section-title">Danger Zone</div><button class="delete-btn" onclick="confirmClearAllData()">Clear All Load Data</button><button class="delete-btn" onclick="confirmResetDefaults()">Reset to Defaults</button></div>
 </div>
 
@@ -1348,6 +1353,7 @@ function calcMiles() {
 
 // ===== TABS =====
 function switchTab(name) {
+  if (typeof refreshAdminVersionDisplay === "function") refreshAdminVersionDisplay();
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.getElementById('panel-'+name).classList.add('active');
@@ -1533,7 +1539,7 @@ function deletePhoto(timestamp) {
 }
 
 // ===== AUTO-UPDATE (v2.5.7) =====
-const APP_VERSION = '2.5.15';
+const APP_VERSION = '2.5.16';
 const UPDATE_CHECK_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
 
 async function checkForUpdate() {
@@ -1590,6 +1596,19 @@ function showUpdateBanner(newVersion, notes, isForced) {
   document.body.appendChild(overlay);
 
   document.getElementById('update-now-btn').onclick = forceUpdate;
+}
+
+function adminForceUpdate() {
+  if (!confirm('Force update? App will reload from scratch with cache cleared.')) return;
+  forceUpdate();
+}
+
+// Populate admin version display on tab open
+function refreshAdminVersionDisplay() {
+  try {
+    var el = document.getElementById('adminVersionDisplay');
+    if (el) el.textContent = 'v' + APP_VERSION;
+  } catch(_){}
 }
 
 function forceUpdate() {
