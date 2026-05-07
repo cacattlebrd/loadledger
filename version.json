@@ -1,5 +1,5 @@
 {
-  "version": "2.5.14",
-  "notes": "Fuel/DEF tab now captures fuel gallons, DEF gallons, total cost, and station — was leaving those columns blank.",
+  "version": "2.5.15",
+  "notes": "Silent auto-update on app open. DEF tracked by boxes. Admin tab restored after clock-out.",
   "forceUpdate": false
 }

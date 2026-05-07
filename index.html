@@ -1,12 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<!-- v2.5.13: pushes load submits to Load Cost Tracker; v2.5.12 self-heal (APP_VERSION sync fix) — kill any leftover service worker and caches every page load.
-     This runs BEFORE the body so it nukes the broken SW from earlier versions
-     before anything else happens. After this ships, no driver ever has to
-     hard-refresh again. -->
+<!-- v2.5.15: silent auto-update — checks version.json before app boots. If newer, nukes caches and reloads with fresh URL. Driver never sees a banner, never taps a button. -->
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <script>
 (function() {
+  // Always nuke any leftover service worker + caches on every load
   try {
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.getRegistrations().then(function(regs) {
@@ -18,6 +19,44 @@
         keys.forEach(function(k) { caches.delete(k).catch(function(){}); });
       }).catch(function(){});
     }
+  } catch(e) {}
+
+  // Silent auto-update: fetch version.json BEFORE app boots. If newer, reload with cache-bust.
+  // Guard: don't loop. Once we reload with ?v=, we're on the freshest fetch.
+  try {
+    var qs = window.location.search || '';
+    if (qs.indexOf('v=') !== -1) return; // already cache-busted this load, don't loop
+
+    var BOOT_VERSION_HINT = '2.5.15'; // injected during build below
+    var url = './version.json?_=' + Date.now();
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', url, true);
+    xhr.timeout = 4000;
+    xhr.onload = function() {
+      try {
+        if (xhr.status !== 200) return;
+        var remote = JSON.parse(xhr.responseText);
+        if (!remote || !remote.version) return;
+        // Compare remote.version to BOOT_VERSION_HINT
+        var pa = String(remote.version).split('.').map(Number);
+        var pb = String(BOOT_VERSION_HINT).split('.').map(Number);
+        var newer = false;
+        for (var i = 0; i < Math.max(pa.length, pb.length); i++) {
+          var da = pa[i] || 0, db = pb[i] || 0;
+          if (da > db) { newer = true; break; }
+          if (da < db) break;
+        }
+        if (newer) {
+          // Auto-reload with cache-bust. Driver sees a momentary "Updating..." then app loads fresh.
+          try { document.body && (document.body.innerHTML = '<div style="position:fixed;inset:0;background:#0d1626;color:#00bfff;display:flex;align-items:center;justify-content:center;font:600 18px sans-serif;z-index:99999;">Updating to v' + remote.version + '...</div>'); } catch(_){}
+          var bust = window.location.pathname + '?v=' + remote.version + '_' + Date.now();
+          window.location.replace(bust);
+        }
+      } catch(_){}
+    };
+    xhr.onerror = function(){};
+    xhr.ontimeout = function(){};
+    xhr.send();
   } catch(e) {}
 })();
 </script>
@@ -649,8 +688,8 @@ document.addEventListener('DOMContentLoaded', initPinSelect);
       <input type="number" id="fuelGal" placeholder="0" step="0.1">
     </div>
     <div class="form-group">
-      <label>DEF (gal)</label>
-      <input type="number" id="defGal" placeholder="0" step="0.1">
+      <label>DEF (boxes)</label>
+      <input type="number" id="defGal" placeholder="0" step="1" min="0">
     </div>
   </div>
   <div class="calc-row">
@@ -1494,7 +1533,7 @@ function deletePhoto(timestamp) {
 }
 
 // ===== AUTO-UPDATE (v2.5.7) =====
-const APP_VERSION = '2.5.14';
+const APP_VERSION = '2.5.15';
 const UPDATE_CHECK_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
 
 async function checkForUpdate() {
@@ -1834,7 +1873,7 @@ function submitFuel() {
   entry.supplier = entry.station;
   addStore('fuel', entry);
   sheetsSync.send('fuel', entry);
-  logActivity("Fuel/DEF Submitted", (entry.driver||"?") + " - " + (entry.fuelGal||"0") + " gal fuel, " + (entry.defGal||"0") + " gal DEF");
+  logActivity("Fuel/DEF Submitted", (entry.driver||"?") + " - " + (entry.fuelGal||"0") + " gal fuel, " + (entry.defGal||"0") + " boxes DEF");
   showToast('Fuel log saved');
   ['fuelGal','defGal','fuelCost','defCost','fuelOdo','fuelStation','fuelNotes'].forEach(id => { var _el = document.getElementById(id); if(_el) _el.value = ''; });
   } catch(err) {
@@ -2774,7 +2813,7 @@ function exportExcel() {
   }
 
   if(fuel.length > 0) {
-    const fuelData = [['Date','Driver','Truck','Diesel (gal)','DEF (gal)','Diesel Cost','DEF Cost','Odometer','Station','Notes']];
+    const fuelData = [['Date','Driver','Truck','Diesel (gal)','DEF (boxes)','Diesel Cost','DEF Cost','Odometer','Station','Notes']];
     fuel.forEach(r => {
       const drv = driverMap[r.driver] || r.driver;
       fuelData.push([
@@ -3420,7 +3459,7 @@ const sheetsSync = (() => {
     document.getElementById('pin-user-select').value = '';
     updateDots();
     // Hide admin tab on clock out
-    document.getElementById('tab-admin').style.display = 'none';
+    document.getElementById('tab-admin').classList.add('hidden');
     switchTab('load');
     showToast('Clocked out. GPS tracking stopped.');
   }
