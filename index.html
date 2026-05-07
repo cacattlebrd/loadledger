@@ -1494,7 +1494,7 @@ function deletePhoto(timestamp) {
 }
 
 // ===== AUTO-UPDATE (v2.5.7) =====
-const APP_VERSION = '2.5.13';
+const APP_VERSION = '2.5.14';
 const UPDATE_CHECK_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
 
 async function checkForUpdate() {
@@ -1827,6 +1827,11 @@ function submitFuel() {
     timestamp: new Date().toISOString()
   };
   if(!entry.driver || !entry.date) { showToast('Please fill required fields'); return; }
+  // v2.5.14: aliases so backend handleFuel (expects fuelAmount/defAmount/cost/supplier) writes the values into Fuel-DEF tab.
+  entry.fuelAmount = entry.fuelGal;
+  entry.defAmount = entry.defGal;
+  entry.cost = (entry.fuelCost || 0) + (entry.defCost || 0);
+  entry.supplier = entry.station;
   addStore('fuel', entry);
   sheetsSync.send('fuel', entry);
   logActivity("Fuel/DEF Submitted", (entry.driver||"?") + " - " + (entry.fuelGal||"0") + " gal fuel, " + (entry.defGal||"0") + " gal DEF");

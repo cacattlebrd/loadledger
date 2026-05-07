@@ -1,5 +1,5 @@
 {
-  "version": "2.5.13",
-  "notes": "Load submits now push directly to the BRD Load Cost Tracker workbook. No more waiting for a scheduled pull — your numbers update within seconds of every driver submit.",
+  "version": "2.5.14",
+  "notes": "Fuel/DEF tab now captures fuel gallons, DEF gallons, total cost, and station — was leaving those columns blank.",
   "forceUpdate": false
 }
