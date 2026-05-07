@@ -337,7 +337,7 @@ body.locked > *:not(#pin-overlay):not(.toast){display:none!important}
 <div id="pin-overlay">
   <h1>&#9878; LOADLEDGER</h1>
   <div class="pin-subtitle">CA Cattle Co.  -  Bakery Recycling Division</div>
-  <div class="pin-version" id="pinVersion">v2.5.13</div>
+  <div class="pin-version" id="pinVersion">v</div>
   <select id="pin-user-select">
     <option value="">Select your name...</option>
   </select>
@@ -466,7 +466,7 @@ function setConfig(key, arr) {
   if (window.isAdmin && typeof configSync !== 'undefined') {
     configSync.push(key, arr).then(function() {
       var badge = document.getElementById('versionBadge');
-      var hv = document.getElementById('headerVersion'); var pv = document.getElementById('pinVersion'); if (hv) { hv.textContent = 'v2.5.13 \u2714 synced'; setTimeout(function(){ hv.textContent = 'v2.5.13'; }, 2000); } if (pv) { pv.textContent = 'v2.5.13 \u2714 synced'; setTimeout(function(){ pv.textContent = 'v2.5.13'; }, 2000); } if (badge) { badge.textContent = 'v2.5.13'; }
+      var hv = document.getElementById('headerVersion'); var pv = document.getElementById('pinVersion'); var ver = 'v' + APP_VERSION; if (hv) { hv.textContent = ver + ' \u2714 synced'; setTimeout(function(){ hv.textContent = ver; }, 2000); } if (pv) { pv.textContent = ver + ' \u2714 synced'; setTimeout(function(){ pv.textContent = ver; }, 2000); } if (badge) { badge.textContent = ver; }
     });
   }
 }
@@ -484,13 +484,21 @@ function initPinSelect() {
 }
 
 // Call after DOM is ready
-document.addEventListener('DOMContentLoaded', initPinSelect);
+document.addEventListener('DOMContentLoaded', function(){
+  initPinSelect();
+  try {
+    var ver = 'v' + APP_VERSION;
+    var hv = document.getElementById('headerVersion'); if (hv) hv.textContent = ver;
+    var pv = document.getElementById('pinVersion'); if (pv) pv.textContent = ver;
+    var vb = document.getElementById('versionBadge'); if (vb) vb.textContent = ver;
+  } catch(_){}
+});
 </script>
 
 <div class="header">
   <h1>LOADLEDGER</h1>
   <div class="sub">CA Cattle Co. - Bakery Recycling Division</div>
-  <div class="header-version" id="headerVersion">v2.5.13</div>
+  <div class="header-version" id="headerVersion">v</div>
     <div class="header-controls">
       <span id="gps-indicator" class="gps-indicator gps-off">GPS: OFF</span>
       <button class="clock-out-btn" onclick="clockOut()">Log Out</button>
@@ -1539,7 +1547,7 @@ function deletePhoto(timestamp) {
 }
 
 // ===== AUTO-UPDATE (v2.5.7) =====
-const APP_VERSION = '2.5.18';
+const APP_VERSION = '2.5.19';
 const UPDATE_CHECK_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
 
 async function checkForUpdate() {
@@ -3516,6 +3524,6 @@ const sheetsSync = (() => {
 // We rely on browser cache only (network-first via Cache-Control headers from GitHub Pages).
 // Drivers need signal to use the app; offline mode is OFF until SW strategy is rebuilt.
 </script>
-<div class="version-badge" id="versionBadge">v2.5.11</div>
+<div class="version-badge" id="versionBadge">v</div>
 </body>
 </html>

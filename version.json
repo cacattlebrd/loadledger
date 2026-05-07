@@ -1,5 +1,5 @@
 {
-  "version": "2.5.18",
-  "min_version": "2.5.18",
-  "notes": "Every update now auto-forces all drivers on next app open."
+  "version": "2.5.19",
+  "min_version": "2.5.19",
+  "notes": "Version display now reflects actual running version."
 }
