@@ -1,6 +1,6 @@
 {
   "version": "2.5.17",
-  "min_version": "2.5.13",
+  "min_version": "2.5.17",
   "notes": "Fleet-wide remote update kill switch + Force Update All Drivers button",
   "forceUpdate": false
 }
