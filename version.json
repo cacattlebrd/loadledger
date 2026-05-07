@@ -1,5 +1,6 @@
 {
-  "version": "2.5.16",
-  "notes": "Admin Force Update button + cache-busted manifest start_url so iOS/Android phones force-fetch latest.",
+  "version": "2.5.17",
+  "min_version": "2.5.13",
+  "notes": "Fleet-wide remote update kill switch + Force Update All Drivers button",
   "forceUpdate": false
 }
