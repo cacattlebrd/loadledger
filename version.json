@@ -1,5 +1,1 @@
-{
-  "version": "2.5.19",
-  "min_version": "2.5.19",
-  "notes": "Version display now reflects actual running version."
-}
+{"version":"2.5.20","min_version":"2.5.20","released":"2026-05-08","notes":"Tons rounded to 2 decimals everywhere; always shown as X.XX format"}
