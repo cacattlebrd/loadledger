@@ -1385,7 +1385,7 @@ function calcNet() {
   const g = parseFloat(document.getElementById('loadGross').value) || 0;
   const t = parseFloat(document.getElementById('loadTare').value) || 0;
   const net = g - t;
-  const tons = net / 2000;
+  const tons = roundTons(net);
   document.getElementById('netDisplay').textContent = net > 0 ? net.toLocaleString() : '0';
   document.getElementById('tonsDisplay').textContent = tons > 0 ? tons.toFixed(2) : '0.00';
 }
@@ -1546,8 +1546,17 @@ function deletePhoto(timestamp) {
   }
 }
 
+// ===== TONS ROUNDING (v2.5.20) =====
+// All Tons values across LL App are rounded HALF-UP to 2 decimals.
+// Use roundTons() everywhere instead of raw net/2000 to keep storage consistent
+// with downstream sheets (Daily Outbound/Inbound Logs, Month Totals, invoices).
+function roundTons(net) {
+  // Math.round in JS uses round-half-away-from-zero for positive numbers (effectively half-up)
+  return Math.round((net / 2000) * 100) / 100;
+}
+
 // ===== AUTO-UPDATE (v2.5.7) =====
-const APP_VERSION = '2.5.19';
+const APP_VERSION = '2.5.20';
 const UPDATE_CHECK_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
 
 async function checkForUpdate() {
@@ -1863,7 +1872,7 @@ function submitLoad() {
     commodity: _isInboundAtSubmit ? '' : document.getElementById('loadCommodity').value,
     truck, trailer,
     ticket: document.getElementById('loadTicket').value,
-    gross, tare, net: gross - tare, tons: ((gross - tare) / 2000).toFixed(2),
+    gross, tare, net: gross - tare, tons: roundTons(gross - tare).toFixed(2),
     timeStart, timeEnd, totalTime,
     mileStart, mileEnd, totalMiles,
     hasPhoto: !!ticketPhotoData,
@@ -2818,7 +2827,7 @@ function exportExcel() {
       const gross = parseFloat(r.gross) || 0;
       const tare = parseFloat(r.tare) || 0;
       const net = gross - tare;
-      const tons = net / 2000;
+      const tons = roundTons(net);
       const day = dt.getDate();
       inData.push([
         src, dt, r.ticket, gross, tare, net,
@@ -2831,6 +2840,11 @@ function exportExcel() {
     for(let i = 1; i < inData.length; i++) {
       const cell = wsIn[XLSX.utils.encode_cell({r:i,c:1})];
       if(cell) cell.z = 'm/d/yyyy';
+      // Force 2-decimal display on Tons cols (G/H/I = idx 6/7/8)
+      [6,7,8].forEach(c => {
+        const tc = wsIn[XLSX.utils.encode_cell({r:i,c:c})];
+        if(tc && tc.v !== null) tc.z = '0.00';
+      });
     }
     wsIn['!cols'] = [{wch:20},{wch:12},{wch:14},{wch:10},{wch:10},{wch:10},{wch:12},{wch:12},{wch:10}];
     XLSX.utils.book_append_sheet(wb, wsIn, 'Inbound Log');
@@ -2847,7 +2861,7 @@ function exportExcel() {
       const gross = parseFloat(r.gross) || 0;
       const tare = parseFloat(r.tare) || 0;
       const net = gross - tare;
-      const tons = net / 2000;
+      const tons = roundTons(net);
       const day = dt.getDate();
       outData.push([
         cust, comm, dt, r.ticket, gross, tare, net,
@@ -2860,6 +2874,11 @@ function exportExcel() {
     for(let i = 1; i < outData.length; i++) {
       const cell = wsOut[XLSX.utils.encode_cell({r:i,c:2})];
       if(cell) cell.z = 'm/d/yyyy';
+      // Force 2-decimal display on Tons cols (H/I/J = idx 7/8/9)
+      [7,8,9].forEach(c => {
+        const tc = wsOut[XLSX.utils.encode_cell({r:i,c:c})];
+        if(tc && tc.v !== null) tc.z = '0.00';
+      });
     }
     wsOut['!cols'] = [{wch:12},{wch:12},{wch:12},{wch:14},{wch:10},{wch:10},{wch:10},{wch:12},{wch:12},{wch:10},{wch:14}];
     XLSX.utils.book_append_sheet(wb, wsOut, 'Daily Outbound Log');
@@ -2979,15 +2998,15 @@ async function syncToWorkbook(input) {
         const existingF = ws[XLSX.utils.encode_cell({r: rowIdx, c: 5})];
         if (!existingF || (!existingF.f && !existingF.v)) {
           const net = gross - tare;
-          const tons = net / 2000;
+          const tons = roundTons(net);
           const day = dt.getDate();
           ws[XLSX.utils.encode_cell({r: rowIdx, c: 5})] = {t: 'n', v: net};
           if (day <= 15) {
-            ws[XLSX.utils.encode_cell({r: rowIdx, c: 6})] = {t: 'n', v: tons};
+            ws[XLSX.utils.encode_cell({r: rowIdx, c: 6})] = {t: 'n', v: tons, z: '0.00'};
           } else {
-            ws[XLSX.utils.encode_cell({r: rowIdx, c: 7})] = {t: 'n', v: tons};
+            ws[XLSX.utils.encode_cell({r: rowIdx, c: 7})] = {t: 'n', v: tons, z: '0.00'};
           }
-          ws[XLSX.utils.encode_cell({r: rowIdx, c: 8})] = {t: 'n', v: tons};
+          ws[XLSX.utils.encode_cell({r: rowIdx, c: 8})] = {t: 'n', v: tons, z: '0.00'};
         }
 
         nextRow++;
@@ -3032,15 +3051,15 @@ async function syncToWorkbook(input) {
         const existingG = ws[XLSX.utils.encode_cell({r: rowIdx, c: 6})];
         if (!existingG || (!existingG.f && !existingG.v)) {
           const net = gross - tare;
-          const tons = net / 2000;
+          const tons = roundTons(net);
           const day = dt.getDate();
           ws[XLSX.utils.encode_cell({r: rowIdx, c: 6})] = {t: 'n', v: net};
           if (day <= 15) {
-            ws[XLSX.utils.encode_cell({r: rowIdx, c: 7})] = {t: 'n', v: tons};
+            ws[XLSX.utils.encode_cell({r: rowIdx, c: 7})] = {t: 'n', v: tons, z: '0.00'};
           } else {
-            ws[XLSX.utils.encode_cell({r: rowIdx, c: 8})] = {t: 'n', v: tons};
+            ws[XLSX.utils.encode_cell({r: rowIdx, c: 8})] = {t: 'n', v: tons, z: '0.00'};
           }
-          ws[XLSX.utils.encode_cell({r: rowIdx, c: 9})] = {t: 'n', v: tons};
+          ws[XLSX.utils.encode_cell({r: rowIdx, c: 9})] = {t: 'n', v: tons, z: '0.00'};
           ws[XLSX.utils.encode_cell({r: rowIdx, c: 10})] = {t: 's', v: drv};
         } else {
           ws[XLSX.utils.encode_cell({r: rowIdx, c: 10})] = {t: 's', v: drv};
