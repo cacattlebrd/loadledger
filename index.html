@@ -426,10 +426,10 @@ function autoSelectDriver(userId){
 function getConfig(key) {
   const defaults = {
     drivers: [
-      {"id":"admin","name":"Chad (Admin)","pin":"2636","role":"admin","group":"Admin"},
+      {"id":"admin","name":"Chad","pin":"2636","role":"admin","group":"Admin"},
       {"id":"john","name":"John Hightower","pin":"5990","role":"driver","group":"BRD Drivers"},
       {"id":"juan","name":"Juan Gutierrez","pin":"8258","role":"driver","group":"BRD Drivers"},
-      {"id":"james","name":"James Gass (Admin)","pin":"5796","role":"admin","group":"BRD Drivers"},
+      {"id":"james","name":"James Gass","pin":"5796","role":"admin","group":"BRD Drivers"},
       {"id":"cuatrot","name":"Cuatro T","pin":"","role":"driver","group":"Contract Haulers"},
       {"id":"treshijos","name":"Tres Hijos","pin":"","role":"driver","group":"Contract Haulers"},
       {"id":"luckey","name":"Luckey","pin":"","role":"driver","group":"Contract Haulers"},
@@ -1558,7 +1558,7 @@ function roundTons(net) {
 }
 
 // ===== AUTO-UPDATE (v2.5.7) =====
-const APP_VERSION = '2.5.22';
+const APP_VERSION = '2.5.23';
 const UPDATE_CHECK_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
 
 async function checkForUpdate() {
