@@ -1,1 +1,1 @@
-{"version":"2.5.20","min_version":"2.5.20","released":"2026-05-08","notes":"Tons rounded to 2 decimals everywhere; always shown as X.XX format"}
+{"version":"2.5.21","min_version":"2.5.21","released":"2026-05-11","notes":"SILENT-DROP FIX: load/fuel/DVIR submissions now verify backend confirmation before marking synced. Was using mode:no-cors which made HTTP errors and bad responses look like success. Fixes James/John/Juan/Chad missing data in RAW Loads."}
