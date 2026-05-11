@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<!-- v2.5.15: silent auto-update — checks version.json before app boots. If newer, nukes caches and reloads with fresh URL. Driver never sees a banner, never taps a button. -->
+<!-- v2.6.0: Two-step load (Start + Finish) with auto time capture. Driver can save a load mid-run and finish it later. v2.5.15: silent auto-update — checks version.json before app boots. If newer, nukes caches and reloads with fresh URL. -->
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -27,7 +27,7 @@
     var qs = window.location.search || '';
     if (qs.indexOf('v=') !== -1) return; // already cache-busted this load, don't loop
 
-    var BOOT_VERSION_HINT = '2.5.15'; // injected during build below
+    var BOOT_VERSION_HINT = '2.6.0'; // injected during build below
     var url = './version.json?_=' + Date.now();
     var xhr = new XMLHttpRequest();
     xhr.open('GET', url, true);
@@ -515,6 +515,18 @@ document.addEventListener('DOMContentLoaded', function(){
 
 <!-- ===== LOAD ENTRY TAB ===== -->
 <div id="panel-load" class="panel active">
+  <!-- v2.6.0: Open Loads list — shows driver's in-progress loads. Empty by default. -->
+  <div id="openLoadsSection" style="display:none;margin-bottom:16px;padding:12px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.35);border-radius:10px">
+    <div style="font-size:13px;font-weight:700;color:#fbbf24;margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">&#9201; Open Loads (Resume)</div>
+    <div id="openLoadsList"></div>
+  </div>
+
+  <!-- v2.6.0: Resume Mode Banner — shown when a driver is finishing an open load -->
+  <div id="resumeModeBanner" style="display:none;margin-bottom:12px;padding:10px;background:#1e3a5f;border-left:4px solid #fbbf24;border-radius:6px;font-size:13px;color:#fbbf24;font-weight:600">
+    <span id="resumeModeText">Finishing open load</span>
+    <button type="button" onclick="exitResumeMode()" style="float:right;background:transparent;border:1px solid #fbbf24;color:#fbbf24;padding:4px 10px;border-radius:4px;font-size:11px;cursor:pointer;font-weight:700">CANCEL</button>
+  </div>
+
   <div class="section-title">Direction</div>
   <div class="toggle-row">
     <div class="toggle-btn active-in" id="btn-in" onclick="setDirection('in')">&#11015; INBOUND<br><span style="font-size:10px;font-weight:400">Pickup from Supplier</span></div>
@@ -668,7 +680,10 @@ document.addEventListener('DOMContentLoaded', function(){
     </div>
   </label>
 
-  <button type="button" class="btn-submit green" onclick="submitLoad()">SUBMIT LOAD</button>
+  <!-- v2.6.0: START LOAD button — saves start-of-load info to RAW with Load Stage='Open', clears form for next driver -->
+  <button type="button" id="btnStartLoad" class="btn-submit amber" onclick="startLoad()" style="margin-bottom:8px">&#9658; START LOAD (Save for Later)</button>
+  <button type="button" id="btnSubmitLoad" class="btn-submit green" onclick="submitLoad()">SUBMIT LOAD</button>
+  <button type="button" id="btnFinishLoad" class="btn-submit green" onclick="finishLoad()" style="display:none">&#10004; FINISH LOAD</button>
 </div>
 
 <!-- ===== FUEL/DEF TAB ===== -->
@@ -1558,7 +1573,7 @@ function roundTons(net) {
 }
 
 // ===== AUTO-UPDATE (v2.5.7) =====
-const APP_VERSION = '2.5.23';
+const APP_VERSION = '2.6.0';
 const UPDATE_CHECK_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
 
 async function checkForUpdate() {
@@ -1912,6 +1927,260 @@ function submitLoad() {
     showToast('Submit error: ' + (err && err.message ? err.message : String(err)), true);
   }
 }
+
+// ===== TWO-STEP LOAD (v2.6.0) =====
+// loadId is a unique string generated at START, used to find/update the row at FINISH.
+let currentResumeLoadId = null; // set when driver taps "Resume" on an open load
+
+function genLoadId() {
+  return 'LL' + Date.now().toString(36).toUpperCase() + Math.random().toString(36).substring(2,6).toUpperCase();
+}
+
+function nowHHMM() {
+  const d = new Date();
+  return String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+}
+
+// START LOAD — saves start-of-load fields. Driver, Direction, Supplier/Customer, Truck, Trailer, Date.
+// Auto-stamps timeStart. Generates loadId. Posts to backend with messageType='loadStart'.
+// Form clears, ready for next driver. The open load shows up in the Open Loads list.
+function startLoad() {
+  try {
+    const driver = document.getElementById('loadDriver').value === 'Other' ?
+      document.getElementById('loadDriverOther').value : document.getElementById('loadDriver').value;
+    if (!driver) { showToast('Pick a driver before starting a load', true); return; }
+    const isInbound = document.getElementById('btn-in').classList.contains('active-in');
+    const source = isInbound ?
+      (document.getElementById('loadSupplier').value === 'Other' ? document.getElementById('loadSupplierOther').value : document.getElementById('loadSupplier').value) :
+      (document.getElementById('loadCustomer').value === 'Other' ? document.getElementById('loadCustomerOther').value : document.getElementById('loadCustomer').value);
+    if (!source) { showToast(isInbound ? 'Pick a supplier' : 'Pick a customer', true); return; }
+    const truckVal = document.getElementById('loadTruck').value;
+    const truck = truckVal === 'Other' ? document.getElementById('loadTruckOther').value : truckVal;
+    if (!truck) { showToast('Pick a truck', true); return; }
+
+    const trailer = ['ReConserve','Other'].includes(document.getElementById('loadTrailer').value) ?
+      (document.getElementById('loadTrailer').value === 'ReConserve' ? 'RC-' : '') + document.getElementById('loadTrailerOther').value :
+      document.getElementById('loadTrailer').value;
+
+    const loadId = genLoadId();
+    const startTime = nowHHMM();
+    const mileStart = parseFloat(document.getElementById('loadMileStart').value) || 0;
+    const products = getSelectedProducts();
+    const commodity = isInbound ? '' : document.getElementById('loadCommodity').value;
+
+    const entry = {
+      loadId: loadId,
+      type: isInbound ? 'Inbound' : 'Outbound',
+      date: document.getElementById('loadDate').value,
+      driver, source,
+      products: products.join(', '),
+      commodity,
+      truck, trailer,
+      timeStart: startTime,
+      mileStart,
+      timestamp: new Date().toISOString(),
+      loadStage: 'Open',
+      gpsLat: gpsTracker.getPosition() ? gpsTracker.getPosition().lat : null,
+      gpsLng: gpsTracker.getPosition() ? gpsTracker.getPosition().lng : null,
+      gpsAccuracy: gpsTracker.getPosition() ? gpsTracker.getPosition().accuracy : null,
+      gpsTimestamp: gpsTracker.getPosition() ? gpsTracker.getPosition().timestamp : null
+    };
+
+    // Persist locally first as safety net — if backend POST drops, the open load is still on phone
+    const openLocal = JSON.parse(localStorage.getItem('ll_open_loads') || '[]');
+    openLocal.push(entry);
+    localStorage.setItem('ll_open_loads', JSON.stringify(openLocal));
+
+    sheetsSync.send('loadStart', entry);
+    logActivity('Load Started', driver + ' - ' + entry.type + ' - ' + source + ' (open)');
+    showToast('Load started at ' + startTime + ' - resume anytime to finish');
+
+    // Clear form so next driver/load can use it
+    clearLoadFormForNext();
+    refreshOpenLoadsList();
+  } catch (err) {
+    console.error('[startLoad]', err);
+    showToast('Start error: ' + (err && err.message ? err.message : String(err)), true);
+  }
+}
+
+// FINISH LOAD — fills in remaining fields on an Open load, auto-stamps timeEnd, computes totalTime.
+// Posts with messageType='loadFinish' + loadId. Backend updates existing row, clears Load Stage.
+function finishLoad() {
+  try {
+    if (!currentResumeLoadId) { showToast('No open load to finish', true); return; }
+    if (!validateLoadForm()) return;
+
+    const endTime = nowHHMM();
+    const timeStartEl = document.getElementById('loadTimeStart');
+    const timeStart = timeStartEl.value;
+    let totalTime = '';
+    if (timeStart && endTime) {
+      const [sh,sm] = timeStart.split(':').map(Number);
+      const [eh,em] = endTime.split(':').map(Number);
+      let diff = (eh*60+em) - (sh*60+sm);
+      if (diff < 0) diff += 1440;
+      totalTime = Math.floor(diff/60) + 'h ' + (diff%60 < 10 ? '0' : '') + (diff%60) + 'm';
+    }
+    document.getElementById('loadTimeEnd').value = endTime;
+
+    const gross = parseFloat(document.getElementById('loadGross').value) || 0;
+    const tare = parseFloat(document.getElementById('loadTare').value) || 0;
+    const mileStart = parseFloat(document.getElementById('loadMileStart').value) || 0;
+    const mileEnd = parseFloat(document.getElementById('loadMileEnd').value) || 0;
+    const totalMiles = mileEnd > mileStart ? mileEnd - mileStart : 0;
+
+    const entry = {
+      loadId: currentResumeLoadId,
+      ticket: document.getElementById('loadTicket').value,
+      gross, tare, net: gross - tare, tons: roundTons(gross - tare).toFixed(2),
+      timeEnd: endTime, totalTime,
+      mileEnd, totalMiles,
+      hasPhoto: !!ticketPhotoData,
+      photoData: '',
+      notes: document.getElementById('loadNotes').value,
+      timestamp: new Date().toISOString(),
+      loadStage: ''
+    };
+
+    if (ticketPhotoData) savePhoto(entry.timestamp, ticketPhotoData);
+    const syncEntry = Object.assign({}, entry, { photoData: ticketPhotoData || '' });
+    sheetsSync.send('loadFinish', syncEntry);
+
+    // Remove this load from local open queue
+    const openLocal = JSON.parse(localStorage.getItem('ll_open_loads') || '[]');
+    const filtered = openLocal.filter(x => x.loadId !== currentResumeLoadId);
+    localStorage.setItem('ll_open_loads', JSON.stringify(filtered));
+
+    logActivity('Load Finished', (document.getElementById('loadDriver').value || '?') + ' - ' + entry.tons + ' tons');
+    showToast('Load finished at ' + endTime + ' - ' + entry.tons + ' tons');
+
+    exitResumeMode();
+    clearLoadFormForNext();
+    refreshOpenLoadsList();
+  } catch (err) {
+    console.error('[finishLoad]', err);
+    showToast('Finish error: ' + (err && err.message ? err.message : String(err)), true);
+  }
+}
+
+function clearLoadFormForNext() {
+  ['loadGross','loadTare','loadTicket','loadNotes','loadMileStart','loadMileEnd','loadTimeStart','loadTimeEnd','loadTruckOther'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  try { calcNet(); } catch(_) {}
+  try { calcMiles(); } catch(_) {}
+  const tt = document.getElementById('totalTimeDisplay');
+  if (tt) tt.textContent = '--:--';
+  try { clearProducts(); } catch(_) {}
+  try { clearPhoto(); } catch(_) {}
+}
+
+// Pulls open loads for current driver from backend, falls back to localStorage
+async function refreshOpenLoadsList() {
+  try {
+    const section = document.getElementById('openLoadsSection');
+    const list = document.getElementById('openLoadsList');
+    if (!section || !list) return;
+    const driver = document.getElementById('loadDriver') ? document.getElementById('loadDriver').value : '';
+    let openLoads = [];
+
+    // Try backend first
+    try {
+      const url = sheetsSync.getWebAppUrl() + '?action=getOpenLoads&driver=' + encodeURIComponent(driver || '') + '&_=' + Date.now();
+      const r = await fetch(url);
+      const t = await r.text();
+      const j = JSON.parse(t);
+      if (j && j.success && Array.isArray(j.loads)) openLoads = j.loads;
+    } catch (_) {}
+
+    // Merge in local-only opens (cases where Start POST hasn't synced yet)
+    try {
+      const local = JSON.parse(localStorage.getItem('ll_open_loads') || '[]');
+      const seenIds = new Set(openLoads.map(x => x.loadId));
+      local.filter(x => !driver || x.driver === driver).forEach(x => {
+        if (!seenIds.has(x.loadId)) openLoads.push(x);
+      });
+    } catch (_) {}
+
+    if (openLoads.length === 0) {
+      section.style.display = 'none';
+      list.innerHTML = '';
+      return;
+    }
+    section.style.display = 'block';
+    list.innerHTML = openLoads.map(x => {
+      const started = x.timeStart || '?';
+      const label = (x.type || '?') + ' - ' + (x.source || '?') + ' - started ' + started;
+      const safeId = (x.loadId || '').replace(/[^A-Z0-9]/gi,'');
+      return '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px;background:#0f172a;border-radius:6px;margin-bottom:6px"><div style="flex:1;font-size:13px;color:#e2e8f0">' + label + '</div><button type="button" onclick="resumeLoad(\'' + safeId + '\')" style="background:#fbbf24;color:#0f172a;border:none;padding:6px 12px;border-radius:4px;font-weight:700;font-size:12px;cursor:pointer">RESUME</button></div>';
+    }).join('');
+    window.__openLoadsCache = openLoads;
+  } catch (err) {
+    console.error('[refreshOpenLoadsList]', err);
+  }
+}
+
+// Pre-fills the load form from an open load and switches to finish mode
+function resumeLoad(loadId) {
+  try {
+    const all = window.__openLoadsCache || [];
+    const x = all.find(l => (l.loadId||'').replace(/[^A-Z0-9]/gi,'') === loadId);
+    if (!x) { showToast('Open load not found', true); return; }
+
+    // Set direction
+    if (x.type === 'Outbound') { setDirection('out'); } else { setDirection('in'); }
+
+    // Pre-fill simple fields
+    function setVal(id, v) { const el = document.getElementById(id); if (el && v != null) el.value = v; }
+    setVal('loadDate', x.date);
+    setSelectValue ? setSelectValue('loadDriver', x.driver) : setVal('loadDriver', x.driver);
+    if (x.type === 'Inbound') {
+      setSelectValue ? setSelectValue('loadSupplier', x.source) : setVal('loadSupplier', x.source);
+    } else {
+      setSelectValue ? setSelectValue('loadCustomer', x.source) : setVal('loadCustomer', x.source);
+      setSelectValue ? setSelectValue('loadCommodity', x.commodity) : setVal('loadCommodity', x.commodity);
+    }
+    setSelectValue ? setSelectValue('loadTruck', x.truck) : setVal('loadTruck', x.truck);
+    setSelectValue ? setSelectValue('loadTrailer', x.trailer) : setVal('loadTrailer', x.trailer);
+    setVal('loadTimeStart', x.timeStart);
+    setVal('loadMileStart', x.mileStart);
+
+    currentResumeLoadId = x.loadId;
+    document.getElementById('btnStartLoad').style.display = 'none';
+    document.getElementById('btnSubmitLoad').style.display = 'none';
+    document.getElementById('btnFinishLoad').style.display = 'block';
+    const banner = document.getElementById('resumeModeBanner');
+    if (banner) banner.style.display = 'block';
+    const bt = document.getElementById('resumeModeText');
+    if (bt) bt.textContent = 'Finishing: ' + (x.type||'?') + ' - ' + (x.source||'?') + ' (started ' + (x.timeStart||'?') + ')';
+
+    // Scroll to top of load form
+    document.getElementById('panel-load').scrollIntoView({behavior:'smooth', block:'start'});
+    showToast('Fill in scale ticket info and tap FINISH LOAD');
+  } catch (err) {
+    console.error('[resumeLoad]', err);
+    showToast('Resume error: ' + (err && err.message ? err.message : String(err)), true);
+  }
+}
+
+function exitResumeMode() {
+  currentResumeLoadId = null;
+  const banner = document.getElementById('resumeModeBanner');
+  if (banner) banner.style.display = 'none';
+  document.getElementById('btnStartLoad').style.display = 'block';
+  document.getElementById('btnSubmitLoad').style.display = 'block';
+  document.getElementById('btnFinishLoad').style.display = 'none';
+}
+
+// Auto-refresh open loads list when driver changes or load panel becomes visible
+window.addEventListener('DOMContentLoaded', function() {
+  setTimeout(refreshOpenLoadsList, 1500);
+  setInterval(refreshOpenLoadsList, 60000);
+  const dd = document.getElementById('loadDriver');
+  if (dd) dd.addEventListener('change', refreshOpenLoadsList);
+});
 
 // ===== SUBMIT FUEL =====
 function submitFuel() {
@@ -3176,395 +3445,4 @@ function syncAllConfig() {
       configSync.pushAll().then(function(ok) {
         if (msg) {
           if (ok) { msg.textContent = 'All config synced! Other devices will pick up changes on next load.'; msg.className = 'sync-status success'; }
-          else { msg.textContent = 'Sync failed. Check connection.'; msg.className = 'sync-status error'; }
-          setTimeout(function() { msg.textContent = ''; msg.className = 'sync-status'; }, 5000);
-        }
-        if (!msg && ok) { showToast('Config synced to server'); }
-        if (!msg && !ok) { showToast('Sync failed - check connection'); }
-      });
-    }
-
-// ===== CONFIG SYNC MODULE =====
-// Syncs admin config (suppliers, trucks, etc.) via Google Sheet so all devices stay in sync
-const configSync = (() => {
-  const SYNC_KEY = 'll_config_last_sync';
-  const SYNC_INTERVAL = 5 * 60 * 1000; // 5 min cache
-
-  // Pull config from server (Google Sheet via Apps Script)
-  async function pull() {
-    try {
-      const url = sheetsSync.getWebAppUrl() + '?action=getConfig';
-      const resp = await fetch(url);
-      if (!resp.ok) throw new Error('HTTP ' + resp.status);
-      const data = await resp.json();
-      if (data && data.config) {
-        // Save each config category to localStorage
-        const categories = ['suppliers','customers','trucks','trailers','commodities','products'];
-        categories.forEach(cat => {
-          if (data.config[cat] && Array.isArray(data.config[cat]) && data.config[cat].length > 0) {
-            localStorage.setItem('ll_cfg_' + cat, JSON.stringify(data.config[cat]));
-          }
-        });
-        localStorage.setItem(SYNC_KEY, Date.now().toString());
-        console.log('[configSync] Pulled config from server');
-        return true;
-      }
-      return false;
-    } catch(e) {
-      console.warn('[configSync] Pull failed:', e.message);
-      return false;
-    }
-  }
-
-  // Push config to server (admin only)
-  async function push(category, data) {
-    try {
-      const url = sheetsSync.getWebAppUrl();
-      const resp = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain' },
-        body: JSON.stringify({ type: 'configSync', category: category, data: data })
-      });
-      if (!resp.ok) throw new Error('HTTP ' + resp.status);
-      console.log('[configSync] Pushed ' + category + ' to server');
-      return true;
-    } catch(e) {
-      console.warn('[configSync] Push failed:', e.message);
-      return false;
-    }
-  }
-
-  // Push ALL categories at once (admin bulk sync)
-  async function pushAll() {
-    const categories = ['suppliers','customers','trucks','trailers','commodities','products'];
-    const allConfig = {};
-    categories.forEach(cat => {
-      const stored = localStorage.getItem('ll_cfg_' + cat);
-      if (stored) {
-        try { allConfig[cat] = JSON.parse(stored); } catch(e) {}
-      }
-    });
-    try {
-      const url = sheetsSync.getWebAppUrl();
-      const resp = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain' },
-        body: JSON.stringify({ type: 'configSyncAll', config: allConfig })
-      });
-      if (!resp.ok) throw new Error('HTTP ' + resp.status);
-      console.log('[configSync] Pushed all config to server');
-      return true;
-    } catch(e) {
-      console.warn('[configSync] PushAll failed:', e.message);
-      return false;
-    }
-  }
-
-  // Check if we should pull (stale cache or never synced)
-  function needsSync() {
-    const last = parseInt(localStorage.getItem(SYNC_KEY) || '0');
-    return (Date.now() - last) > SYNC_INTERVAL;
-  }
-
-  return { pull, push, pushAll, needsSync };
-})();
-
-// ===== SHEETS SYNC MODULE =====
-const sheetsSync = (() => {
-  const WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbwjDeDTHZ5ca97RVZL-jizNgs6fXgjij8y8McPyieqVeadAkdr0FW5E_iQSRa7W2nKjkw/exec';
-  const QUEUE_KEY = 'll_sync_queue';
-
-  function getQueue() {
-    try { return JSON.parse(localStorage.getItem(QUEUE_KEY)) || []; }
-    catch(e) { return []; }
-  }
-
-  function saveQueue(q) {
-    localStorage.setItem(QUEUE_KEY, JSON.stringify(q));
-  }
-
-  async function send(action, data) {
-    // v2.5.21: SILENT-DROP FIX. Dropped mode:'no-cors' which made the browser
-    // treat every response as opaque — meaning HTTP 500s, captive portal
-    // hijacks, and backend errors all looked like success. Now we read the
-    // response, parse it, and only markSynced() if the backend confirms.
-    // Backend WebApp.gs dispatches on data.type (not data.action). Include both.
-    const payload = { ...data, action, messageType: action };
-    const ts = data.timestamp || new Date().toISOString();
-    try {
-      const resp = await fetch(WEBAPP_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain' },
-        body: JSON.stringify(payload)
-      });
-      if (!resp.ok) {
-        throw new Error('HTTP ' + resp.status);
-      }
-      var bodyText = await resp.text();
-      var parsed = null;
-      try { parsed = JSON.parse(bodyText); } catch(_) {}
-      if (!parsed || parsed.success !== true) {
-        var errMsg = (parsed && parsed.error) ? parsed.error : ('Bad response: ' + bodyText.substring(0,120));
-        throw new Error(errMsg);
-      }
-      markSynced(ts);
-      console.log('[SheetsSync] Confirmed ' + action + ' synced to RAW (' + (parsed.type||action) + ')');
-      if (action === 'load') {
-        try { notifyCostTracker(); } catch(_) {}
-      }
-      return true;
-    } catch(err) {
-      console.warn('[SheetsSync] Send failed, queued for retry:', err.message);
-      const q = getQueue();
-      q.push({ action, data, queuedAt: new Date().toISOString(), lastError: err.message });
-      saveQueue(q);
-      return false;
-    }
-  }
-
-  function markSynced(timestamp) {
-    const synced = JSON.parse(localStorage.getItem('ll_sheets_synced') || '[]');
-    if (!synced.includes(timestamp)) {
-      synced.push(timestamp);
-      try { localStorage.setItem('ll_sheets_synced', JSON.stringify(synced)); } catch(_){}
-    }
-    // v2.5.5: strip the local base64 photo from the synced load. The Sheet now
-    // has it (posted via the Apps Script webhook). Keeping a second copy in
-    // localStorage on the driver's phone is what filled up Juan's storage and
-    // caused the "exceeded the quota" submit error.
-    try {
-      const loads = JSON.parse(localStorage.getItem('ll_loads') || '[]');
-      let changed = false;
-      for (const l of loads) {
-        if (l && l.timestamp === timestamp && l.photoData) {
-          l.photoData = '';
-          changed = true;
-        }
-      }
-      if (changed) localStorage.setItem('ll_loads', JSON.stringify(loads));
-    } catch(_){}
-    // v2.5.7: also drop from the photo store once synced
-    try { deletePhoto(timestamp); } catch(_){}
-  }
-
-  function notifyCostTracker() {
-    // Pings the Load Cost Tracker webhook to trigger pullLoadLedger().
-    // Fire-and-forget: no await, no error surfacing — driver never feels this.
-    try {
-      var url = 'https://script.google.com/macros/s/AKfycbylQqzYspogLC7Lr5rkRp_XMRCFrOFxkuyBeeNbt06SFrGxicJvSQm6FaCS2CGMS3r2Rw/exec'
-        + '?secret=QKIZgH-mjwlaso8V9X7PgnUpo_jgJiKZHr22xwDDuhc'
-        + '&action=pull&_=' + Date.now();
-      fetch(url, { method: 'GET', mode: 'no-cors', cache: 'no-store' }).catch(function(){});
-    } catch(_) {}
-  }
-
-  function isSynced(timestamp) {
-    const synced = JSON.parse(localStorage.getItem('ll_sheets_synced') || '[]');
-    return synced.includes(timestamp);
-  }
-
-  async function retryQueue() {
-    // v2.5.21: SILENT-DROP FIX. Same response-checking as send().
-    const q = getQueue();
-    if (q.length === 0) return { sent: 0, failed: 0 };
-    const failed = [];
-    let sent = 0;
-    for (const item of q) {
-      try {
-        const payload = Object.assign({}, item.data, { action: item.action, messageType: item.action, type: (item.data && item.data.type) || item.action });
-        const resp = await fetch(WEBAPP_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain' },
-          body: JSON.stringify(payload)
-        });
-        if (!resp.ok) throw new Error('HTTP ' + resp.status);
-        var bodyText = await resp.text();
-        var parsed = null;
-        try { parsed = JSON.parse(bodyText); } catch(_) {}
-        if (!parsed || parsed.success !== true) {
-          throw new Error((parsed && parsed.error) ? parsed.error : 'Bad response');
-        }
-        markSynced(item.data.timestamp);
-        sent++;
-      } catch(err) {
-        item.lastError = err.message;
-        failed.push(item);
-      }
-    }
-    saveQueue(failed);
-    return { sent, failed: failed.length };
-  }
-
-  async function syncAll() {
-    const loads = JSON.parse(localStorage.getItem('ll_loads') || '[]');
-    const fuel = JSON.parse(localStorage.getItem('ll_fuel') || '[]');
-    const dvir = JSON.parse(localStorage.getItem('ll_dvir') || '[]');
-    let total = 0;
-    let synced = 0;
-    for (const load of loads) {
-      if (!isSynced(load.timestamp)) {
-        const ok = await send('load', load);
-        if (ok) synced++;
-        total++;
-      }
-    }
-    for (const f of fuel) {
-      if (!isSynced(f.timestamp)) {
-        const ok = await send('fuel', f);
-        if (ok) synced++;
-        total++;
-      }
-    }
-    for (const d of dvir) {
-      if (!isSynced(d.timestamp)) {
-        const ok = await send('dvir', d);
-        if (ok) synced++;
-        total++;
-      }
-    }
-    return { total, synced, queued: total - synced };
-  }
-
-  function getStatus() {
-    const queue = getQueue();
-    const synced = JSON.parse(localStorage.getItem('ll_sheets_synced') || '[]');
-    return {
-      synced: synced.length,
-      queued: queue.length,
-      configured: WEBAPP_URL !== 'YOUR_DEPLOYED_WEBAPP_URL_HERE'
-    };
-  }
-
-  if (typeof window !== 'undefined') {
-    window.addEventListener('online', () => {
-      console.log('[SheetsSync] Back online, retrying queue...');
-      retryQueue().then(r => {
-        if (r.sent > 0) console.log('[SheetsSync] Retried ' + r.sent + ' entries');
-      });
-    });
-  }
-
-  return { send, retryQueue, syncAll, getStatus, isSynced, getWebAppUrl: function() { return WEBAPP_URL; } };
-})();
-
-
-
-
-/* ============================================================
-     GPS TRACKING MODULE
-     - Starts on clock-in (PIN login success)
-     - Tracks position while session is active
-     - Attaches coords to load submissions
-     - Stops on clock-out
-     ============================================================ */
-  const gpsTracker = (function() {
-    let watchId = null;
-    let currentPosition = null;
-    let trackingActive = false;
-    let positionLog = [];
-
-    function start() {
-      if (!navigator.geolocation) {
-        console.warn('GPS: Geolocation not supported');
-        return;
-      }
-      navigator.geolocation.getCurrentPosition(
-        function(pos) {
-          currentPosition = {
-            lat: pos.coords.latitude,
-            lng: pos.coords.longitude,
-            accuracy: pos.coords.accuracy,
-            timestamp: new Date().toISOString()
-          };
-          positionLog.push(currentPosition);
-          trackingActive = true;
-          updateGpsIndicator(true);
-          // Start continuous tracking
-          watchId = navigator.geolocation.watchPosition(
-            function(pos) {
-              currentPosition = {
-                lat: pos.coords.latitude,
-                lng: pos.coords.longitude,
-                accuracy: pos.coords.accuracy,
-                timestamp: new Date().toISOString()
-              };
-              positionLog.push(currentPosition);
-              updateGpsIndicator(true);
-            },
-            function(err) {
-              console.warn('GPS watch error:', err.message);
-              updateGpsIndicator(false);
-            },
-            { enableHighAccuracy: true, timeout: 30000, maximumAge: 60000 }
-          );
-        },
-        function(err) {
-          console.warn('GPS permission denied or error:', err.message);
-          trackingActive = false;
-          updateGpsIndicator(false);
-        },
-        { enableHighAccuracy: true, timeout: 15000 }
-      );
-    }
-
-    function stop() {
-      if (watchId !== null) {
-        navigator.geolocation.clearWatch(watchId);
-        watchId = null;
-      }
-      trackingActive = false;
-      currentPosition = null;
-      positionLog = [];
-      updateGpsIndicator(false);
-    }
-
-    function getPosition() {
-      return currentPosition;
-    }
-
-    function isTracking() {
-      return trackingActive;
-    }
-
-    function getLog() {
-      return positionLog.slice();
-    }
-
-    function updateGpsIndicator(active) {
-      const el = document.getElementById('gps-indicator');
-      if (el) {
-        el.textContent = active ? 'GPS: ON' : 'GPS: OFF';
-        el.className = 'gps-indicator ' + (active ? 'gps-on' : 'gps-off');
-      }
-    }
-
-    return { start: start, stop: stop, getPosition: getPosition, isTracking: isTracking, getLog: getLog };
-  })();
-
-
-
-  function clockOut() {
-  logActivity("Logout", (window.currentUser || "unknown") + " logged out");
-    gpsTracker.stop();
-    document.getElementById('pin-overlay').classList.remove('hidden');
-    document.body.classList.add('locked');
-    pinEntry = '';
-    document.getElementById('pin-error').textContent = '';
-    document.getElementById('pin-user-select').value = '';
-    updateDots();
-    // Hide admin tab on clock out
-    document.getElementById('tab-admin').classList.add('hidden');
-    switchTab('load');
-    showToast('Clocked out. GPS tracking stopped.');
-  }
-
-</script>
-
-<script>
-// v2.5.11: SW disabled — self-heal block in <head> handles cleanup.
-// We rely on browser cache only (network-first via Cache-Control headers from GitHub Pages).
-// Drivers need signal to use the app; offline mode is OFF until SW strategy is rebuilt.
-</script>
-<div class="version-badge" id="versionBadge">v</div>
-</body>
-</html>
+          else { msg.textConte
