@@ -1,1 +1,1 @@
-{"version":"2.5.22","min_version":"2.5.22","released":"2026-05-11","notes":"Load Driver dropdown stores canonical driver name (d.name) instead of internal id (d.id). Future loads will write 'James Gass' not 'james' to RAW. Matches Fuel/DVIR dropdowns."}
+{"version":"2.5.23","min_version":"2.5.23","released":"2026-05-11","notes":"Driver display names cleaned: 'Chad (Admin)' -> 'Chad', 'James Gass (Admin)' -> 'James Gass'. Admin role unchanged. Combined with v2.5.22, all future load submissions write canonical driver names to RAW."}
