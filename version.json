@@ -1,1 +1,1 @@
-{"version":"2.5.21","min_version":"2.5.21","released":"2026-05-11","notes":"SILENT-DROP FIX: load/fuel/DVIR submissions now verify backend confirmation before marking synced. Was using mode:no-cors which made HTTP errors and bad responses look like success. Fixes James/John/Juan/Chad missing data in RAW Loads."}
+{"version":"2.5.22","min_version":"2.5.22","released":"2026-05-11","notes":"Load Driver dropdown stores canonical driver name (d.name) instead of internal id (d.id). Future loads will write 'James Gass' not 'james' to RAW. Matches Fuel/DVIR dropdowns."}
