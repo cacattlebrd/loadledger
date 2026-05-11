@@ -1035,6 +1035,8 @@ function populateDropdowns() {
   });
 
   // Load Driver
+  // v2.5.22: was opt.value = d.id (e.g. "james") — now uses d.name ("James Gass") so RAW Loads
+  // stores canonical names. Matches the Fuel/DVIR dropdowns which already use d.name.
   const loadDriver = document.getElementById('loadDriver');
   loadDriver.innerHTML = '<option value="">Select driver...</option>';
   Object.keys(driversByGroup).forEach(group => {
@@ -1042,7 +1044,7 @@ function populateDropdowns() {
     og.label = group;
     driversByGroup[group].forEach(d => {
       const opt = document.createElement('option');
-      opt.value = d.id;
+      opt.value = d.name;
       opt.textContent = d.name;
       og.appendChild(opt);
     });
@@ -1556,7 +1558,7 @@ function roundTons(net) {
 }
 
 // ===== AUTO-UPDATE (v2.5.7) =====
-const APP_VERSION = '2.5.21';
+const APP_VERSION = '2.5.22';
 const UPDATE_CHECK_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
 
 async function checkForUpdate() {
