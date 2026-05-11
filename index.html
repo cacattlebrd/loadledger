@@ -1556,7 +1556,7 @@ function roundTons(net) {
 }
 
 // ===== AUTO-UPDATE (v2.5.7) =====
-const APP_VERSION = '2.5.20';
+const APP_VERSION = '2.5.21';
 const UPDATE_CHECK_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
 
 async function checkForUpdate() {
@@ -3282,28 +3282,39 @@ const sheetsSync = (() => {
   }
 
   async function send(action, data) {
-    // Backend WebApp.gs dispatches on data.type (not data.action). Include both for safety.
+    // v2.5.21: SILENT-DROP FIX. Dropped mode:'no-cors' which made the browser
+    // treat every response as opaque — meaning HTTP 500s, captive portal
+    // hijacks, and backend errors all looked like success. Now we read the
+    // response, parse it, and only markSynced() if the backend confirms.
+    // Backend WebApp.gs dispatches on data.type (not data.action). Include both.
     const payload = { ...data, action, messageType: action };
+    const ts = data.timestamp || new Date().toISOString();
     try {
       const resp = await fetch(WEBAPP_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain' },
-        body: JSON.stringify(payload),
-        mode: 'no-cors'
+        body: JSON.stringify(payload)
       });
-      markSynced(data.timestamp || new Date().toISOString());
-      console.log('[SheetsSync] Sent ' + action + ' to Google Sheets');
-      // v2.5.13: fire-and-forget push to Load Cost Tracker so the cost workbook
-      // mirrors fresh load data without waiting for a daily scheduled pull.
-      // Only on 'load' submissions (not fuel/dvir). Driver never blocks on this.
+      if (!resp.ok) {
+        throw new Error('HTTP ' + resp.status);
+      }
+      var bodyText = await resp.text();
+      var parsed = null;
+      try { parsed = JSON.parse(bodyText); } catch(_) {}
+      if (!parsed || parsed.success !== true) {
+        var errMsg = (parsed && parsed.error) ? parsed.error : ('Bad response: ' + bodyText.substring(0,120));
+        throw new Error(errMsg);
+      }
+      markSynced(ts);
+      console.log('[SheetsSync] Confirmed ' + action + ' synced to RAW (' + (parsed.type||action) + ')');
       if (action === 'load') {
         try { notifyCostTracker(); } catch(_) {}
       }
       return true;
     } catch(err) {
-      console.warn('[SheetsSync] Failed to send, queued for retry:', err.message);
+      console.warn('[SheetsSync] Send failed, queued for retry:', err.message);
       const q = getQueue();
-      q.push({ action, data, queuedAt: new Date().toISOString() });
+      q.push({ action, data, queuedAt: new Date().toISOString(), lastError: err.message });
       saveQueue(q);
       return false;
     }
@@ -3351,21 +3362,30 @@ const sheetsSync = (() => {
   }
 
   async function retryQueue() {
+    // v2.5.21: SILENT-DROP FIX. Same response-checking as send().
     const q = getQueue();
     if (q.length === 0) return { sent: 0, failed: 0 };
     const failed = [];
     let sent = 0;
     for (const item of q) {
       try {
-        await fetch(WEBAPP_URL, {
+        const payload = Object.assign({}, item.data, { action: item.action, messageType: item.action, type: (item.data && item.data.type) || item.action });
+        const resp = await fetch(WEBAPP_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'text/plain' },
-          body: JSON.stringify({ data: item.data, type: item.action, action: item.action }),
-          mode: 'no-cors'
+          body: JSON.stringify(payload)
         });
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        var bodyText = await resp.text();
+        var parsed = null;
+        try { parsed = JSON.parse(bodyText); } catch(_) {}
+        if (!parsed || parsed.success !== true) {
+          throw new Error((parsed && parsed.error) ? parsed.error : 'Bad response');
+        }
         markSynced(item.data.timestamp);
         sent++;
       } catch(err) {
+        item.lastError = err.message;
         failed.push(item);
       }
     }
