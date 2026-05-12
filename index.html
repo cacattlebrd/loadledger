@@ -27,7 +27,7 @@
     var qs = window.location.search || '';
     if (qs.indexOf('v=') !== -1) return; // already cache-busted this load, don't loop
 
-    var BOOT_VERSION_HINT = '2.6.4'; // injected during build below
+    var BOOT_VERSION_HINT = '2.6.5'; // injected during build below
     var url = './version.json?_=' + Date.now();
     var xhr = new XMLHttpRequest();
     xhr.open('GET', url, true);
@@ -727,35 +727,24 @@ document.addEventListener('DOMContentLoaded', function(){
   </div>
   <div class="calc-row">
     <div class="form-group">
-      <label>Diesel (gal)</label>
-      <input type="number" id="fuelGal" placeholder="0" step="0.1">
+      <label>Diesel pumped (gal)</label>
+      <input type="number" id="fuelGal" placeholder="0" step="0.1" inputmode="decimal">
     </div>
     <div class="form-group">
-      <label>DEF (boxes)</label>
-      <input type="number" id="defGal" placeholder="0" step="1" min="0">
-    </div>
-  </div>
-  <div class="calc-row">
-    <div class="form-group">
-      <label>Diesel Cost ($)</label>
-      <input type="number" id="fuelCost" placeholder="0.00" step="0.01">
-    </div>
-    <div class="form-group">
-      <label>DEF Cost ($)</label>
-      <input type="number" id="defCost" placeholder="0.00" step="0.01">
+      <label>DEF boxes used</label>
+      <input type="number" id="defBoxes" placeholder="0" step="1" min="0" inputmode="numeric">
     </div>
   </div>
   <div class="form-group">
     <label>Odometer</label>
-    <input type="number" id="fuelOdo" placeholder="Current mileage">
-  </div>
-  <div class="form-group">
-    <label>Station / Location</label>
-    <input type="text" id="fuelStation" placeholder="e.g. Stripes Mason">
+    <input type="number" id="fuelOdo" placeholder="Current mileage" inputmode="numeric">
   </div>
   <div class="form-group">
     <label>Notes</label>
     <textarea id="fuelNotes" placeholder="Optional..."></textarea>
+  </div>
+  <div style="background:#1e293b;border:1px solid #334155;border-radius:6px;padding:10px;margin:10px 0;font-size:11px;color:#94a3b8;text-align:center">
+    Cost is filled in by the office from bulk diesel/DEF deliveries. Just enter what you pumped.
   </div>
   <button type="button" class="btn-submit amber" onclick="submitFuel()">SUBMIT FUEL LOG</button>
 </div>
@@ -853,6 +842,7 @@ document.addEventListener('DOMContentLoaded', function(){
       <span class="sys-toggle">+</span>
     </div>
     <div class="sys-update-body" style="display:none">
+      <div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">May 12</div><div class="sys-update-text">v2.6.5 - Fuel/DEF entry simplified. Just enter diesel gallons (off the pump meter) and how many DEF boxes you used. No more cost fields, no more station to type - the office handles all that from bulk diesel/DEF deliveries on the Logistics Tracker. Station auto-stamps to the yard.</div></div>
       <div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">May 12</div><div class="sys-update-text">v2.6.4 - Delete unfinished loads. Each unfinished load now has a small red DELETE button below the green RESUME button. Tap DELETE and confirm to remove the load from your unfinished list. Only the driver who started the load (or an admin) can delete it. Once deleted it stays gone - no more piling up.</div></div>
       <div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">May 12</div><div class="sys-update-text">v2.6.3 - Login speed fix. Unfinished loads now appear the SECOND you log in - not 60 seconds later. Same orange banner, just shows up instantly the moment you punch in your PIN.</div></div>
       <div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">May 12</div><div class="sys-update-text">v2.6.2 - Unfinished loads now jump out at you. Big bright orange banner with a count at the top of the LOAD tab the moment you open it - no waiting. START LOAD now saves EVERYTHING you typed (products, commodity, mileage, notes, partial weights) so RESUME brings the whole form back. Multiple unfinished loads supported - each one is its own row, tap any RESUME button to pick up where you left off.</div></div>
@@ -1600,7 +1590,7 @@ function roundTons(net) {
 }
 
 // ===== AUTO-UPDATE (v2.5.7) =====
-const APP_VERSION = '2.6.4';
+const APP_VERSION = '2.6.5';
 const UPDATE_CHECK_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
 
 async function checkForUpdate() {
@@ -2598,32 +2588,43 @@ if (typeof window !== 'undefined') {
 }
 
 // ===== SUBMIT FUEL =====
+// v2.6.5: simplified entry. Drivers enter gallons (off pump meter) + DEF box
+// count. Costs are NOT entered here - office fills them via bulk diesel/DEF
+// price lookups on the Logistics Tracker. Station auto-stamps to the yard.
 function submitFuel() {
   try {
+  var fuelGal = parseFloat(document.getElementById('fuelGal').value) || 0;
+  var defBoxes = parseInt(document.getElementById('defBoxes').value, 10) || 0;
+  // 2.5 gal/box - derived so MPG math has real DEF gallons.
+  var defGal = defBoxes * 2.5;
   const entry = {
     date: document.getElementById('fuelDate').value,
     driver: document.getElementById('fuelDriver').value,
     truck: document.getElementById('fuelTruck').value,
-    fuelGal: parseFloat(document.getElementById('fuelGal').value) || 0,
-    defGal: parseFloat(document.getElementById('defGal').value) || 0,
-    fuelCost: parseFloat(document.getElementById('fuelCost').value) || 0,
-    defCost: parseFloat(document.getElementById('defCost').value) || 0,
+    fuelGal: fuelGal,
+    defGal: defGal,            // derived: boxes * 2.5
+    defBoxes: defBoxes,        // source of truth (inventory)
+    fuelCost: 0,               // office-filled
+    defCost: 0,                // office-filled
     odometer: document.getElementById('fuelOdo').value,
-    station: document.getElementById('fuelStation').value,
+    station: 'Yard - 902 Monterey St',  // auto-stamped
     notes: document.getElementById('fuelNotes').value,
     timestamp: new Date().toISOString()
   };
-  if(!entry.driver || !entry.date) { showToast('Please fill required fields'); return; }
-  // v2.5.14: aliases so backend handleFuel (expects fuelAmount/defAmount/cost/supplier) writes the values into Fuel-DEF tab.
+  if(!entry.driver || !entry.date) { showToast('Pick a driver and date', true); return; }
+  if (!fuelGal && !defBoxes) { showToast('Enter diesel gallons or DEF boxes (or both)', true); return; }
+
+  // Aliases for backend handleFuel (expects fuelAmount/defAmount/cost/supplier).
   entry.fuelAmount = entry.fuelGal;
   entry.defAmount = entry.defGal;
-  entry.cost = (entry.fuelCost || 0) + (entry.defCost || 0);
+  entry.cost = 0;                   // office-filled later
   entry.supplier = entry.station;
+
   addStore('fuel', entry);
   sheetsSync.send('fuel', entry);
-  logActivity("Fuel/DEF Submitted", (entry.driver||"?") + " - " + (entry.fuelGal||"0") + " gal fuel, " + (entry.defGal||"0") + " boxes DEF");
-  showToast('Fuel log saved');
-  ['fuelGal','defGal','fuelCost','defCost','fuelOdo','fuelStation','fuelNotes'].forEach(id => { var _el = document.getElementById(id); if(_el) _el.value = ''; });
+  logActivity("Fuel/DEF Submitted", (entry.driver||"?") + " - " + fuelGal + " gal fuel, " + defBoxes + " boxes DEF");
+  showToast('Fuel log saved - ' + fuelGal + ' gal, ' + defBoxes + ' DEF box' + (defBoxes === 1 ? '' : 'es'));
+  ['fuelGal','defBoxes','fuelOdo','fuelNotes'].forEach(id => { var _el = document.getElementById(id); if(_el) _el.value = ''; });
   } catch(err) {
     console.error('[submitFuel]', err);
     showToast('Submit error: ' + (err && err.message ? err.message : String(err)), true);
