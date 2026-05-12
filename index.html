@@ -27,7 +27,7 @@
     var qs = window.location.search || '';
     if (qs.indexOf('v=') !== -1) return; // already cache-busted this load, don't loop
 
-    var BOOT_VERSION_HINT = '2.6.1'; // injected during build below
+    var BOOT_VERSION_HINT = '2.6.2'; // injected during build below
     var url = './version.json?_=' + Date.now();
     var xhr = new XMLHttpRequest();
     xhr.open('GET', url, true);
@@ -1579,7 +1579,7 @@ function roundTons(net) {
 }
 
 // ===== AUTO-UPDATE (v2.5.7) =====
-const APP_VERSION = '2.6.1';
+const APP_VERSION = '2.6.2';
 const UPDATE_CHECK_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
 
 async function checkForUpdate() {
@@ -2172,12 +2172,19 @@ function resumeLoad(loadId) {
 }
 
 function exitResumeMode() {
+  // v2.6.2: clear form on Cancel so driver can't accidentally SUBMIT a load they just CANCELLED resuming.
+  // The Open load row stays in RAW with Load Stage=Open so they can resume it later from the Open Loads list.
+  const wasResuming = !!currentResumeLoadId;
   currentResumeLoadId = null;
   const banner = document.getElementById('resumeModeBanner');
   if (banner) banner.style.display = 'none';
   document.getElementById('btnStartLoad').style.display = 'block';
   document.getElementById('btnSubmitLoad').style.display = 'block';
   document.getElementById('btnFinishLoad').style.display = 'none';
+  if (wasResuming) {
+    clearLoadFormForNext();
+    // Don't clear driver/direction/supplier - those are kept so driver can quickly enter a new load
+  }
 }
 
 // Auto-refresh open loads list when driver changes or load panel becomes visible
@@ -3441,7 +3448,4 @@ function exportCSV(type) {
   let csv = '';
   if(type === 'loads') {
     csv = 'Type,Date,Driver,Source,Products,Commodity,Truck,Trailer,Ticket,Gross,Tare,Net,Tons,TimeStart,TimeEnd,TotalTime,MileStart,MileEnd,TotalMiles,HasPhoto,Notes\n';
-    data.forEach(r => csv += [r.type,r.date,r.driver,r.source,'"'+(r.products||'')+'"',r.commodity,r.truck,r.trailer,r.ticket,r.gross,r.tare,r.net,r.tons,r.timeStart||'',r.timeEnd||'',r.totalTime||'',r.mileStart||'',r.mileEnd||'',r.totalMiles||'',r.hasPhoto?'Y':'N','"'+(r.notes||'')+'"'].join(',') + '\n');
-  } else if(type === 'fuel') {
-    csv = 'Date,Driver,Truck,Diesel_Gal,DEF_Gal,Diesel_Cost,DEF_Cost,Odometer,Station,Notes\n';
-    data.forEach(r => csv += [r.date,r.driver,r.truck,r.fuelGal,r.defGal,r.fuelCost,r.defCost,r.odometer,r.station,'"'+(r.notes||'')+'"'].join(',') + '\n')
+    data.forEach(r => csv += [r.type,r.date,r.driver,r.source,'"'+(r.products||'')+'"',r.commodity,r.truck,r.trailer,r.ticket,r.gross,r.tare,r.net,r.tons,r.timeStart||'',r.t
