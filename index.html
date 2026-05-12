@@ -27,7 +27,7 @@
     var qs = window.location.search || '';
     if (qs.indexOf('v=') !== -1) return; // already cache-busted this load, don't loop
 
-    var BOOT_VERSION_HINT = '2.6.5'; // injected during build below
+    var BOOT_VERSION_HINT = '2.6.6'; // injected during build below
     var url = './version.json?_=' + Date.now();
     var xhr = new XMLHttpRequest();
     xhr.open('GET', url, true);
@@ -671,17 +671,7 @@ document.addEventListener('DOMContentLoaded', function(){
     <div class="lbl">TONS</div>
   </div>
 
-  <!-- Ticket Photo Upload -->
-  <div class="section-title">Ticket Photo</div>
-  <div class="form-group">
-    <div class="photo-upload" id="photoUpload" onclick="document.getElementById('ticketPhoto').click()" ondragover="event.preventDefault();this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')" ondrop="handlePhotoDrop(event)">
-      <input type="file" id="ticketPhoto" accept="image/*" capture="environment" onchange="handlePhotoSelect(event)">
-      <div id="photoPreview">
-        <div class="upload-icon">&#128247;</div>
-        <div class="upload-text">Tap to take photo or upload ticket image</div>
-      </div>
-    </div>
-  </div>
+  <!-- v2.6.6: Photo upload disabled. Hard copy scale ticket is system of record. -->
 
   <div class="form-group">
     <label>Notes</label>
@@ -842,6 +832,7 @@ document.addEventListener('DOMContentLoaded', function(){
       <span class="sys-toggle">+</span>
     </div>
     <div class="sys-update-body" style="display:none">
+      <div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">May 12</div><div class="sys-update-text">v2.6.6 - Photo upload disabled. Hard copy scale ticket is the system of record. Photos were causing intermittent silent drops on certain suppliers (Maruchan, HEB SNACKS) where the load looked submitted but never reached the sheet. Cutting the photo path eliminates the failure mode entirely - drivers fill the form, hit SUBMIT, load lands every time.</div></div>
       <div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">May 12</div><div class="sys-update-text">v2.6.5 - Fuel/DEF entry simplified. Just enter diesel gallons (off the pump meter) and how many DEF boxes you used. No more cost fields, no more station to type - the office handles all that from bulk diesel/DEF deliveries on the Logistics Tracker. Station auto-stamps to the yard.</div></div>
       <div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">May 12</div><div class="sys-update-text">v2.6.4 - Delete unfinished loads. Each unfinished load now has a small red DELETE button below the green RESUME button. Tap DELETE and confirm to remove the load from your unfinished list. Only the driver who started the load (or an admin) can delete it. Once deleted it stays gone - no more piling up.</div></div>
       <div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">May 12</div><div class="sys-update-text">v2.6.3 - Login speed fix. Unfinished loads now appear the SECOND you log in - not 60 seconds later. Same orange banner, just shows up instantly the moment you punch in your PIN.</div></div>
@@ -986,7 +977,7 @@ document.addEventListener('DOMContentLoaded', function(){
           <label class="toggle-label"><input type="checkbox" id="req_endTime" onchange="saveFieldReqs()"> End Time</label>
           <label class="toggle-label"><input type="checkbox" id="req_startMiles" onchange="saveFieldReqs()"> Start Miles</label>
           <label class="toggle-label"><input type="checkbox" id="req_endMiles" onchange="saveFieldReqs()"> End Miles</label>
-          <label class="toggle-label"><input type="checkbox" id="req_ticketPhoto" onchange="saveFieldReqs()"> Ticket Photo</label>
+          <!-- v2.6.6: Ticket Photo toggle removed - photos disabled -->
         </div>
       </div>
 
@@ -1590,7 +1581,7 @@ function roundTons(net) {
 }
 
 // ===== AUTO-UPDATE (v2.5.7) =====
-const APP_VERSION = '2.6.5';
+const APP_VERSION = '2.6.6';
 const UPDATE_CHECK_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
 
 async function checkForUpdate() {
@@ -1810,11 +1801,7 @@ function validateLoadForm() {
         const em = parseFloat(document.getElementById('loadMileEnd').value) || 0;
         if (!em) { markError('loadMileEnd'); errors.push('End miles'); }
       }
-      if (reqs.ticketPhoto) {
-        const photoArea = document.getElementById('photoUpload') || document.querySelector('[id*=photo]');
-        const hasPhoto = photoArea && photoArea.querySelector('img');
-        if (!hasPhoto) { markError('photoUpload'); errors.push('Ticket photo'); }
-      }
+      // v2.6.6: ticketPhoto requirement check removed - photos disabled
 
       if (errors.length > 0) {
         errors.forEach(e => markError(e));
@@ -1835,16 +1822,16 @@ function validateLoadForm() {
         startTime: document.getElementById('req_startTime').checked,
         endTime: document.getElementById('req_endTime').checked,
         startMiles: document.getElementById('req_startMiles').checked,
-        endMiles: document.getElementById('req_endMiles').checked,
-        ticketPhoto: document.getElementById('req_ticketPhoto').checked
+        endMiles: document.getElementById('req_endMiles').checked
+        // v2.6.6: ticketPhoto removed - photos disabled
       };
       localStorage.setItem('ll_fieldReqs', JSON.stringify(reqs));
       showToast('Field requirements saved');
     }
     function loadFieldReqs() {
       const reqs = getFieldReqs();
-      const ids = ['req_productType','req_startTime','req_endTime','req_startMiles','req_endMiles','req_ticketPhoto'];
-      const keys = ['productType','startTime','endTime','startMiles','endMiles','ticketPhoto'];
+      const ids = ['req_productType','req_startTime','req_endTime','req_startMiles','req_endMiles'];
+      const keys = ['productType','startTime','endTime','startMiles','endMiles'];
       ids.forEach((id, i) => {
         const el = document.getElementById(id);
         if (el) el.checked = !!reqs[keys[i]];
@@ -1913,8 +1900,8 @@ async function submitLoad() {
     gross, tare, net: gross - tare, tons: roundTons(gross - tare).toFixed(2),
     timeStart, timeEnd, totalTime,
     mileStart, mileEnd, totalMiles,
-    hasPhoto: !!ticketPhotoData,
-    photoData: '', // v2.5.7: photo lives in ll_photos store, not in load record
+    hasPhoto: false,  // v2.6.6: photos disabled
+    photoData: '', // v2.6.6: photos disabled
     notes: document.getElementById('loadNotes').value,
     adminOverride: window.isAdmin && document.getElementById('overrideValidation').checked,
     timestamp: new Date().toISOString(),
@@ -1924,10 +1911,9 @@ async function submitLoad() {
       gpsTimestamp: gpsTracker.getPosition() ? gpsTracker.getPosition().timestamp : null
   };
 
-  // v2.5.7: photo goes to its own store; sheetsSync gets a copy via syncEntry
-  if (ticketPhotoData) savePhoto(entry.timestamp, ticketPhotoData);
+  // v2.6.6: photos disabled — never write a photo, never send photoData
   addStore('loads', entry);
-  const syncEntry = Object.assign({}, entry, { photoData: ticketPhotoData || '' });
+  const syncEntry = Object.assign({}, entry, { photoData: '' });
   logActivity("Load Submitted", (entry.driver||"?") + " - " + (entry.type||"?") + " - " + (entry.tons||"?") + " tons");
   // v2.6.0: AWAIT the backend confirm. Local copy already saved above, so
   // even if the network is down the load is never lost - it just sits in the
@@ -1954,7 +1940,7 @@ async function submitLoad() {
   calcMiles();
   document.getElementById('totalTimeDisplay').textContent = '--:--';
   clearProducts();
-  clearPhoto();
+  // v2.6.6: clearPhoto removed - photos disabled
   if(document.getElementById('overrideValidation')) document.getElementById('overrideValidation').checked = false;
   toggleOverrideUI();
   } catch(err) {
