@@ -27,7 +27,7 @@
     var qs = window.location.search || '';
     if (qs.indexOf('v=') !== -1) return; // already cache-busted this load, don't loop
 
-    var BOOT_VERSION_HINT = '2.6.0'; // injected during build below
+    var BOOT_VERSION_HINT = '2.6.1'; // injected during build below
     var url = './version.json?_=' + Date.now();
     var xhr = new XMLHttpRequest();
     xhr.open('GET', url, true);
@@ -864,6 +864,12 @@ document.addEventListener('DOMContentLoaded', function(){
 
 <!-- ===== ADMIN TAB ===== -->
 <div id="panel-admin" class="panel">
+  <!-- v2.6.0: Stale Open Loads banner — shows loads in Open state >12 hours -->
+  <div id="adminStaleLoadsBanner" style="display:none;margin-bottom:16px;padding:12px;background:rgba(239,68,68,0.10);border:1px solid rgba(239,68,68,0.45);border-radius:10px">
+    <div style="font-size:13px;font-weight:700;color:#ef4444;margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">&#9888; Stale Open Loads (over 12 hours)</div>
+    <div id="adminStaleLoadsList" style="font-size:13px;color:#e2e8f0"></div>
+  </div>
+
   <div class="section-title">Drivers &amp; PINs</div>
 
   <div id="adminDriversList" class="admin-list"></div>
@@ -1573,7 +1579,7 @@ function roundTons(net) {
 }
 
 // ===== AUTO-UPDATE (v2.5.7) =====
-const APP_VERSION = '2.6.0';
+const APP_VERSION = '2.6.1';
 const UPDATE_CHECK_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
 
 async function checkForUpdate() {
@@ -2181,6 +2187,46 @@ window.addEventListener('DOMContentLoaded', function() {
   const dd = document.getElementById('loadDriver');
   if (dd) dd.addEventListener('change', refreshOpenLoadsList);
 });
+
+// v2.6.0: Admin-side stale open loads banner — surfaces any open load >12 hours old.
+// Only renders for admins. Pulls ALL open loads (no driver filter) via getOpenLoads.
+async function refreshAdminStaleLoads() {
+  try {
+    if (!window.isAdmin) return;
+    const banner = document.getElementById('adminStaleLoadsBanner');
+    const list = document.getElementById('adminStaleLoadsList');
+    if (!banner || !list) return;
+    const url = sheetsSync.getWebAppUrl() + '?action=getOpenLoads&driver=&_=' + Date.now();
+    const r = await fetch(url);
+    const t = await r.text();
+    const j = JSON.parse(t);
+    if (!j || !j.success || !Array.isArray(j.loads)) { banner.style.display = 'none'; return; }
+    const cutoff = Date.now() - (12 * 60 * 60 * 1000);
+    const stale = j.loads.filter(x => {
+      if (!x.timestamp) return false;
+      const ts = new Date(x.timestamp).getTime();
+      return !isNaN(ts) && ts < cutoff;
+    });
+    if (stale.length === 0) { banner.style.display = 'none'; list.innerHTML = ''; return; }
+    banner.style.display = 'block';
+    list.innerHTML = stale.map(x => {
+      const hoursAgo = Math.round((Date.now() - new Date(x.timestamp).getTime()) / (60 * 60 * 1000));
+      const safeDriver = (x.driver || '?').replace(/[<>]/g,'');
+      const safeSrc = (x.source || '?').replace(/[<>]/g,'');
+      const safeType = (x.type || '?').replace(/[<>]/g,'');
+      const safeStart = (x.timeStart || '?').replace(/[<>]/g,'');
+      return '<div style="padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.06)">'
+        + '<strong>' + safeDriver + '</strong> &mdash; ' + safeType + ' &mdash; ' + safeSrc
+        + ' &mdash; started ' + safeStart + ' (' + hoursAgo + 'h ago)'
+        + '</div>';
+    }).join('');
+  } catch (err) {
+    console.error('[refreshAdminStaleLoads]', err);
+  }
+}
+// Auto-refresh stale loads every 5 min, and once 3s after login (window.isAdmin gets set during login)
+setTimeout(refreshAdminStaleLoads, 3000);
+setInterval(refreshAdminStaleLoads, 5 * 60 * 1000);
 
 // ===== SUBMIT FUEL =====
 function submitFuel() {
@@ -3398,51 +3444,4 @@ function exportCSV(type) {
     data.forEach(r => csv += [r.type,r.date,r.driver,r.source,'"'+(r.products||'')+'"',r.commodity,r.truck,r.trailer,r.ticket,r.gross,r.tare,r.net,r.tons,r.timeStart||'',r.timeEnd||'',r.totalTime||'',r.mileStart||'',r.mileEnd||'',r.totalMiles||'',r.hasPhoto?'Y':'N','"'+(r.notes||'')+'"'].join(',') + '\n');
   } else if(type === 'fuel') {
     csv = 'Date,Driver,Truck,Diesel_Gal,DEF_Gal,Diesel_Cost,DEF_Cost,Odometer,Station,Notes\n';
-    data.forEach(r => csv += [r.date,r.driver,r.truck,r.fuelGal,r.defGal,r.fuelCost,r.defCost,r.odometer,r.station,'"'+(r.notes||'')+'"'].join(',') + '\n');
-  } else {
-    csv = 'Date,Driver,Truck,Trailer,Type,Odometer,AllClear,Defects,Notes\n';
-    data.forEach(r => csv += [r.date,r.driver,r.truck,r.trailer,r.type,r.odometer,r.allClear,'"'+(r.defects||[]).join('; ')+'"','"'+(r.notes||'')+'"'].join(',') + '\n');
-  }
-  const blob = new Blob([csv], {type:'text/csv'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = 'loadledger_' + type + '_' + new Date().toISOString().slice(0,10) + '.csv';
-  a.click(); URL.revokeObjectURL(url);
-  showToast('CSV downloaded');
-}
-
-function emailExport() {
-  const loads = getStore('loads');
-  const fuel = getStore('fuel');
-  const dvirs = getStore('dvir');
-  let body = 'LOADLEDGER DATA EXPORT\n' + new Date().toLocaleDateString() + '\n\n';
-  body += '=== LOADS (' + loads.length + ') ===\n';
-  loads.forEach(r => body += r.date + ' | ' + r.type + ' | ' + r.source + ' | ' + r.driver + ' | ' + r.tons + 'T | Tkt:' + r.ticket + ' | ' + (r.products||'') + ' | ' + (r.totalMiles||0) + 'mi | ' + (r.totalTime||'') + '\n');
-  body += '\n=== FUEL (' + fuel.length + ') ===\n';
-  fuel.forEach(r => body += r.date + ' | ' + r.driver + ' | ' + r.fuelGal + 'gal $' + r.fuelCost + ' | ' + r.station + '\n');
-  body += '\n=== DVIR (' + dvirs.length + ') ===\n';
-  dvirs.forEach(r => body += r.date + ' | ' + r.driver + ' | ' + r.type + ' | ' + (r.allClear?'All Clear':'DEFECTS: '+r.defects.join(', ')) + '\n');
-  window.location.href = 'mailto:chadcrocker@cacattlebrd.com?subject=LoadLedger%20Export%20' +
-    encodeURIComponent(new Date().toLocaleDateString()) + '&body=' + encodeURIComponent(body);
-}
-
-// ===== TOAST =====
-function showToast(msg, isError) {
-  const t = document.getElementById('toast');
-  if (!t) { try { alert(msg); } catch(e) {} return; }
-  t.textContent = msg;
-  t.classList.toggle('toast-error', !!isError);
-  t.style.display = 'block';
-  if (t._hideTimer) clearTimeout(t._hideTimer);
-  t._hideTimer = setTimeout(function(){ t.style.display = 'none'; t.classList.remove('toast-error'); }, isError ? 6000 : 4500);
-}
-
-
-// Sync all config to server (admin button)
-function syncAllConfig() {
-      var msg = document.getElementById('syncStatusMsg');
-      if (msg) { msg.textContent = 'Syncing...'; msg.className = 'sync-status syncing'; }
-      configSync.pushAll().then(function(ok) {
-        if (msg) {
-          if (ok) { msg.textContent = 'All config synced! Other devices will pick up changes on next load.'; msg.className = 'sync-status success'; }
-          else { msg.textConte
+    data.forEach(r => csv += [r.date,r.driver,r.truck,r.fuelGal,r.defGal,r.fuelCost,r.defCost,r.odometer,r.station,'"'+(r.notes||'')+'"'].join(',') + '\n')
