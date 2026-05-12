@@ -27,7 +27,7 @@
     var qs = window.location.search || '';
     if (qs.indexOf('v=') !== -1) return; // already cache-busted this load, don't loop
 
-    var BOOT_VERSION_HINT = '2.6.3'; // injected during build below
+    var BOOT_VERSION_HINT = '2.6.4'; // injected during build below
     var url = './version.json?_=' + Date.now();
     var xhr = new XMLHttpRequest();
     xhr.open('GET', url, true);
@@ -853,6 +853,7 @@ document.addEventListener('DOMContentLoaded', function(){
       <span class="sys-toggle">+</span>
     </div>
     <div class="sys-update-body" style="display:none">
+      <div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">May 12</div><div class="sys-update-text">v2.6.4 - Delete unfinished loads. Each unfinished load now has a small red DELETE button below the green RESUME button. Tap DELETE and confirm to remove the load from your unfinished list. Only the driver who started the load (or an admin) can delete it. Once deleted it stays gone - no more piling up.</div></div>
       <div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">May 12</div><div class="sys-update-text">v2.6.3 - Login speed fix. Unfinished loads now appear the SECOND you log in - not 60 seconds later. Same orange banner, just shows up instantly the moment you punch in your PIN.</div></div>
       <div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">May 12</div><div class="sys-update-text">v2.6.2 - Unfinished loads now jump out at you. Big bright orange banner with a count at the top of the LOAD tab the moment you open it - no waiting. START LOAD now saves EVERYTHING you typed (products, commodity, mileage, notes, partial weights) so RESUME brings the whole form back. Multiple unfinished loads supported - each one is its own row, tap any RESUME button to pick up where you left off.</div></div>
       <div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">May 12</div><div class="sys-update-text">v2.6.1 - SAVE UNFINISHED LOADS. New orange START LOAD button at the bottom of the form lets you save a load mid-run - just fill in driver, supplier/customer, truck and tap START. The load shows up in an orange UNFINISHED LOADS box at the top of the page. Tap RESUME when you come back, fill in the ticket, weights and end time, then tap FINISH LOAD. No more retyping everything if you have to stop mid-run.</div></div>
@@ -1599,7 +1600,7 @@ function roundTons(net) {
 }
 
 // ===== AUTO-UPDATE (v2.5.7) =====
-const APP_VERSION = '2.6.3';
+const APP_VERSION = '2.6.4';
 const UPDATE_CHECK_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
 
 async function checkForUpdate() {
@@ -2270,9 +2271,25 @@ function renderOpenLoadsListSync() {
           '<div style="font-size:11px;color:#94a3b8;margin-top:1px">' + sub2 + '</div>' +
           (extraLine ? '<div style="font-size:11px;color:#94a3b8;margin-top:1px">' + extraLine + '</div>' : '') +
         '</div>' +
-        '<div style="background:#10b981;color:#000;border-radius:8px;padding:10px 14px;font-weight:800;font-size:14px;white-space:nowrap">RESUME &#9654;</div>' +
+        '<div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end">' +
+          '<div class="ll-resume-btn" style="background:#10b981;color:#000;border-radius:8px;padding:10px 14px;font-weight:800;font-size:14px;white-space:nowrap;cursor:pointer">RESUME &#9654;</div>' +
+          '<div class="ll-delete-btn" data-load-id="' + (l.loadId || '') + '" style="background:#7f1d1d;color:#fff;border-radius:6px;padding:5px 10px;font-weight:700;font-size:11px;cursor:pointer;text-align:center">&#10006; DELETE</div>' +
+        '</div>' +
       '</div>';
-    row.onclick = function() { resumeLoad(l); };
+    // v2.6.4: split row click between RESUME and DELETE. Whole row tappable
+    // for RESUME, the small red DELETE pill triggers delete instead.
+    row.onclick = function(ev) {
+      var t = ev.target;
+      while (t && t !== row) {
+        if (t.classList && t.classList.contains('ll-delete-btn')) {
+          ev.stopPropagation();
+          deleteOpenLoad(l.loadId, 'list');
+          return;
+        }
+        t = t.parentNode;
+      }
+      resumeLoad(l);
+    };
     list.appendChild(row);
   });
 }
@@ -2310,23 +2327,29 @@ async function refreshOpenLoadsList() {
 
   // For driver-relevant entries: keep local IF in remote (merge fields) OR
   // very recent (< 5 min, not yet picked up by backend).
+  // v2.6.4: skip any loadId that is in the deleted-tombstone set so a
+  // backend that still thinks a load is Open cannot resurrect a row the
+  // driver already deleted on the phone.
   var FRESH_MS = 5 * 60 * 1000;
   var now = Date.now();
+  var tombstones = getDeletedLoadIds();
   var keep = [];
   localAll.forEach(function(l) {
     if (l.driver !== driver) { keep.push(l); return; }  // other drivers untouched
+    if (l.loadId && tombstones[l.loadId]) { return; }   // tombstoned - drop
     if (l.loadId && remoteIds[l.loadId]) {
-      // merge remote fields on top of local, but local extras win
       keep.push(Object.assign({}, remoteIds[l.loadId], l));
       delete remoteIds[l.loadId];
     } else {
       var t = Date.parse(l.timestamp || '') || 0;
       if (now - t < FRESH_MS) keep.push(l);
-      // else drop - backend says it's gone (finished elsewhere)
     }
   });
-  // Anything left in remoteIds is on backend but not local - add it
-  Object.values(remoteIds).forEach(function(l) { keep.push(l); });
+  // Anything left in remoteIds is on backend but not local - add it UNLESS tombstoned
+  Object.values(remoteIds).forEach(function(l) {
+    if (l && l.loadId && tombstones[l.loadId]) return;
+    keep.push(l);
+  });
   saveOpenLoadsLocal(keep);
 
   // Re-render with merged data
@@ -2431,6 +2454,110 @@ function exitResumeMode() {
   try { clearProducts(); } catch(_) {}
   try { clearPhoto(); } catch(_) {}
   refreshOpenLoadsList();
+}
+
+// ============================================================
+// v2.6.4: DELETE UNFINISHED LOAD
+// Tombstone-set approach: when a driver deletes an open load, we add its
+// loadId to a localStorage set so the background backend merge cannot
+// resurrect it. Entries auto-expire from the tombstone set after 7 days.
+// ============================================================
+var DELETED_TOMBSTONE_KEY = 'll_deleted_load_ids';
+var TOMBSTONE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+
+function getDeletedLoadIds() {
+  try {
+    var raw = JSON.parse(localStorage.getItem(DELETED_TOMBSTONE_KEY) || '{}');
+    var now = Date.now();
+    var fresh = {};
+    Object.keys(raw).forEach(function(id) {
+      if (raw[id] && (now - raw[id] < TOMBSTONE_TTL_MS)) fresh[id] = raw[id];
+    });
+    if (Object.keys(fresh).length !== Object.keys(raw).length) {
+      localStorage.setItem(DELETED_TOMBSTONE_KEY, JSON.stringify(fresh));
+    }
+    return fresh;
+  } catch(_) { return {}; }
+}
+
+function markLoadDeleted(loadId) {
+  if (!loadId) return;
+  try {
+    var t = getDeletedLoadIds();
+    t[loadId] = Date.now();
+    localStorage.setItem(DELETED_TOMBSTONE_KEY, JSON.stringify(t));
+  } catch(_) {}
+}
+
+function isLoadDeleted(loadId) {
+  if (!loadId) return false;
+  return !!getDeletedLoadIds()[loadId];
+}
+
+async function deleteOpenLoad(loadId, source) {
+  if (!loadId) return;
+
+  // Permission: drivers can delete THEIR loads, admins can delete anyone's
+  var localCopy = getOpenLoadsLocal().filter(function(l){ return l.loadId === loadId; })[0];
+  var loadDriver = localCopy ? localCopy.driver : '';
+  var me = window.currentUser || '';
+  if (!window.isAdmin && loadDriver && loadDriver !== me) {
+    showToast('Only the driver who started this load (or an admin) can delete it', true);
+    return;
+  }
+
+  // Confirm
+  var label = localCopy
+    ? ((localCopy.type || '?') + ' - ' + (localCopy.source || '?'))
+    : 'this unfinished load';
+  var ok = window.confirm('Delete ' + label + '? This cannot be undone.');
+  if (!ok) return;
+
+  // 1. Mark tombstone FIRST so background merge cannot resurrect it
+  markLoadDeleted(loadId);
+
+  // 2. Remove from local cache immediately
+  var openLoads = getOpenLoadsLocal().filter(function(l){ return l.loadId !== loadId; });
+  saveOpenLoadsLocal(openLoads);
+
+  // 3. Repaint instantly
+  try { renderOpenLoadsListSync(); } catch(_) {}
+
+  // 4. Best-effort backend delete (soft-delete via Deleted column)
+  try {
+    var url = sheetsSync.getWebAppUrl();
+    var payload = {
+      messageType: 'loadDelete',
+      action: 'loadDelete',
+      loadId: loadId,
+      driver: me,
+      deletedBy: me,
+      timestamp: new Date().toISOString()
+    };
+    fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify(payload)
+    }).then(function(r){
+      if (r && r.ok) {
+        r.text().then(function(t){
+          try {
+            var parsed = JSON.parse(t);
+            if (parsed && parsed.success) {
+              console.log('[deleteOpenLoad] Backend confirmed delete of ' + loadId);
+            } else {
+              console.warn('[deleteOpenLoad] Backend rejected:', parsed && parsed.error);
+            }
+          } catch(_) {}
+        });
+      }
+    }).catch(function(err){
+      console.warn('[deleteOpenLoad] Backend post failed, tombstone holds locally:', err.message);
+    });
+  } catch(_) {}
+
+  try { logActivity('Load Deleted', me + ' deleted ' + label + ' (id ' + loadId + ')'); } catch(_) {}
+  showToast('Deleted: ' + label);
 }
 
 // v2.6.2: Wire up - paint INSTANT from localStorage on every visibility chance.
