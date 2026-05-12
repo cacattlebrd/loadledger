@@ -27,7 +27,7 @@
     var qs = window.location.search || '';
     if (qs.indexOf('v=') !== -1) return; // already cache-busted this load, don't loop
 
-    var BOOT_VERSION_HINT = '2.6.2'; // injected during build below
+    var BOOT_VERSION_HINT = '2.6.3'; // injected during build below
     var url = './version.json?_=' + Date.now();
     var xhr = new XMLHttpRequest();
     xhr.open('GET', url, true);
@@ -401,6 +401,17 @@ function checkPin(){
       document.getElementById('tab-admin').classList.remove('hidden');
     }
     if(driver.role!=='admin')autoSelectDriver(user);
+    // v2.6.3: paint Open Loads banner IMMEDIATELY after login. Without this,
+    // the list was waiting on the 60s interval to fire - drivers saw a blank
+    // LOAD tab for up to 2 minutes after logging back in.
+    try {
+      if (typeof renderOpenLoadsListSync === 'function') renderOpenLoadsListSync();
+    } catch(_) {}
+    try {
+      if (typeof refreshOpenLoadsList === 'function') {
+        setTimeout(function(){ refreshOpenLoadsList(); }, 200);
+      }
+    } catch(_) {}
   }else{
     failCount++;
     const r=MAX_FAILS-failCount;
@@ -842,6 +853,7 @@ document.addEventListener('DOMContentLoaded', function(){
       <span class="sys-toggle">+</span>
     </div>
     <div class="sys-update-body" style="display:none">
+      <div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">May 12</div><div class="sys-update-text">v2.6.3 - Login speed fix. Unfinished loads now appear the SECOND you log in - not 60 seconds later. Same orange banner, just shows up instantly the moment you punch in your PIN.</div></div>
       <div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">May 12</div><div class="sys-update-text">v2.6.2 - Unfinished loads now jump out at you. Big bright orange banner with a count at the top of the LOAD tab the moment you open it - no waiting. START LOAD now saves EVERYTHING you typed (products, commodity, mileage, notes, partial weights) so RESUME brings the whole form back. Multiple unfinished loads supported - each one is its own row, tap any RESUME button to pick up where you left off.</div></div>
       <div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">May 12</div><div class="sys-update-text">v2.6.1 - SAVE UNFINISHED LOADS. New orange START LOAD button at the bottom of the form lets you save a load mid-run - just fill in driver, supplier/customer, truck and tap START. The load shows up in an orange UNFINISHED LOADS box at the top of the page. Tap RESUME when you come back, fill in the ticket, weights and end time, then tap FINISH LOAD. No more retyping everything if you have to stop mid-run.</div></div>
       <div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">May 12</div><div class="sys-update-text">v2.6.0 - Smarter SUBMIT LOAD. The toast now tells you the truth: green checkmark means the load made it to the sheet, yellow warning means it saved on your phone and will sync when you are back on signal. Plus a small orange number next to the LOAD tab shows how many loads are still waiting to upload. No more wondering whether John or Juan's loads made it.</div></div>
@@ -1587,7 +1599,7 @@ function roundTons(net) {
 }
 
 // ===== AUTO-UPDATE (v2.5.7) =====
-const APP_VERSION = '2.6.2';
+const APP_VERSION = '2.6.3';
 const UPDATE_CHECK_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
 
 async function checkForUpdate() {
