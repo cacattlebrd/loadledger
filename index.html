@@ -27,7 +27,7 @@
     var qs = window.location.search || '';
     if (qs.indexOf('v=') !== -1) return; // already cache-busted this load, don't loop
 
-    var BOOT_VERSION_HINT = '2.5.15'; // injected during build below
+    var BOOT_VERSION_HINT = '2.6.0'; // injected during build below
     var url = './version.json?_=' + Date.now();
     var xhr = new XMLHttpRequest();
     xhr.open('GET', url, true);
@@ -818,6 +818,7 @@ document.addEventListener('DOMContentLoaded', function(){
       <span class="sys-toggle">+</span>
     </div>
     <div class="sys-update-body" style="display:none">
+      <div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">May 12</div><div class="sys-update-text">v2.6.0 - Smarter SUBMIT LOAD. The toast now tells you the truth: green checkmark means the load made it to the sheet, yellow warning means it saved on your phone and will sync when you are back on signal. Plus a small orange number next to the LOAD tab shows how many loads are still waiting to upload. No more wondering whether John or Juan's loads made it.</div></div>
       <div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">Apr 28</div><div class="sys-update-text">v2.5.8 - Version number is now visible at the top of every screen, right under the LOADLEDGER name. Easier to tell what version you are running when something needs to be reported.</div></div>
       <div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">Apr 28</div><div class="sys-update-text">v2.5.7 - Permanent quota fix + auto-update. Photos now live in their own storage area so one big photo can never break the app. Compression hard-caps at 500KB - oversized photos get refused with a clear error. NEW: when we ship a fix, the app shows a banner at the top asking you to update. Tap UPDATE NOW and you're on the latest version. Thanks John for the catch.</div></div>
       <div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">Apr 24</div><div class="sys-update-text">v2.5.6 - Photo size fix. Ticket photos are now automatically resized and compressed on your phone before being saved, so one big photo can no longer fill up the app's storage. This fixes the "quota exceeded" error some drivers saw when submitting their first load on a fresh phone. Photos still look clear - just smaller files.</div></div>
@@ -1558,7 +1559,7 @@ function roundTons(net) {
 }
 
 // ===== AUTO-UPDATE (v2.5.7) =====
-const APP_VERSION = '2.5.23';
+const APP_VERSION = '2.6.0';
 const UPDATE_CHECK_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
 
 async function checkForUpdate() {
@@ -1821,7 +1822,11 @@ function validateLoadForm() {
 
 
 // ===== SUBMIT LOAD =====
-function submitLoad() {
+// v2.6.0: now async - awaits sheetsSync.send so the driver gets real feedback:
+//   - Green toast on confirmed sync to RAW
+//   - Yellow toast "saved offline - will sync" if backend didn't confirm
+// Load is ALWAYS saved locally first (addStore) so nothing is ever lost.
+async function submitLoad() {
   try {
   if(!validateLoadForm()) return;
 
@@ -1892,9 +1897,23 @@ function submitLoad() {
   if (ticketPhotoData) savePhoto(entry.timestamp, ticketPhotoData);
   addStore('loads', entry);
   const syncEntry = Object.assign({}, entry, { photoData: ticketPhotoData || '' });
-  sheetsSync.send('load', syncEntry);
   logActivity("Load Submitted", (entry.driver||"?") + " - " + (entry.type||"?") + " - " + (entry.tons||"?") + " tons");
-  showToast(entry.type + ' load saved - ' + entry.tons + ' tons');
+  // v2.6.0: AWAIT the backend confirm. Local copy already saved above, so
+  // even if the network is down the load is never lost - it just sits in the
+  // retry queue and auto-syncs on the next 'online' event.
+  showToast(entry.type + ' load saving - ' + entry.tons + ' tons...');
+  let _synced = false;
+  try {
+    _synced = await sheetsSync.send('load', syncEntry);
+  } catch(_sendErr) {
+    _synced = false;
+  }
+  if (_synced) {
+    showToast('✔ ' + entry.type + ' load synced - ' + entry.tons + ' tons');
+  } else {
+    showToast('⚠ Load saved offline (' + entry.tons + ' tons) - will sync when online', true);
+  }
+  try { updatePendingSyncBadge(); } catch(_) {}
   clearFieldErrors();
   ['loadGross','loadTare','loadTicket','loadNotes','loadMileStart','loadMileEnd','loadTimeStart','loadTimeEnd','loadTruckOther'].forEach(id => {
     const el = document.getElementById(id);
@@ -3447,7 +3466,38 @@ const sheetsSync = (() => {
   return { send, retryQueue, syncAll, getStatus, isSynced, getWebAppUrl: function() { return WEBAPP_URL; } };
 })();
 
-
+// v2.6.0: Small pending-sync badge on the LOAD tab. Tells the driver at a
+// glance that some loads haven't reached the sheet yet. Updated after each
+// submit and every 30s. Zero perf cost - reads localStorage only.
+function updatePendingSyncBadge() {
+  try {
+    var status = sheetsSync.getStatus();
+    var btn = null;
+    var tabs = document.querySelectorAll('.tab');
+    for (var i = 0; i < tabs.length; i++) {
+      var oc = tabs[i].getAttribute('onclick') || '';
+      if (oc.indexOf("switchTab") !== -1 && oc.indexOf("load") !== -1) { btn = tabs[i]; break; }
+    }
+    if (!btn) return;
+    var badge = document.getElementById('pendingSyncBadge');
+    if (status.queued > 0) {
+      if (!badge) {
+        badge = document.createElement('span');
+        badge.id = 'pendingSyncBadge';
+        badge.style.cssText = 'display:inline-block;background:#f59e0b;color:#000;border-radius:10px;padding:1px 6px;font-size:10px;font-weight:bold;margin-left:4px;vertical-align:middle';
+        btn.appendChild(badge);
+      }
+      badge.textContent = String(status.queued);
+      badge.title = status.queued + ' load(s) waiting to sync';
+    } else if (badge) {
+      badge.remove();
+    }
+  } catch(_) {}
+}
+if (typeof window !== 'undefined') {
+  window.addEventListener('load', function(){ try { updatePendingSyncBadge(); } catch(_) {} });
+  setInterval(function(){ try { updatePendingSyncBadge(); } catch(_) {} }, 30000);
+}
 
 
 /* ============================================================
