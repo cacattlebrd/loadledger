@@ -1,1 +1,1 @@
-{"version": "2.5.23", "min_version": "2.5.23", "released": "2026-05-11", "notes": "ROLLBACK from 2.6.x due to JS syntax error breaking login. Reverting to last known good v2.5.23."}
+{"version": "2.6.0", "min_version": "2.6.0", "released": "2026-05-12", "notes": "SUBMIT LOAD now awaits backend confirm. Green toast = synced to sheet. Yellow toast = saved offline, will sync when online. Orange counter on LOAD tab shows pending uploads."}
