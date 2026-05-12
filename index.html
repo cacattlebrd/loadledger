@@ -27,7 +27,7 @@
     var qs = window.location.search || '';
     if (qs.indexOf('v=') !== -1) return; // already cache-busted this load, don't loop
 
-    var BOOT_VERSION_HINT = '2.6.1'; // injected during build below
+    var BOOT_VERSION_HINT = '2.6.2'; // injected during build below
     var url = './version.json?_=' + Date.now();
     var xhr = new XMLHttpRequest();
     xhr.open('GET', url, true);
@@ -516,9 +516,9 @@ document.addEventListener('DOMContentLoaded', function(){
 <!-- ===== LOAD ENTRY TAB ===== -->
 <div id="panel-load" class="panel active">
 
-  <!-- v2.6.1: Open Loads (Resume) panel - shows incomplete loads for THIS driver -->
-  <div id="openLoadsSection" style="display:none;background:#1e293b;border:1px solid #f59e0b;border-radius:8px;padding:12px;margin-bottom:16px">
-    <div style="color:#f59e0b;font-weight:700;font-size:13px;margin-bottom:8px">UNFINISHED LOADS (Tap to Resume)</div>
+  <!-- v2.6.2: Open Loads (Resume) panel - BIG and obvious, always painted from localStorage first -->
+  <div id="openLoadsSection" style="display:none;background:#f59e0b;border:3px solid #d97706;border-radius:10px;padding:14px;margin-bottom:18px;box-shadow:0 0 16px rgba(245,158,11,.4)">
+    <div style="color:#1f2937;font-weight:800;font-size:15px;margin-bottom:10px;text-align:center;letter-spacing:.5px">&#9888; <span id="openLoadsCountText">YOU HAVE UNFINISHED LOADS</span> &#9888;<br><span style="font-size:11px;font-weight:600">TAP A LOAD BELOW TO RESUME</span></div>
     <div id="openLoadsList"></div>
   </div>
 
@@ -842,6 +842,7 @@ document.addEventListener('DOMContentLoaded', function(){
       <span class="sys-toggle">+</span>
     </div>
     <div class="sys-update-body" style="display:none">
+      <div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">May 12</div><div class="sys-update-text">v2.6.2 - Unfinished loads now jump out at you. Big bright orange banner with a count at the top of the LOAD tab the moment you open it - no waiting. START LOAD now saves EVERYTHING you typed (products, commodity, mileage, notes, partial weights) so RESUME brings the whole form back. Multiple unfinished loads supported - each one is its own row, tap any RESUME button to pick up where you left off.</div></div>
       <div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">May 12</div><div class="sys-update-text">v2.6.1 - SAVE UNFINISHED LOADS. New orange START LOAD button at the bottom of the form lets you save a load mid-run - just fill in driver, supplier/customer, truck and tap START. The load shows up in an orange UNFINISHED LOADS box at the top of the page. Tap RESUME when you come back, fill in the ticket, weights and end time, then tap FINISH LOAD. No more retyping everything if you have to stop mid-run.</div></div>
       <div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">May 12</div><div class="sys-update-text">v2.6.0 - Smarter SUBMIT LOAD. The toast now tells you the truth: green checkmark means the load made it to the sheet, yellow warning means it saved on your phone and will sync when you are back on signal. Plus a small orange number next to the LOAD tab shows how many loads are still waiting to upload. No more wondering whether John or Juan's loads made it.</div></div>
       <div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">Apr 28</div><div class="sys-update-text">v2.5.8 - Version number is now visible at the top of every screen, right under the LOADLEDGER name. Easier to tell what version you are running when something needs to be reported.</div></div>
@@ -1396,6 +1397,8 @@ function switchTab(name) {
   event.currentTarget.classList.add('active');
   if(name==='history') renderHistory();
   if(name==='admin') renderAdminPanel();
+
+  try { if (name === 'load') renderOpenLoadsListSync(); } catch(_) {}
 }
 
 // ===== DIRECTION =====
@@ -1584,7 +1587,7 @@ function roundTons(net) {
 }
 
 // ===== AUTO-UPDATE (v2.5.7) =====
-const APP_VERSION = '2.6.1';
+const APP_VERSION = '2.6.2';
 const UPDATE_CHECK_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
 
 async function checkForUpdate() {
@@ -1998,7 +2001,9 @@ function saveOpenLoadsLocal(arr) {
 
 async function startLoad() {
   try {
-    // Required to START a load: driver + direction + source/customer + truck + date
+    // v2.6.2: capture EVERY form field the driver typed/picked. Required to
+    // START: driver + direction + source/customer + truck + date.
+    // Everything else is optional - whatever they typed is saved alongside.
     var driverSel = document.getElementById('loadDriver').value;
     var driver = driverSel === 'Other' ?
       document.getElementById('loadDriverOther').value : driverSel;
@@ -2030,14 +2035,23 @@ async function startLoad() {
     var date = document.getElementById('loadDate').value;
     if (!date) { var d = new Date(); date = d.toISOString().slice(0,10); }
 
-    var products = getSelectedProducts ? getSelectedProducts() : [];
+    // v2.6.2: capture FULL form state, not just the core 5 fields
+    var products = (typeof getSelectedProducts === 'function') ? getSelectedProducts() : [];
     var commodity = isInbound ? '' : (document.getElementById('loadCommodity').value || '');
     var mileStart = parseFloat(document.getElementById('loadMileStart').value) || 0;
+    var mileEnd = parseFloat(document.getElementById('loadMileEnd').value) || 0;
     var timeStart = document.getElementById('loadTimeStart').value || nowHHMM();
+    var timeEnd = document.getElementById('loadTimeEnd').value || '';
+    var ticket = document.getElementById('loadTicket').value || '';
+    var gross = parseFloat(document.getElementById('loadGross').value) || 0;
+    var tare = parseFloat(document.getElementById('loadTare').value) || 0;
+    var notes = document.getElementById('loadNotes').value || '';
+
     var loadId = genLoadId();
     var ts = new Date().toISOString();
 
-    var openEntry = {
+    // Backend payload - keep slim, just what backend V18 supports
+    var backendEntry = {
       loadId: loadId,
       type: isInbound ? 'Inbound' : 'Outbound',
       driver: driver,
@@ -2050,15 +2064,29 @@ async function startLoad() {
       timeStart: timeStart,
       mileStart: mileStart,
       timestamp: ts,
-      stage: 'Open',
-      gpsLat: (typeof gpsTracker !== 'undefined' && gpsTracker.getPosition && gpsTracker.getPosition()) ? gpsTracker.getPosition().lat : null,
-      gpsLng: (typeof gpsTracker !== 'undefined' && gpsTracker.getPosition && gpsTracker.getPosition()) ? gpsTracker.getPosition().lng : null
+      stage: 'Open'
     };
 
-    // Save to local open-loads list immediately
+    // Local cache payload - includes EVERYTHING for resume on this device
+    var localEntry = Object.assign({}, backendEntry, {
+      mileEnd: mileEnd,
+      timeEnd: timeEnd,
+      ticket: ticket,
+      gross: gross,
+      tare: tare,
+      notes: notes,
+      productsArray: products,
+      gpsLat: (typeof gpsTracker !== 'undefined' && gpsTracker.getPosition && gpsTracker.getPosition()) ? gpsTracker.getPosition().lat : null,
+      gpsLng: (typeof gpsTracker !== 'undefined' && gpsTracker.getPosition && gpsTracker.getPosition()) ? gpsTracker.getPosition().lng : null
+    });
+
+    // Save to local open-loads list IMMEDIATELY (before network)
     var openLoads = getOpenLoadsLocal();
-    openLoads.push(openEntry);
+    openLoads.push(localEntry);
     saveOpenLoadsLocal(openLoads);
+
+    // Paint the list right now so driver SEES it appear before network finishes
+    renderOpenLoadsListSync();
 
     // Push to backend
     showToast('Starting load...');
@@ -2068,7 +2096,7 @@ async function startLoad() {
       var resp = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain' },
-        body: JSON.stringify(Object.assign({}, openEntry, {
+        body: JSON.stringify(Object.assign({}, backendEntry, {
           messageType: 'loadStart',
           action: 'loadStart'
         }))
@@ -2082,10 +2110,10 @@ async function startLoad() {
     } catch(_) { ok = false; }
 
     if (ok) {
-      showToast('✔ Load started - saved as Open');
+      showToast('✔ Load saved as UNFINISHED');
       logActivity('Load Started', driver + ' - ' + (isInbound?'Inbound':'Outbound') + ' - ' + source);
     } else {
-      showToast('⚠ Started offline - will sync', true);
+      showToast('⚠ Saved offline - will sync', true);
     }
 
     refreshOpenLoadsList();
@@ -2187,19 +2215,64 @@ function clearLoadFormForNext() {
   var ttd = document.getElementById('totalTimeDisplay'); if (ttd) ttd.textContent = '--:--';
 }
 
-async function refreshOpenLoadsList() {
+// v2.6.2: SYNCHRONOUS render from localStorage. No await, no network. Called
+// the instant the driver opens the LOAD tab so they SEE the list immediately.
+function renderOpenLoadsListSync() {
   var section = document.getElementById('openLoadsSection');
   var list = document.getElementById('openLoadsList');
+  var hdr = document.getElementById('openLoadsCountText');
   if (!section || !list) return;
-
   var driver = window.currentUser || '';
-  if (!driver) {
+  if (!driver) { section.style.display = 'none'; return; }
+  var local = getOpenLoadsLocal().filter(function(l) { return l.driver === driver; });
+  if (local.length === 0) {
     section.style.display = 'none';
+    list.innerHTML = '';
     return;
   }
+  if (hdr) {
+    hdr.textContent = local.length === 1
+      ? 'YOU HAVE 1 UNFINISHED LOAD'
+      : 'YOU HAVE ' + local.length + ' UNFINISHED LOADS';
+  }
+  section.style.display = 'block';
+  list.innerHTML = '';
+  local.sort(function(a,b) { return (b.timestamp||'').localeCompare(a.timestamp||''); });
+  local.forEach(function(l) {
+    var row = document.createElement('div');
+    row.style.cssText = 'background:#0f172a;border:2px solid #334155;border-radius:8px;padding:12px;margin-bottom:8px;cursor:pointer';
+    var when = (l.date || '') + ' ' + (l.timeStart || '');
+    var headLine = (l.type || '?') + ' - ' + (l.source || '?');
+    var sub1 = 'Truck ' + (l.truck || '?') + (l.trailer ? ' / ' + l.trailer : '');
+    var sub2 = 'Started ' + when;
+    var extras = [];
+    if (l.products) extras.push(l.products);
+    if (l.commodity) extras.push(l.commodity);
+    if (l.mileStart) extras.push(l.mileStart + ' mi start');
+    var extraLine = extras.length ? extras.join(' · ') : '';
+    row.innerHTML =
+      '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px">' +
+        '<div style="flex:1;min-width:0">' +
+          '<div style="font-weight:800;color:#fef3c7;font-size:15px">' + headLine + '</div>' +
+          '<div style="font-size:12px;color:#cbd5e1;margin-top:3px">' + sub1 + '</div>' +
+          '<div style="font-size:11px;color:#94a3b8;margin-top:1px">' + sub2 + '</div>' +
+          (extraLine ? '<div style="font-size:11px;color:#94a3b8;margin-top:1px">' + extraLine + '</div>' : '') +
+        '</div>' +
+        '<div style="background:#10b981;color:#000;border-radius:8px;padding:10px 14px;font-weight:800;font-size:14px;white-space:nowrap">RESUME &#9654;</div>' +
+      '</div>';
+    row.onclick = function() { resumeLoad(l); };
+    list.appendChild(row);
+  });
+}
 
-  // Local first (instant), then merge backend (truth)
-  var localOpen = getOpenLoadsLocal().filter(function(l) { return l.driver === driver; });
+// v2.6.2: BACKGROUND merge - calls backend then re-renders. Never blocks UI.
+// Keeps the local cache in sync with what the sheet thinks is Open.
+async function refreshOpenLoadsList() {
+  // Paint local first - INSTANT
+  try { renderOpenLoadsListSync(); } catch(_) {}
+
+  var driver = window.currentUser || '';
+  if (!driver) return;
 
   // Backend fetch (best effort)
   var remoteOpen = [];
@@ -2212,60 +2285,61 @@ async function refreshOpenLoadsList() {
         remoteOpen = data.loads;
       }
     }
-  } catch(_) {}
+  } catch(_) { return; /* offline - keep local view */ }
 
-  // Merge by loadId, prefer remote (backend is truth)
-  var byId = {};
-  localOpen.forEach(function(l) { if (l.loadId) byId[l.loadId] = l; });
-  remoteOpen.forEach(function(l) { if (l.loadId) byId[l.loadId] = l; });
-  var merged = Object.values(byId);
+  // Merge by loadId: local has MORE fields (notes, mileEnd, etc.), backend
+  // is the truth on which loads still exist. Strategy: keep local entries
+  // whose loadId is in remote OR not yet known to remote (just-saved).
+  // Drop local entries that backend says are gone (i.e. someone finished
+  // them on another device).
+  var localAll = getOpenLoadsLocal();
+  var remoteIds = {};
+  remoteOpen.forEach(function(l) { if (l.loadId) remoteIds[l.loadId] = l; });
 
-  // Sync merged back to local so a removed-from-backend load disappears
-  saveOpenLoadsLocal(merged);
-
-  if (merged.length === 0) {
-    section.style.display = 'none';
-    list.innerHTML = '';
-    return;
-  }
-
-  section.style.display = 'block';
-  list.innerHTML = '';
-  merged.sort(function(a,b) { return (b.timestamp||'').localeCompare(a.timestamp||''); });
-  merged.forEach(function(l) {
-    var row = document.createElement('div');
-    row.style.cssText = 'background:#0f172a;border:1px solid #334155;border-radius:6px;padding:10px;margin-bottom:6px;cursor:pointer';
-    var when = (l.date || '') + ' ' + (l.timeStart || '');
-    var headLine = (l.type || '?') + ' - ' + (l.source || '?');
-    var subLine = 'Truck ' + (l.truck || '?') + (l.trailer ? ' / ' + l.trailer : '') + ' - started ' + when;
-    row.innerHTML =
-      '<div style="display:flex;justify-content:space-between;align-items:center">' +
-        '<div>' +
-          '<div style="font-weight:700;color:#fef3c7">' + headLine + '</div>' +
-          '<div style="font-size:11px;color:#94a3b8;margin-top:2px">' + subLine + '</div>' +
-        '</div>' +
-        '<div style="background:#f59e0b;color:#000;border-radius:6px;padding:6px 10px;font-weight:700;font-size:12px">RESUME</div>' +
-      '</div>';
-    row.onclick = function() { resumeLoad(l); };
-    list.appendChild(row);
+  // For driver-relevant entries: keep local IF in remote (merge fields) OR
+  // very recent (< 5 min, not yet picked up by backend).
+  var FRESH_MS = 5 * 60 * 1000;
+  var now = Date.now();
+  var keep = [];
+  localAll.forEach(function(l) {
+    if (l.driver !== driver) { keep.push(l); return; }  // other drivers untouched
+    if (l.loadId && remoteIds[l.loadId]) {
+      // merge remote fields on top of local, but local extras win
+      keep.push(Object.assign({}, remoteIds[l.loadId], l));
+      delete remoteIds[l.loadId];
+    } else {
+      var t = Date.parse(l.timestamp || '') || 0;
+      if (now - t < FRESH_MS) keep.push(l);
+      // else drop - backend says it's gone (finished elsewhere)
+    }
   });
+  // Anything left in remoteIds is on backend but not local - add it
+  Object.values(remoteIds).forEach(function(l) { keep.push(l); });
+  saveOpenLoadsLocal(keep);
+
+  // Re-render with merged data
+  try { renderOpenLoadsListSync(); } catch(_) {}
 }
 
 function resumeLoad(load) {
   if (!load || !load.loadId) return;
   currentResumeLoadId = load.loadId;
 
-  // Set direction
+  // v2.6.2: prefer the LOCAL copy because it has the extra fields (notes,
+  // mileEnd, productsArray, etc.) - the param 'load' may be from the remote.
   try {
-    if (load.type === 'Inbound') {
-      setDirection('in');
-    } else {
-      setDirection('out');
-    }
+    var localCopy = getOpenLoadsLocal().filter(function(l){ return l.loadId === load.loadId; })[0];
+    if (localCopy) load = Object.assign({}, load, localCopy);
   } catch(_) {}
 
-  // Set form fields
-  var setVal = function(id, v) { var el = document.getElementById(id); if (el && v != null) el.value = v; };
+  // Set direction first
+  try {
+    if (load.type === 'Inbound') setDirection('in');
+    else setDirection('out');
+  } catch(_) {}
+
+  // Pre-fill EVERY field we have
+  var setVal = function(id, v) { var el = document.getElementById(id); if (el && v != null && v !== '') el.value = v; };
   setVal('loadDate', load.date);
   setVal('loadDriver', load.driver);
   if (load.type === 'Inbound') {
@@ -2277,7 +2351,36 @@ function resumeLoad(load) {
   setVal('loadTruck', load.truck);
   setVal('loadTrailer', load.trailer);
   setVal('loadTimeStart', load.timeStart);
+  setVal('loadTimeEnd', load.timeEnd);
   setVal('loadMileStart', load.mileStart);
+  setVal('loadMileEnd', load.mileEnd);
+  setVal('loadTicket', load.ticket);
+  setVal('loadGross', load.gross);
+  setVal('loadTare', load.tare);
+  setVal('loadNotes', load.notes);
+
+  // v2.6.2: restore products checkboxes from productsArray or products string
+  try {
+    var prods = [];
+    if (Array.isArray(load.productsArray)) prods = load.productsArray;
+    else if (typeof load.products === 'string' && load.products) {
+      prods = load.products.split(',').map(function(p){ return p.trim(); }).filter(Boolean);
+    }
+    if (prods.length && typeof setSelectedProducts === 'function') {
+      setSelectedProducts(prods);
+    } else if (prods.length) {
+      // Fallback: tick the matching checkboxes by name
+      var inputs = document.querySelectorAll('#productGrid input[type="checkbox"]');
+      inputs.forEach(function(cb) {
+        if (prods.indexOf(cb.value) !== -1) cb.checked = true;
+      });
+    }
+  } catch(_) {}
+
+  // Recalc displays
+  try { if (typeof calcNet === 'function') calcNet(); } catch(_) {}
+  try { if (typeof calcMiles === 'function') calcMiles(); } catch(_) {}
+  try { if (typeof calcTime === 'function') calcTime(); } catch(_) {}
 
   // Show resume banner
   var banner = document.getElementById('resumeModeBanner');
@@ -2293,13 +2396,12 @@ function resumeLoad(load) {
   if (btnSubmit) btnSubmit.style.display = 'none';
   if (btnFinish) btnFinish.style.display = 'block';
 
-  // Hide open-loads list while resuming so it does not invite re-tap
+  // Hide open-loads list while resuming
   var section = document.getElementById('openLoadsSection');
   if (section) section.style.display = 'none';
 
-  // Scroll to top of form so driver sees the resume banner
   try { document.getElementById('panel-load').scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch(_) {}
-  showToast('Resumed - fill ticket, weights, end time, then FINISH');
+  showToast('Resumed - fill remaining fields and tap FINISH LOAD');
 }
 
 function exitResumeMode() {
@@ -2319,14 +2421,35 @@ function exitResumeMode() {
   refreshOpenLoadsList();
 }
 
-// Wire up periodic refresh + initial load
+// v2.6.2: Wire up - paint INSTANT from localStorage on every visibility chance.
+// Background refresh from backend every 60s while LOAD tab is active. Tab
+// activation triggers an instant repaint plus a background refresh.
 if (typeof window !== 'undefined') {
   window.addEventListener('load', function() {
-    try { setTimeout(refreshOpenLoadsList, 1500); } catch(_) {}
+    try { renderOpenLoadsListSync(); } catch(_) {}
+    try { setTimeout(refreshOpenLoadsList, 800); } catch(_) {}
   });
+  // Repaint instantly whenever the page becomes visible again
+  document.addEventListener('visibilitychange', function() {
+    if (document.visibilityState === 'visible') {
+      try { renderOpenLoadsListSync(); } catch(_) {}
+      try { refreshOpenLoadsList(); } catch(_) {}
+    }
+  });
+  // Repaint instantly when LOAD tab is clicked (in addition to switchTab hook)
+  setTimeout(function() {
+    var tabs = document.querySelectorAll('.tab');
+    tabs.forEach(function(t) {
+      var oc = t.getAttribute('onclick') || '';
+      if (oc.indexOf('switchTab') !== -1 && oc.indexOf('load') !== -1) {
+        t.addEventListener('click', function() {
+          setTimeout(function(){ try { renderOpenLoadsListSync(); } catch(_) {} }, 50);
+        });
+      }
+    });
+  }, 1500);
   setInterval(function() {
     try {
-      // Only refresh while LOAD tab is visible
       var panel = document.getElementById('panel-load');
       if (panel && panel.classList.contains('active')) {
         refreshOpenLoadsList();
