@@ -1581,7 +1581,7 @@ function roundTons(net) {
 }
 
 // ===== AUTO-UPDATE (v2.5.7) =====
-const APP_VERSION = '2.6.6';
+const APP_VERSION = '2.6.7';
 const UPDATE_CHECK_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
 
 async function checkForUpdate() {
@@ -3888,6 +3888,7 @@ const configSync = (() => {
   }
 
   // Push config to server (admin only)
+  // v2.6.7: parse response body and require success:true (kills silent-drop pattern)
   async function push(category, data) {
     try {
       const url = sheetsSync.getWebAppUrl();
@@ -3897,7 +3898,9 @@ const configSync = (() => {
         body: JSON.stringify({ type: 'configSync', category: category, data: data })
       });
       if (!resp.ok) throw new Error('HTTP ' + resp.status);
-      console.log('[configSync] Pushed ' + category + ' to server');
+      const body = await resp.json();
+      if (!body || body.success !== true) throw new Error('Backend rejected: ' + (body && body.error ? body.error : 'no success flag'));
+      console.log('[configSync] Pushed ' + category + ' to server (verified)');
       return true;
     } catch(e) {
       console.warn('[configSync] Push failed:', e.message);
@@ -3906,6 +3909,7 @@ const configSync = (() => {
   }
 
   // Push ALL categories at once (admin bulk sync)
+  // v2.6.7: parse response body and require success:true (kills silent-drop pattern)
   async function pushAll() {
     const categories = ['suppliers','customers','trucks','trailers','commodities','products'];
     const allConfig = {};
@@ -3923,7 +3927,9 @@ const configSync = (() => {
         body: JSON.stringify({ type: 'configSyncAll', config: allConfig })
       });
       if (!resp.ok) throw new Error('HTTP ' + resp.status);
-      console.log('[configSync] Pushed all config to server');
+      const body = await resp.json();
+      if (!body || body.success !== true) throw new Error('Backend rejected: ' + (body && body.error ? body.error : 'no success flag'));
+      console.log('[configSync] Pushed all config to server (verified)');
       return true;
     } catch(e) {
       console.warn('[configSync] PushAll failed:', e.message);
