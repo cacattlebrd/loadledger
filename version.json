@@ -1,1 +1,7 @@
-{"version": "2.6.6", "min_version": "2.6.6", "released": "2026-05-12", "forceUpdate": true, "notes": "Photo upload disabled. Hard copy scale ticket is now the system of record. This eliminates the silent-drop bug that occasionally affected loads from Maruchan, HEB SNACKS and other suppliers - the load looked submitted on screen but never reached the spreadsheet. Cutting the photo path removes the failure mode entirely."}
+{
+  "version": "2.6.7",
+  "min_version": "2.6.7",
+  "released": "2026-05-13",
+  "forceUpdate": true,
+  "notes": "Admin config sync (customers/suppliers/etc) now verifies the backend actually accepted the save. Previously the phone said \"synced\" even when the backend silently dropped the payload, leaving other devices on stale lists. Requires backend Apps Script patch to take effect end-to-end."
+}
