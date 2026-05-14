@@ -1,7 +1,7 @@
 {
-  "version": "2.6.8",
-  "min_version": "2.6.8",
+  "version": "2.6.9",
+  "min_version": "2.6.9",
   "released": "2026-05-14",
   "forceUpdate": true,
-  "notes": "Fixes duplicate row bug on direct SUBMIT LOAD path. Button now disables on tap and re-enables when backend confirms (success or fail). Prevents double-tap from creating two RAW Loads rows with two different timestamps and Row IDs. The Save-for-Later (START + FINISH) flow was already safe via the loadId lookup. No backend change needed."
+  "notes": "Driver dropdowns on Load, DVIR, and Fuel tabs now auto-fill with the logged-in user\u2019s name. One less click per entry. Re-applies on tab switch so the name is correct everywhere. Admins are auto-filled too and can override the dropdown when entering a load on behalf of another driver."
 }
