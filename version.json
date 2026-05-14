@@ -1,7 +1,7 @@
 {
-  "version": "2.6.9",
-  "min_version": "2.6.9",
+  "version": "2.6.10",
+  "min_version": "2.6.10",
   "released": "2026-05-14",
   "forceUpdate": true,
-  "notes": "Driver dropdowns on Load, DVIR, and Fuel tabs now auto-fill with the logged-in user\u2019s name. One less click per entry. Re-applies on tab switch so the name is correct everywhere. Admins are auto-filled too and can override the dropdown when entering a load on behalf of another driver."
+  "notes": "Cleanup pass on driver names. Default driver list now shows Chad Crocker (first+last) to match John Hightower, Juan Gutierrez, James Gass. Historical RAW data swept: CA-John/CA-Juan/CA-James/CA-Chad/(Admin) variants all normalized to first+last across Loads, Fuel-DEF, and DVIR. Contract haulers (Cuatro T, Tres Hijos, Luckey) unchanged."
 }
