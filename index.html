@@ -400,7 +400,9 @@ function checkPin(){
       document.getElementById('adminOverride').classList.remove('hidden');
       document.getElementById('tab-admin').classList.remove('hidden');
     }
-    if(driver.role!=='admin')autoSelectDriver(user);
+    // v2.6.9: removed admin gate. Always auto-pick the user's name in driver dropdowns.
+    // Admin can manually change a dropdown when logging a load on behalf of another driver.
+    autoSelectDriver(user);
     // v2.6.3: paint Open Loads banner IMMEDIATELY after login. Without this,
     // the list was waiting on the 60s interval to fire - drivers saw a blank
     // LOAD tab for up to 2 minutes after logging back in.
@@ -1393,6 +1395,15 @@ function switchTab(name) {
   if(name==='admin') renderAdminPanel();
 
   try { if (name === 'load') renderOpenLoadsListSync(); } catch(_) {}
+
+  // v2.6.9: re-apply current user's name to that tab's driver dropdown every
+  // time the tab opens. Prevents a driver dropdown set on one tab from
+  // lingering on another. Silently no-op if currentUser isn't an <option>.
+  try {
+    if (window.currentUserId && typeof autoSelectDriver === 'function') {
+      autoSelectDriver(window.currentUserId);
+    }
+  } catch(_) {}
 }
 
 // ===== DIRECTION =====
@@ -1581,7 +1592,7 @@ function roundTons(net) {
 }
 
 // ===== AUTO-UPDATE (v2.5.7) =====
-const APP_VERSION = '2.6.8';
+const APP_VERSION = '2.6.9';
 const UPDATE_CHECK_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
 
 async function checkForUpdate() {
