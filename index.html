@@ -1581,7 +1581,7 @@ function roundTons(net) {
 }
 
 // ===== AUTO-UPDATE (v2.5.7) =====
-const APP_VERSION = '2.6.7';
+const APP_VERSION = '2.6.8';
 const UPDATE_CHECK_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
 
 async function checkForUpdate() {
@@ -1845,8 +1845,25 @@ function validateLoadForm() {
 //   - Yellow toast "saved offline - will sync" if backend didn't confirm
 // Load is ALWAYS saved locally first (addStore) so nothing is ever lost.
 async function submitLoad() {
+  // v2.6.8: Idempotency guard. Prevents double-tap from creating duplicate
+  // RAW Loads rows. Each call to submitLoad() generates a fresh timestamp,
+  // so without this guard a double-tap creates two independent loads with
+  // two different timestamps and Row IDs — backend appends both.
+  var _btnSubmit = document.getElementById('btnSubmitLoad');
+  if (_btnSubmit && _btnSubmit.disabled) {
+    console.warn('[submitLoad] Ignored re-entry — already in flight');
+    return;
+  }
+  if (_btnSubmit) {
+    _btnSubmit.disabled = true;
+    _btnSubmit.dataset.originalText = _btnSubmit.textContent;
+    _btnSubmit.textContent = 'SUBMITTING…';
+  }
   try {
-  if(!validateLoadForm()) return;
+  if(!validateLoadForm()) {
+    if (_btnSubmit) { _btnSubmit.disabled = false; _btnSubmit.textContent = _btnSubmit.dataset.originalText || 'SUBMIT LOAD'; }
+    return;
+  }
 
   const driver = document.getElementById('loadDriver').value === 'Other' ?
     document.getElementById('loadDriverOther').value : document.getElementById('loadDriver').value;
@@ -1946,6 +1963,12 @@ async function submitLoad() {
   } catch(err) {
     console.error('[submitLoad]', err);
     showToast('Submit error: ' + (err && err.message ? err.message : String(err)), true);
+  } finally {
+    // v2.6.8: ALWAYS re-enable the SUBMIT button, even on success/error
+    if (_btnSubmit) {
+      _btnSubmit.disabled = false;
+      _btnSubmit.textContent = _btnSubmit.dataset.originalText || 'SUBMIT LOAD';
+    }
   }
 }
 
