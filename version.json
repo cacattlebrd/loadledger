@@ -1,7 +1,7 @@
 {
-  "version": "2.6.10",
-  "min_version": "2.6.10",
-  "released": "2026-05-14",
+  "version": "2.6.11",
+  "min_version": "2.6.11",
+  "released": "2026-05-18",
   "forceUpdate": true,
-  "notes": "Cleanup pass on driver names. Default driver list now shows Chad Crocker (first+last) to match John Hightower, Juan Gutierrez, James Gass. Historical RAW data swept: CA-John/CA-Juan/CA-James/CA-Chad/(Admin) variants all normalized to first+last across Loads, Fuel-DEF, and DVIR. Contract haulers (Cuatro T, Tres Hijos, Luckey) unchanged."
+  "notes": "Fix DEF (boxes) data integrity bug. v2.6.5 introduced defGal = defBoxes * 2.5 derivation for MPG math, but the frontend was also aliasing defAmount = defGal, and the backend writes defAmount into the DEF (boxes) column. So if a driver typed 2 boxes, the system stored 5. Fixed: defAmount now sources from defBoxes. Juan caught this \u2014 paperwork said 2, dashboard showed 5."
 }
