@@ -1,7 +1,7 @@
 {
-  "version": "2.6.11",
-  "min_version": "2.6.11",
+  "version": "2.6.12",
+  "min_version": "2.6.12",
   "released": "2026-05-18",
   "forceUpdate": true,
-  "notes": "Fix DEF (boxes) data integrity bug. v2.6.5 introduced defGal = defBoxes * 2.5 derivation for MPG math, but the frontend was also aliasing defAmount = defGal, and the backend writes defAmount into the DEF (boxes) column. So if a driver typed 2 boxes, the system stored 5. Fixed: defAmount now sources from defBoxes. Juan caught this \u2014 paperwork said 2, dashboard showed 5."
+  "notes": "History tab cleanup: filter text darkened so it's readable, supplier/customer now shows on every load entry (no need to expand), and Chad Admin / James Gass Admin / Chad hidden from the driver filter dropdown."
 }
