@@ -505,7 +505,7 @@ function getConfig(key) {
       {"id":"ED-6657","group":"End Dumps"},{"id":"ED-4505","group":"End Dumps"},
       {"id":"FB-6709","group":"Flatbeds"},{"id":"FB-1641","group":"Flatbeds"},{"id":"FB-6572","group":"Flatbeds"}
     ],
-    suppliers: ["Maruchan Noodles","Envirofeeds","Sterling","Pioneer Flour","Bimbo ATX1","Bimbo ATX2 Wall","Bimbo SATX","Mission Tortillas","HEB Snacks","HEB Bakery SA","Frito-Lay"],
+    suppliers: ["BIMBO ATX1","BIMBO ATX2 WALL","BIMBO SATX","ENVIRO FEEDS","Frito-Lay","HEB BAKERY SA","HEB SNACKS","MARUCHAN","Mission Foods","Pioneer Flour Mills","Sterling"],
     customers: [
       {"id":"LOF","name":"LOF - Liveoak Feedlots"},{"id":"CHAP","name":"CHAP - Chaparral Feeders"},
       {"id":"MCF","name":"MCF - Mason County Feeders"},{"id":"LABA","name":"LABA - La Babia Cattle"},
@@ -521,6 +521,25 @@ function getConfig(key) {
   const stored = localStorage.getItem('ll_cfg_'+key);
   return stored ? JSON.parse(stored) : defaults[key] || defaults;
 }
+
+// v2.6.18: one-shot supplier list migration. If the stored suppliers list
+// contains any of the legacy typo variants, replace it with the canonical list.
+// Runs at the top of getConfig before returning stored value.
+(function migrateSuppliersIfNeeded(){
+  try {
+    var stored = localStorage.getItem('ll_cfg_suppliers');
+    if (!stored) return;
+    var arr = JSON.parse(stored);
+    if (!Array.isArray(arr)) return;
+    var oldNames = ['Maruchan Noodles','Envirofeeds','Pioneer Flour','Bimbo ATX1','Bimbo ATX2 Wall','Bimbo SATX','Mission Tortillas','HEB Snacks','HEB Bakery SA'];
+    var hasOld = arr.some(function(s){ return oldNames.indexOf(s) !== -1; });
+    if (hasOld) {
+      var canonical = ["BIMBO ATX1","BIMBO ATX2 WALL","BIMBO SATX","ENVIRO FEEDS","Frito-Lay","HEB BAKERY SA","HEB SNACKS","MARUCHAN","Mission Foods","Pioneer Flour Mills","Sterling"];
+      localStorage.setItem('ll_cfg_suppliers', JSON.stringify(canonical));
+      try { console.log('[v2.6.18] migrated suppliers list to canonical names'); } catch(_){}
+    }
+  } catch (e) { /* swallow */ }
+})();
 
 function setConfig(key, arr) {
   localStorage.setItem('ll_cfg_'+key, JSON.stringify(arr));
@@ -1665,7 +1684,7 @@ function roundTons(net) {
 }
 
 // ===== AUTO-UPDATE (v2.5.7) =====
-const APP_VERSION = '2.6.17';
+const APP_VERSION = '2.6.18';
 const UPDATE_CHECK_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
 
 async function checkForUpdate() {
