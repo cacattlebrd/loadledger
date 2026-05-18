@@ -103,6 +103,50 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:#60a5fa;box-sh
 .btn-submit:active{transform:scale(.98);opacity:.9}
 .btn-submit:disabled{opacity:.4;cursor:not-allowed}
 .dvir-grid{display:grid;grid-template-columns:1fr auto;gap:4px;margin:8px 0}
+/* v2.6.15: Today's DVIR card + Roadside proof view */
+.todays-dvir{background:#0c1e3a;border:2px solid #3b82f6;border-radius:10px;padding:12px;margin-bottom:14px;cursor:pointer}
+.todays-dvir.all-clear{border-color:#22c55e;background:#0a1f12}
+.todays-dvir.has-defects{border-color:#f59e0b;background:#2a1e0c}
+.todays-dvir.none{border-color:#6b7280;background:#1e293b;cursor:default}
+.todays-dvir-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.todays-dvir-title{font-size:12px;font-weight:700;color:#e5e7eb;text-transform:uppercase;letter-spacing:0.5px}
+.todays-dvir-badge{font-size:11px;font-weight:700;padding:3px 8px;border-radius:4px}
+.todays-dvir-badge.ok{background:#22c55e;color:#0a1f12}
+.todays-dvir-badge.def{background:#f59e0b;color:#2a1e0c}
+.todays-dvir-badge.none{background:#6b7280;color:#fff}
+.todays-dvir-line{font-size:13px;color:#cbd5e1;margin-bottom:2px}
+.todays-dvir-line strong{color:#fff}
+.todays-dvir-time{font-size:11px;color:#94a3b8;margin-top:4px}
+.dvir-proof-btn{display:block;width:100%;background:#1e40af;color:#fff;border:none;border-radius:8px;padding:14px;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:14px;text-transform:uppercase;letter-spacing:0.5px;box-shadow:0 2px 8px rgba(30,64,175,0.4)}
+.dvir-proof-btn:hover{background:#1d4ed8}
+.dvir-proof-btn:disabled{background:#475569;cursor:not-allowed;box-shadow:none}
+.dvir-proof-overlay{position:fixed;top:0;left:0;width:100vw;height:100vh;background:#fff;color:#000;z-index:9999;overflow-y:auto;-webkit-overflow-scrolling:touch;display:none}
+.dvir-proof-overlay.show{display:block}
+.dvir-proof-inner{max-width:600px;margin:0 auto;padding:18px 16px 80px 16px}
+.dvir-proof-company{text-align:center;border-bottom:3px solid #000;padding-bottom:10px;margin-bottom:14px}
+.dvir-proof-company h1{font-size:22px;font-weight:900;margin:0 0 4px 0;letter-spacing:0.5px;color:#000}
+.dvir-proof-company .sub{font-size:13px;color:#333;font-weight:600;margin-bottom:2px}
+.dvir-proof-company .addr{font-size:11px;color:#555}
+.dvir-proof-banner{background:#16a34a;color:#fff;text-align:center;font-size:18px;font-weight:900;padding:12px;border-radius:6px;margin-bottom:14px;letter-spacing:0.5px}
+.dvir-proof-banner.def{background:#f59e0b;color:#000}
+.dvir-proof-banner.expired{background:#dc2626;color:#fff}
+.dvir-proof-section{background:#f5f5f5;border:1px solid #ddd;border-radius:6px;padding:10px 12px;margin-bottom:10px}
+.dvir-proof-section h3{font-size:11px;text-transform:uppercase;color:#666;margin:0 0 6px 0;font-weight:700;letter-spacing:0.5px}
+.dvir-proof-row{display:flex;justify-content:space-between;padding:3px 0;font-size:14px;border-bottom:1px solid #e5e7eb}
+.dvir-proof-row:last-child{border-bottom:none}
+.dvir-proof-row .lbl{color:#555;font-weight:600}
+.dvir-proof-row .val{color:#000;font-weight:700;text-align:right}
+.dvir-checklist-grid{display:grid;grid-template-columns:1fr auto;gap:4px 12px;font-size:13px}
+.dvir-checklist-grid .item{padding:4px 0;border-bottom:1px solid #e5e7eb;color:#333}
+.dvir-checklist-grid .status-ok{color:#16a34a;font-weight:700;padding:4px 0;border-bottom:1px solid #e5e7eb;text-align:right}
+.dvir-checklist-grid .status-def{color:#dc2626;font-weight:700;padding:4px 0;border-bottom:1px solid #e5e7eb;text-align:right}
+.dvir-proof-stamp{border:3px solid #16a34a;color:#16a34a;font-weight:900;text-align:center;padding:14px;margin:14px 0;font-size:14px;border-radius:8px;letter-spacing:0.5px;transform:rotate(-1deg)}
+.dvir-proof-stamp.def{border-color:#f59e0b;color:#a04400}
+.dvir-proof-stamp.expired{border-color:#dc2626;color:#dc2626}
+.dvir-proof-actions{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:2px solid #ddd;padding:12px 16px;display:flex;gap:8px;max-width:600px;margin:0 auto}
+.dvir-proof-actions button{flex:1;padding:14px;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:0.3px}
+.dvir-proof-close{background:#e5e7eb;color:#000}
+.dvir-proof-email{background:#1e40af;color:#fff}
 .dvir-item{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:#1e293b;border-radius:6px;font-size:13px}
 .dvir-item .status{display:flex;gap:8px}
 .dvir-item .status span{padding:4px 10px;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;border:1px solid #334155}
@@ -748,6 +792,18 @@ document.addEventListener('DOMContentLoaded', function(){
 
 <!-- ===== DVIR TAB ===== -->
 <div id="panel-dvir" class="panel">
+  <!-- v2.6.15: Today's DVIR card (auto-populated) -->
+  <div id="todaysDvirCard" class="todays-dvir none" onclick="onTodaysDvirClick()">
+    <div class="todays-dvir-header">
+      <div class="todays-dvir-title">Today's DVIR</div>
+      <div class="todays-dvir-badge none" id="todaysDvirBadge">NOT SUBMITTED</div>
+    </div>
+    <div class="todays-dvir-line" id="todaysDvirLine">No DVIR submitted yet today. Complete the form below.</div>
+    <div class="todays-dvir-time" id="todaysDvirTime"></div>
+  </div>
+  <!-- v2.6.15: Roadside DOT proof button -->
+  <button type="button" id="dvirProofBtn" class="dvir-proof-btn" onclick="showDvirProof()" disabled>&#9888; Show DVIR for DOT Officer</button>
+
   <div class="section-title">Driver Vehicle Inspection Report</div>
   <div class="form-group">
     <label>Date</label>
@@ -793,6 +849,17 @@ document.addEventListener('DOMContentLoaded', function(){
     <textarea id="dvirNotes" placeholder="Describe any defects found..."></textarea>
   </div>
   <button type="button" class="btn-submit blue" onclick="submitDvir()">SUBMIT DVIR</button>
+</div>
+
+<!-- v2.6.15: Fullscreen DVIR proof overlay (for roadside DOT inspection) -->
+<div id="dvirProofOverlay" class="dvir-proof-overlay">
+  <div class="dvir-proof-inner" id="dvirProofContent">
+    <!-- populated dynamically by showDvirProof() -->
+  </div>
+  <div class="dvir-proof-actions">
+    <button type="button" class="dvir-proof-close" onclick="closeDvirProof()">Close</button>
+    <button type="button" class="dvir-proof-email" onclick="emailDvirProof()">Email Proof</button>
+  </div>
 </div>
 
 <!-- ===== HISTORY TAB ===== -->
@@ -1398,6 +1465,7 @@ function switchTab(name) {
   event.currentTarget.classList.add('active');
   if(name==='history') renderHistory();
   if(name==='admin') renderAdminPanel();
+  if(name==='dvir') { try { renderTodaysDvir(); } catch(_){} }
 
   try { if (name === 'load') renderOpenLoadsListSync(); } catch(_) {}
 
@@ -1597,7 +1665,7 @@ function roundTons(net) {
 }
 
 // ===== AUTO-UPDATE (v2.5.7) =====
-const APP_VERSION = '2.6.14';
+const APP_VERSION = '2.6.15';
 const UPDATE_CHECK_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
 
 async function checkForUpdate() {
@@ -2658,6 +2726,203 @@ function submitFuel() {
 }
 
 // ===== SUBMIT DVIR =====
+// ===== v2.6.15: Today's DVIR card + Roadside DOT proof =====
+function getMostRecentDvir() {
+  try {
+    var all = JSON.parse(localStorage.getItem('ll_dvir') || '[]');
+    if (!all.length) return null;
+    // Sort by timestamp desc
+    all.sort(function(a,b){ return (b.timestamp||'').localeCompare(a.timestamp||''); });
+    return all[0];
+  } catch(e) { return null; }
+}
+
+function isDvirCurrentForRoadside(entry) {
+  // A DVIR is "current" if submitted today, OR if it's a post-trip from yesterday
+  // (covers the case where driver did post-trip yesterday evening and is pulled over before today's pre-trip)
+  if (!entry || !entry.timestamp) return false;
+  var ts = new Date(entry.timestamp);
+  var now = new Date();
+  var diffHours = (now.getTime() - ts.getTime()) / 3600000;
+  // Current = within last 24 hours
+  return diffHours <= 24;
+}
+
+function fmtDvirShortTime(iso) {
+  try {
+    var d = new Date(iso);
+    var h = d.getHours();
+    var m = d.getMinutes();
+    var ap = h >= 12 ? 'PM' : 'AM';
+    h = h % 12; if (h === 0) h = 12;
+    var mm = m < 10 ? '0'+m : m;
+    var mo = d.getMonth()+1;
+    var da = d.getDate();
+    return mo+'/'+da+' '+h+':'+mm+' '+ap;
+  } catch(e) { return iso || ''; }
+}
+
+function fmtDvirFullTime(iso) {
+  try {
+    var d = new Date(iso);
+    return d.toLocaleString('en-US', {weekday:'short', month:'short', day:'numeric', year:'numeric', hour:'numeric', minute:'2-digit', second:'2-digit', hour12:true});
+  } catch(e) { return iso || ''; }
+}
+
+function renderTodaysDvir() {
+  var card = document.getElementById('todaysDvirCard');
+  var badge = document.getElementById('todaysDvirBadge');
+  var line = document.getElementById('todaysDvirLine');
+  var time = document.getElementById('todaysDvirTime');
+  var btn = document.getElementById('dvirProofBtn');
+  if (!card || !badge || !line || !time || !btn) return;
+
+  var dvir = getMostRecentDvir();
+  if (!dvir || !isDvirCurrentForRoadside(dvir)) {
+    card.className = 'todays-dvir none';
+    badge.className = 'todays-dvir-badge none';
+    badge.textContent = 'NOT SUBMITTED';
+    line.innerHTML = 'No current DVIR on this device. Complete the form below.';
+    time.textContent = '';
+    btn.disabled = true;
+    btn.textContent = '⚠ Show DVIR for DOT Officer (no DVIR yet)';
+    return;
+  }
+
+  var clear = dvir.allClear !== false && (!dvir.defects || dvir.defects.length === 0);
+  if (clear) {
+    card.className = 'todays-dvir all-clear';
+    badge.className = 'todays-dvir-badge ok';
+    badge.textContent = '✓ ALL CLEAR';
+  } else {
+    card.className = 'todays-dvir has-defects';
+    badge.className = 'todays-dvir-badge def';
+    badge.textContent = '⚠ ' + (dvir.defects ? dvir.defects.length : '?') + ' DEFECT(S)';
+  }
+  line.innerHTML = '<strong>' + (dvir.type||'?') + '</strong> by <strong>' + (dvir.driver||'?') + '</strong> on Truck <strong>' + (dvir.truck||'?') + '</strong>';
+  time.textContent = 'Submitted ' + fmtDvirShortTime(dvir.timestamp);
+  btn.disabled = false;
+  btn.textContent = '⚠ Show DVIR for DOT Officer';
+}
+
+function onTodaysDvirClick() {
+  var dvir = getMostRecentDvir();
+  if (dvir && isDvirCurrentForRoadside(dvir)) showDvirProof();
+}
+
+function escHtml(s) { return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function showDvirProof() {
+  var dvir = getMostRecentDvir();
+  if (!dvir) { showToast('No DVIR on record yet'); return; }
+  var overlay = document.getElementById('dvirProofOverlay');
+  var content = document.getElementById('dvirProofContent');
+  if (!overlay || !content) return;
+
+  var clear = dvir.allClear !== false && (!dvir.defects || dvir.defects.length === 0);
+  var current = isDvirCurrentForRoadside(dvir);
+
+  var bannerCls = clear ? '' : 'def';
+  var bannerTxt = clear ? '✓ INSPECTION COMPLETE - ALL CLEAR' : '⚠ ' + (dvir.defects ? dvir.defects.length : 0) + ' DEFECT(S) NOTED';
+  if (!current) { bannerCls = 'expired'; bannerTxt = '⚠ LAST DVIR OVER 24 HRS OLD - NEW INSPECTION REQUIRED'; }
+
+  var stampCls = clear ? '' : 'def';
+  if (!current) stampCls = 'expired';
+  var stampTxt = clear ? 'VEHICLE CERTIFIED SAFE TO OPERATE' : 'DEFECTS NOTED - SEE BELOW';
+  if (!current) stampTxt = 'DVIR EXPIRED - NEW INSPECTION NEEDED';
+
+  // Build checklist rows
+  var checklistHtml = '';
+  if (dvir.items) {
+    Object.keys(dvir.items).forEach(function(item){
+      var status = dvir.items[item];
+      var statusCls = status === 'def' ? 'status-def' : 'status-ok';
+      var statusTxt = status === 'def' ? '⚠ DEFECT' : '✓ OK';
+      checklistHtml += '<div class="item">' + escHtml(item) + '</div><div class="' + statusCls + '">' + statusTxt + '</div>';
+    });
+  }
+
+  var defectsBlock = '';
+  if (dvir.defects && dvir.defects.length) {
+    defectsBlock += '<div class="dvir-proof-section"><h3>Defects Found</h3>';
+    dvir.defects.forEach(function(d){ defectsBlock += '<div class="dvir-proof-row"><span class="val" style="text-align:left;color:#dc2626">⚠ ' + escHtml(d) + '</span></div>'; });
+    if (dvir.notes) defectsBlock += '<div class="dvir-proof-row" style="margin-top:6px"><span class="lbl">Notes:</span></div><div style="padding:4px 0;font-size:13px;color:#333">' + escHtml(dvir.notes) + '</div>';
+    defectsBlock += '</div>';
+  } else if (dvir.notes) {
+    defectsBlock += '<div class="dvir-proof-section"><h3>Driver Notes</h3><div style="padding:4px 0;font-size:13px;color:#333">' + escHtml(dvir.notes) + '</div></div>';
+  }
+
+  content.innerHTML =
+    '<div class="dvir-proof-company">' +
+      '<h1>CA CATTLE COMPANY, LTD.</h1>' +
+      '<div class="sub">Bakery Recycling Division</div>' +
+      '<div class="addr">902 Monterey Street, San Antonio, TX 78207</div>' +
+      '<div class="addr">USDOT: 4291749 &nbsp;|&nbsp; (325) 347-2580</div>' +
+    '</div>' +
+    '<div class="dvir-proof-banner ' + bannerCls + '">' + bannerTxt + '</div>' +
+    '<div class="dvir-proof-section">' +
+      '<h3>Inspection Details</h3>' +
+      '<div class="dvir-proof-row"><span class="lbl">Type:</span><span class="val">' + escHtml(dvir.type||'?') + '</span></div>' +
+      '<div class="dvir-proof-row"><span class="lbl">Date:</span><span class="val">' + escHtml(dvir.date||'?') + '</span></div>' +
+      '<div class="dvir-proof-row"><span class="lbl">Submitted:</span><span class="val">' + fmtDvirFullTime(dvir.timestamp) + '</span></div>' +
+      '<div class="dvir-proof-row"><span class="lbl">Driver:</span><span class="val">' + escHtml(dvir.driver||'?') + '</span></div>' +
+      '<div class="dvir-proof-row"><span class="lbl">Truck:</span><span class="val">' + escHtml(dvir.truck||'?') + '</span></div>' +
+      '<div class="dvir-proof-row"><span class="lbl">Trailer:</span><span class="val">' + escHtml(dvir.trailer||'-') + '</span></div>' +
+      '<div class="dvir-proof-row"><span class="lbl">Odometer:</span><span class="val">' + escHtml(dvir.odometer||'-') + '</span></div>' +
+    '</div>' +
+    '<div class="dvir-proof-section">' +
+      '<h3>Inspection Checklist (49 CFR 396.11)</h3>' +
+      '<div class="dvir-checklist-grid">' + checklistHtml + '</div>' +
+    '</div>' +
+    defectsBlock +
+    '<div class="dvir-proof-stamp ' + stampCls + '">' + stampTxt + '<br><span style="font-size:11px;font-weight:600">Electronic DVIR per 49 CFR 396.11(c)</span></div>';
+
+  overlay.classList.add('show');
+  // Stash current DVIR for email action
+  window._dvirProofEntry = dvir;
+}
+
+function closeDvirProof() {
+  var overlay = document.getElementById('dvirProofOverlay');
+  if (overlay) overlay.classList.remove('show');
+}
+
+function emailDvirProof() {
+  var dvir = window._dvirProofEntry || getMostRecentDvir();
+  if (!dvir) { showToast('No DVIR to email'); return; }
+  var to = prompt('Email DVIR proof to (officer email):', '');
+  if (!to) return;
+  var subj = 'DVIR Proof - ' + (dvir.driver||'?') + ' - Truck ' + (dvir.truck||'?') + ' - ' + fmtDvirShortTime(dvir.timestamp);
+  var body = 'CA CATTLE COMPANY, LTD. - Bakery Recycling Division\n' +
+             '902 Monterey Street, San Antonio, TX 78207\n' +
+             'USDOT: 4291749 | (325) 347-2580\n\n' +
+             '=== DVIR PROOF OF SUBMISSION ===\n\n' +
+             'Type: ' + (dvir.type||'?') + '\n' +
+             'Date: ' + (dvir.date||'?') + '\n' +
+             'Submitted: ' + fmtDvirFullTime(dvir.timestamp) + '\n' +
+             'Driver: ' + (dvir.driver||'?') + '\n' +
+             'Truck: ' + (dvir.truck||'?') + '\n' +
+             'Trailer: ' + (dvir.trailer||'-') + '\n' +
+             'Odometer: ' + (dvir.odometer||'-') + '\n\n' +
+             '=== INSPECTION RESULTS ===\n\n';
+  if (dvir.items) {
+    Object.keys(dvir.items).forEach(function(k){
+      body += (dvir.items[k] === 'def' ? '[DEFECT] ' : '[OK]     ') + k + '\n';
+    });
+  }
+  body += '\n';
+  if (dvir.defects && dvir.defects.length) {
+    body += '=== DEFECTS NOTED ===\n';
+    dvir.defects.forEach(function(d){ body += '- ' + d + '\n'; });
+    body += '\n';
+  }
+  if (dvir.notes) body += '=== DRIVER NOTES ===\n' + dvir.notes + '\n\n';
+  body += 'Electronic DVIR submitted via LoadLedger app per 49 CFR 396.11(c).\n';
+  body += 'For verification contact Chad Crocker, GM: (325) 347-2580 / chadcrocker@cacattlebrd.com\n';
+  var mailto = 'mailto:' + encodeURIComponent(to) + '?subject=' + encodeURIComponent(subj) + '&body=' + encodeURIComponent(body);
+  window.location.href = mailto;
+}
+
 function submitDvir() {
   try {
   const defects = dvirItems.filter(i => dvirState[i] === 'def');
@@ -2682,6 +2947,8 @@ function submitDvir() {
   document.getElementById('dvirNotes').value = '';
   dvirItems.forEach(i => dvirState[i] = 'ok');
   buildDvirChecklist();
+  // v2.6.15: refresh Today's DVIR card immediately after submit
+  try { if (typeof renderTodaysDvir === 'function') renderTodaysDvir(); } catch(_){}
   } catch(err) {
     console.error('[submitDvir]', err);
     showToast('Submit error: ' + (err && err.message ? err.message : String(err)), true);
