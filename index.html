@@ -1596,7 +1596,7 @@ function roundTons(net) {
 }
 
 // ===== AUTO-UPDATE (v2.5.7) =====
-const APP_VERSION = '2.6.12';
+const APP_VERSION = '2.6.13';
 const UPDATE_CHECK_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
 
 async function checkForUpdate() {
@@ -2776,7 +2776,7 @@ function populateDriverFilter() {
   var drivers = [];
   try { drivers = getConfig('drivers') || []; } catch(e) {}
   // v2.6.12: hide legacy/admin-only entries from History driver filter
-  var hideNames = ['Chad Admin', 'James Gass Admin', 'Chad'];
+  var hideNames = ['Chad Admin', 'James Gass Admin', 'Chad', 'Chad (Admin)', 'James Gass (Admin)'];
   var opts = '<option value="">All drivers</option>';
   drivers.forEach(function(d) {
     var nm = (d.name||"");
@@ -2853,15 +2853,19 @@ function renderSummaryStrip() {
   if(!el) return;
   var drivers = [];
   try { drivers = getConfig('drivers') || []; } catch(e) {}
+  // v2.6.13: hide legacy/admin-only entries from per-driver summary
+  var hideNames = ['Chad Admin', 'James Gass Admin', 'Chad', 'Chad (Admin)', 'James Gass (Admin)'];
   // Build per-driver stats for today
   var todayStart = new Date(); todayStart.setHours(0,0,0,0);
   var todayMs = todayStart.getTime();
   var stats = {};
   drivers.forEach(function(d){
+    if (hideNames.indexOf(d.name) !== -1) return;
     stats[d.name] = { loads:0, fuel:0, dvir:0, logins:0, last:null };
   });
   histCache.forEach(function(e){
     var name = e.user || "";
+    if (hideNames.indexOf(name) !== -1) return;
     if(!stats[name]) stats[name] = { loads:0, fuel:0, dvir:0, logins:0, last:null };
     var t = new Date(e.timestamp).getTime();
     if(!stats[name].last || t > new Date(stats[name].last).getTime()) stats[name].last = e.timestamp;
@@ -2876,6 +2880,7 @@ function renderSummaryStrip() {
   var names = Object.keys(stats);
   names.forEach(function(name){
     if(!name || name === "unknown") return;
+    if (hideNames.indexOf(name) !== -1) return;
     var s = stats[name];
     var totalToday = s.loads + s.fuel + s.dvir;
     var lastT = s.last ? new Date(s.last).getTime() : 0;
