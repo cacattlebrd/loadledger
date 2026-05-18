@@ -1665,7 +1665,7 @@ function roundTons(net) {
 }
 
 // ===== AUTO-UPDATE (v2.5.7) =====
-const APP_VERSION = '2.6.16';
+const APP_VERSION = '2.6.17';
 const UPDATE_CHECK_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
 
 async function checkForUpdate() {
@@ -2015,7 +2015,7 @@ async function submitLoad() {
   // v2.6.6: photos disabled — never write a photo, never send photoData
   addStore('loads', entry);
   const syncEntry = Object.assign({}, entry, { photoData: '' });
-  logActivity("Load Submitted", (entry.driver||"?") + " - " + (entry.type||"?") + " - " + (entry.supplier||entry.customer||"?") + " - " + (entry.tons||"?") + " tons");
+  logActivity("Load Submitted", (entry.driver||"?") + " - " + (entry.type||"?") + " - " + (entry.source||entry.supplier||entry.customer||"?") + " - " + (entry.tons||"?") + " tons");
   // v2.6.0: AWAIT the backend confirm. Local copy already saved above, so
   // even if the network is down the load is never lost - it just sits in the
   // retry queue and auto-syncs on the next 'online' event.
@@ -2288,8 +2288,14 @@ async function finishLoad() {
       var openLoads = getOpenLoadsLocal().filter(function(l){ return l.loadId !== currentResumeLoadId; });
       saveOpenLoadsLocal(openLoads);
       showToast('✔ Load finished - ' + tons + ' tons synced');
-      var _finSrc = '?'; try { var _o = getOpenLoadsLocal().find(function(l){ return l.loadId === currentResumeLoadId; }); if (_o) _finSrc = (_o.supplier || _o.customer || '?'); } catch(_) {}
-      logActivity('Load Finished', (window.currentUser||'?') + ' - ' + _finSrc + ' - ' + tons + ' tons - id ' + currentResumeLoadId);
+      // v2.6.17: open load record uses 'source' (consolidated supplier/customer field).
+      // Also dropping the trailing 'id LD-...' since Chad will never use that.
+      var _finSrc = '?'; var _finType = '?';
+      try {
+        var _o = getOpenLoadsLocal().find(function(l){ return l.loadId === currentResumeLoadId; });
+        if (_o) { _finSrc = (_o.source || _o.supplier || _o.customer || '?'); _finType = (_o.type || '?'); }
+      } catch(_) {}
+      logActivity('Load Finished', (window.currentUser||'?') + ' - ' + _finType + ' - ' + _finSrc + ' - ' + tons + ' tons');
       exitResumeMode();
       refreshOpenLoadsList();
     } else {
