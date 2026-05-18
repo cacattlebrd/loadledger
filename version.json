@@ -1,7 +1,7 @@
 {
-  "version": "2.6.13",
-  "min_version": "2.6.13",
+  "version": "2.6.14",
+  "min_version": "2.6.14",
   "released": "2026-05-18",
   "forceUpdate": true,
-  "notes": "History summary cards cleaned up - Chad Admin / James Gass Admin / Chad / Chad (Admin) / James Gass (Admin) now hidden from the per-driver summary strip at the top of History too (not just the filter dropdown)."
+  "notes": "Admin Override checkbox on the LOAD tab is hidden. The override never gets used in practice so it was cluttering the page. Code is still intact - can be flipped back on quickly if ever needed."
 }
