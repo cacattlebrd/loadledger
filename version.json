@@ -1,7 +1,7 @@
 {
-  "version": "2.6.15",
-  "min_version": "2.6.15",
+  "version": "2.6.16",
+  "min_version": "2.6.16",
   "released": "2026-05-18",
   "forceUpdate": true,
-  "notes": "DVIR roadside proof. Today's DVIR card now lives at the top of the DVIR tab showing the most recent inspection (Pre or Post, driver, truck, time, All Clear or N defects). Big blue button below: 'Show DVIR for DOT Officer' - tap to open a fullscreen, officer-ready proof view with company info, USDOT, full checklist, defect notes, and a green VEHICLE CERTIFIED SAFE TO OPERATE stamp. Email button lets you send the proof to an officer's email on the spot. Compliant with electronic DVIR rule 49 CFR 396.11(c)."
+  "notes": "DVIR proof tweaks: stamp no longer tilted when defects are noted (looked sloppy), and the text now reads SEE DETAILS ABOVE since the defects block is rendered above the stamp."
 }
