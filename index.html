@@ -401,7 +401,8 @@ function checkPin(){
     document.body.classList.remove('locked');
     if(window.isAdmin) {
       document.getElementById('sync-section').classList.remove('hidden');
-      document.getElementById('adminOverride').classList.remove('hidden');
+      // v2.6.14: admin override hidden per Chad request (code kept intact, just never shown)
+      // document.getElementById('adminOverride').classList.remove('hidden');
       document.getElementById('tab-admin').classList.remove('hidden');
     }
     // v2.6.9: removed admin gate. Always auto-pick the user's name in driver dropdowns.
@@ -1596,7 +1597,7 @@ function roundTons(net) {
 }
 
 // ===== AUTO-UPDATE (v2.5.7) =====
-const APP_VERSION = '2.6.13';
+const APP_VERSION = '2.6.14';
 const UPDATE_CHECK_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
 
 async function checkForUpdate() {
