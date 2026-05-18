@@ -1,7 +1,7 @@
 {
-  "version": "2.6.16",
-  "min_version": "2.6.16",
+  "version": "2.6.17",
+  "min_version": "2.6.17",
   "released": "2026-05-18",
   "forceUpdate": true,
-  "notes": "DVIR proof tweaks: stamp no longer tilted when defects are noted (looked sloppy), and the text now reads SEE DETAILS ABOVE since the defects block is rendered above the stamp."
+  "notes": "History log fixes - Load Submitted entries now show the actual customer or supplier name (was showing ? because the code was checking the wrong field). Load Finished entries now show direction + customer/supplier instead of the LD-XXXX internal ID, which nobody uses anyway."
 }
