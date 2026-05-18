@@ -1,7 +1,7 @@
 {
-  "version": "2.6.12",
-  "min_version": "2.6.12",
+  "version": "2.6.13",
+  "min_version": "2.6.13",
   "released": "2026-05-18",
   "forceUpdate": true,
-  "notes": "History tab cleanup: filter text darkened so it's readable, supplier/customer now shows on every load entry (no need to expand), and Chad Admin / James Gass Admin / Chad hidden from the driver filter dropdown."
+  "notes": "History summary cards cleaned up - Chad Admin / James Gass Admin / Chad / Chad (Admin) / James Gass (Admin) now hidden from the per-driver summary strip at the top of History too (not just the filter dropdown)."
 }
