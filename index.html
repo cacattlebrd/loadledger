@@ -278,11 +278,15 @@ body.locked > *:not(#pin-overlay):not(.toast){display:none!important}
 .hist-sum-counts{font-size:11px;color:#555;line-height:1.4}
 .hist-sum-last{font-size:10px;color:#888;margin-top:4px}
 .hist-filters{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px}
-.hist-filters select,.hist-filters input{width:100%;padding:6px 8px;border:1px solid #ccc;border-radius:6px;font-size:13px;background:#fff}
+.hist-filters select,.hist-filters input{width:100%;padding:6px 8px;border:1px solid #888;border-radius:6px;font-size:13px;background:#fff;color:#111;font-weight:600}
 .hist-filters input{grid-column:1/-1}
+.hist-filters input::placeholder{color:#444;opacity:1;font-weight:600}
+.hist-filters input::-webkit-input-placeholder{color:#444;opacity:1;font-weight:600}
+.hist-filters select option{color:#111;background:#fff}
 .act-item.expanded{background:#f8fafc}
 .act-item.expandable{cursor:pointer}
 .act-detail{display:none;padding:8px 10px;background:#f1f5f9;font-size:11px;color:#333;border-top:1px dashed #cbd5e1;line-height:1.5}
+.act-detail-inline{display:block;margin-top:3px;padding:4px 0;font-size:12px;color:#1e293b;font-weight:600;line-height:1.4}
 .act-item.expanded .act-detail{display:block}
 .act-count-badge{float:right;font-size:10px;color:#666;background:#e5e7eb;padding:1px 6px;border-radius:8px}
 .hist-empty{text-align:center;color:#999;padding:24px 8px;font-size:13px}
@@ -1592,7 +1596,7 @@ function roundTons(net) {
 }
 
 // ===== AUTO-UPDATE (v2.5.7) =====
-const APP_VERSION = '2.6.11';
+const APP_VERSION = '2.6.12';
 const UPDATE_CHECK_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
 
 async function checkForUpdate() {
@@ -1942,7 +1946,7 @@ async function submitLoad() {
   // v2.6.6: photos disabled — never write a photo, never send photoData
   addStore('loads', entry);
   const syncEntry = Object.assign({}, entry, { photoData: '' });
-  logActivity("Load Submitted", (entry.driver||"?") + " - " + (entry.type||"?") + " - " + (entry.tons||"?") + " tons");
+  logActivity("Load Submitted", (entry.driver||"?") + " - " + (entry.type||"?") + " - " + (entry.supplier||entry.customer||"?") + " - " + (entry.tons||"?") + " tons");
   // v2.6.0: AWAIT the backend confirm. Local copy already saved above, so
   // even if the network is down the load is never lost - it just sits in the
   // retry queue and auto-syncs on the next 'online' event.
@@ -2215,7 +2219,8 @@ async function finishLoad() {
       var openLoads = getOpenLoadsLocal().filter(function(l){ return l.loadId !== currentResumeLoadId; });
       saveOpenLoadsLocal(openLoads);
       showToast('✔ Load finished - ' + tons + ' tons synced');
-      logActivity('Load Finished', (window.currentUser||'?') + ' - ' + tons + ' tons - id ' + currentResumeLoadId);
+      var _finSrc = '?'; try { var _o = getOpenLoadsLocal().find(function(l){ return l.loadId === currentResumeLoadId; }); if (_o) _finSrc = (_o.supplier || _o.customer || '?'); } catch(_) {}
+      logActivity('Load Finished', (window.currentUser||'?') + ' - ' + _finSrc + ' - ' + tons + ' tons - id ' + currentResumeLoadId);
       exitResumeMode();
       refreshOpenLoadsList();
     } else {
@@ -2770,9 +2775,13 @@ function populateDriverFilter() {
   var currentVal = sel.value;
   var drivers = [];
   try { drivers = getConfig('drivers') || []; } catch(e) {}
+  // v2.6.12: hide legacy/admin-only entries from History driver filter
+  var hideNames = ['Chad Admin', 'James Gass Admin', 'Chad'];
   var opts = '<option value="">All drivers</option>';
   drivers.forEach(function(d) {
-    opts += '<option value="' + (d.name||"") + '">' + (d.name||"") + '</option>';
+    var nm = (d.name||"");
+    if (hideNames.indexOf(nm) !== -1) return;
+    opts += '<option value="' + nm + '">' + nm + '</option>';
   });
   sel.innerHTML = opts;
   if(currentVal) sel.value = currentVal;
@@ -2897,14 +2906,20 @@ function renderActivityFeed(entries, isLocal) {
     var e = entries[i];
     var cls = classifyEvent(e.action);
     var hasDetail = !!e.details;
-    var itemCls = "act-item act-"+cls + (hasDetail?" expandable":"");
-    var onclick = hasDetail ? ' onclick="this.classList.toggle(&quot;expanded&quot;)"' : '';
+    // Always show details inline for load/fuel/dvir events; admin/login stay click-to-expand
+    var alwaysShow = (cls === 'load' || cls === 'fuel' || cls === 'dvir');
+    var itemCls = "act-item act-"+cls + (hasDetail && !alwaysShow ?" expandable":"");
+    var onclick = (hasDetail && !alwaysShow) ? ' onclick="this.classList.toggle(&quot;expanded&quot;)"' : '';
     html += '<div class="'+itemCls+'"'+onclick+'>';
     html += '<div><span class="act-time">'+fmtHistTime(e.timestamp)+"</span></div>";
     html += '<span class="act-user">'+(e.user||"System")+"</span> ";
     html += '<span class="act-action">'+(e.action||"")+"</span>";
     if(hasDetail) {
-      html += '<div class="act-detail">'+String(e.details).replace(/</g,"&lt;")+"</div>";
+      if (alwaysShow) {
+        html += '<div class="act-detail-inline">'+String(e.details).replace(/</g,"&lt;")+"</div>";
+      } else {
+        html += '<div class="act-detail">'+String(e.details).replace(/</g,"&lt;")+"</div>";
+      }
     }
     html += "</div>";
   }
