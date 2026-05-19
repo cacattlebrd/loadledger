@@ -1684,7 +1684,7 @@ function roundTons(net) {
 }
 
 // ===== AUTO-UPDATE (v2.5.7) =====
-const APP_VERSION = '2.6.18';
+const APP_VERSION = '2.6.19';
 const UPDATE_CHECK_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
 
 async function checkForUpdate() {
@@ -2726,7 +2726,7 @@ function submitFuel() {
     fuelCost: 0,               // office-filled
     defCost: 0,                // office-filled
     odometer: document.getElementById('fuelOdo').value,
-    station: 'Yard - 902 Monterey St',  // auto-stamped
+    station: 'Yard',  // auto-stamped (v2.6.19 normalized from 'Yard - 902 Monterey St')
     notes: document.getElementById('fuelNotes').value,
     timestamp: new Date().toISOString()
   };
