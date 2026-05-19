@@ -1,7 +1,6 @@
 {
-  "version": "2.6.18",
-  "min_version": "2.6.18",
-  "released": "2026-05-18",
-  "forceUpdate": true,
-  "notes": "Cleaned up supplier names. Inbound dropdown now uses canonical names that match the Month Totals report exactly (MARUCHAN, Mission Foods, HEB BAKERY SA, HEB SNACKS, BIMBO SATX, Pioneer Flour Mills, etc.) instead of the typo variants drivers were picking. Historical data on the Sheet also normalized so Month Totals now matches the Inbound Log to the penny. One-shot localStorage migration on app load - drivers will see the clean dropdown on first open."
+  "version": "2.6.19",
+  "min_version": "2.6.19",
+  "released": "2026-05-19",
+  "notes": "Fuel station auto-stamp normalized to plain 'Yard'. Sidebar Save handler bug fix: dates now write as plain YYYY-MM-DD strings to RAW Fuel-DEF (fixes ISO-string type coercion bug)."
 }
