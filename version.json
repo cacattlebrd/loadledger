@@ -2,5 +2,6 @@
   "version": "2.6.19",
   "min_version": "2.6.19",
   "released": "2026-05-19",
+  "forceUpdate": true,
   "notes": "Fuel station auto-stamp normalized to plain 'Yard'. Sidebar Save handler bug fix: dates now write as plain YYYY-MM-DD strings to RAW Fuel-DEF (fixes ISO-string type coercion bug)."
 }
