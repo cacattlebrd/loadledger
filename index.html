@@ -1684,7 +1684,7 @@ function roundTons(net) {
 }
 
 // ===== AUTO-UPDATE (v2.5.7) =====
-const APP_VERSION = '2.6.19';
+const APP_VERSION = '2.6.20';
 const UPDATE_CHECK_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
 
 async function checkForUpdate() {
@@ -4217,7 +4217,7 @@ const configSync = (() => {
       const data = await resp.json();
       if (data && data.config) {
         // Save each config category to localStorage
-        const categories = ['suppliers','customers','trucks','trailers','commodities','products'];
+        const categories = ['drivers','suppliers','customers','trucks','trailers','commodities','products'];
         categories.forEach(cat => {
           if (data.config[cat] && Array.isArray(data.config[cat]) && data.config[cat].length > 0) {
             localStorage.setItem('ll_cfg_' + cat, JSON.stringify(data.config[cat]));
@@ -4258,7 +4258,7 @@ const configSync = (() => {
   // Push ALL categories at once (admin bulk sync)
   // v2.6.7: parse response body and require success:true (kills silent-drop pattern)
   async function pushAll() {
-    const categories = ['suppliers','customers','trucks','trailers','commodities','products'];
+    const categories = ['drivers','suppliers','customers','trucks','trailers','commodities','products'];
     const allConfig = {};
     categories.forEach(cat => {
       const stored = localStorage.getItem('ll_cfg_' + cat);
