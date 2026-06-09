@@ -769,6 +769,12 @@ document.addEventListener('DOMContentLoaded', function(){
 <!-- ===== FUEL/DEF TAB ===== -->
 <div id="panel-fuel" class="panel">
   <div class="section-title">Fuel / DEF Entry</div>
+  <!-- v2.6.21: fuel direction pick — stamps RAW Fuel-DEF Direction so cost reports split IB/OB correctly -->
+  <div class="section-title">Direction</div>
+  <div class="toggle-row">
+    <div class="toggle-btn" id="fuel-btn-in" onclick="setFuelDirection('in')">&#11015; INBOUND<br><span style="font-size:10px;font-weight:400">Bakery pickup truck</span></div>
+    <div class="toggle-btn" id="fuel-btn-out" onclick="setFuelDirection('out')">&#11014; OUTBOUND<br><span style="font-size:10px;font-weight:400">Feed delivery truck</span></div>
+  </div>
   <div class="form-group">
     <label>Date</label>
     <input type="date" id="fuelDate">
@@ -1499,6 +1505,13 @@ function switchTab(name) {
 }
 
 // ===== DIRECTION =====
+var fuelDirection = '';
+function setFuelDirection(dir) {
+  fuelDirection = dir;
+  document.getElementById('fuel-btn-in').className = 'toggle-btn' + (dir==='in' ? ' active-in' : '');
+  document.getElementById('fuel-btn-out').className = 'toggle-btn' + (dir==='out' ? ' active-out' : '');
+}
+
 function setDirection(dir) {
   direction = dir;
   document.getElementById('btn-in').className = 'toggle-btn' + (dir==='in' ? ' active-in' : '');
@@ -1684,7 +1697,7 @@ function roundTons(net) {
 }
 
 // ===== AUTO-UPDATE (v2.5.7) =====
-const APP_VERSION = '2.6.20';
+const APP_VERSION = '2.6.21';
 const UPDATE_CHECK_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
 
 async function checkForUpdate() {
@@ -2726,12 +2739,14 @@ function submitFuel() {
     fuelCost: 0,               // office-filled
     defCost: 0,                // office-filled
     odometer: document.getElementById('fuelOdo').value,
+    direction: fuelDirection === 'in' ? 'Inbound' : (fuelDirection === 'out' ? 'Outbound' : ''),
     station: 'Yard',  // auto-stamped (v2.6.19 normalized from 'Yard - 902 Monterey St')
     notes: document.getElementById('fuelNotes').value,
     timestamp: new Date().toISOString()
   };
   if(!entry.driver || !entry.date) { showToast('Pick a driver and date', true); return; }
   if (!fuelGal && !defBoxes) { showToast('Enter diesel gallons or DEF boxes (or both)', true); return; }
+  if (!entry.direction) { showToast('Pick INBOUND or OUTBOUND for this fuel entry', true); return; }
 
   // Aliases for backend handleFuel (expects fuelAmount/defAmount/cost/supplier).
   entry.fuelAmount = entry.fuelGal;
@@ -4297,6 +4312,7 @@ const configSync = (() => {
 const sheetsSync = (() => {
   const WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbwjDeDTHZ5ca97RVZL-jizNgs6fXgjij8y8McPyieqVeadAkdr0FW5E_iQSRa7W2nKjkw/exec';
   const QUEUE_KEY = 'll_sync_queue';
+  const LL_TOKEN = '9io-MrJ1gzvIHori87hhPX3mE2PPmhzw'; // v2.6.21: backend auth handshake
 
   function getQueue() {
     try { return JSON.parse(localStorage.getItem(QUEUE_KEY)) || []; }
@@ -4313,7 +4329,7 @@ const sheetsSync = (() => {
     // hijacks, and backend errors all looked like success. Now we read the
     // response, parse it, and only markSynced() if the backend confirms.
     // Backend WebApp.gs dispatches on data.type (not data.action). Include both.
-    const payload = { ...data, action, messageType: action };
+    const payload = { ...data, action, messageType: action, token: LL_TOKEN };
     const ts = data.timestamp || new Date().toISOString();
     try {
       const resp = await fetch(WEBAPP_URL, {
@@ -4395,7 +4411,7 @@ const sheetsSync = (() => {
     let sent = 0;
     for (const item of q) {
       try {
-        const payload = Object.assign({}, item.data, { action: item.action, messageType: item.action, type: (item.data && item.data.type) || item.action });
+        const payload = Object.assign({}, item.data, { action: item.action, messageType: item.action, type: (item.data && item.data.type) || item.action, token: LL_TOKEN });
         const resp = await fetch(WEBAPP_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'text/plain' },
