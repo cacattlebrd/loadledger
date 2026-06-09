@@ -1,7 +1,7 @@
 {
-  "version": "2.6.20",
-  "min_version": "2.6.20",
-  "released": "2026-05-21",
+  "version": "2.6.21",
+  "min_version": "2.6.21",
+  "released": "2026-06-09",
   "forceUpdate": true,
-  "notes": "Driver list now syncs across devices. New drivers added on one device (e.g. Ron Crocker, Guest) now propagate to phones and tablets via Sync Config to All Devices."
+  "notes": "Fuel entries now ask Inbound or Outbound. Pick the direction your truck ran before submitting fuel - it powers the trucking cost reports."
 }
