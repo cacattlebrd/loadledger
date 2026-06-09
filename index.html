@@ -769,6 +769,7 @@ document.addEventListener('DOMContentLoaded', function(){
 <!-- ===== FUEL/DEF TAB ===== -->
 <div id="panel-fuel" class="panel">
   <div class="section-title">Fuel / DEF Entry</div>
+  <!-- v2.6.22: cost-tracker ping moved server-side (secret out of public source) -->
   <!-- v2.6.21: fuel direction pick — stamps RAW Fuel-DEF Direction so cost reports split IB/OB correctly -->
   <div class="section-title">Direction</div>
   <div class="toggle-row">
@@ -1697,7 +1698,7 @@ function roundTons(net) {
 }
 
 // ===== AUTO-UPDATE (v2.5.7) =====
-const APP_VERSION = '2.6.21';
+const APP_VERSION = '2.6.22';
 const UPDATE_CHECK_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
 
 async function checkForUpdate() {
@@ -4388,14 +4389,9 @@ const sheetsSync = (() => {
   }
 
   function notifyCostTracker() {
-    // Pings the Load Cost Tracker webhook to trigger pullLoadLedger().
-    // Fire-and-forget: no await, no error surfacing — driver never feels this.
-    try {
-      var url = 'https://script.google.com/macros/s/AKfycbylQqzYspogLC7Lr5rkRp_XMRCFrOFxkuyBeeNbt06SFrGxicJvSQm6FaCS2CGMS3r2Rw/exec'
-        + '?secret=QKIZgH-mjwlaso8V9X7PgnUpo_jgJiKZHr22xwDDuhc'
-        + '&action=pull&_=' + Date.now();
-      fetch(url, { method: 'GET', mode: 'no-cors', cache: 'no-store' }).catch(function(){});
-    } catch(_) {}
+    // v2.6.22: moved server-side. The backend (WebApp.gs v23 handleLoad) now pings
+    // the Load Cost Tracker itself, so the webhook secret no longer ships in this
+    // public file. Kept as a no-op so call sites stay harmless.
   }
 
   function isSynced(timestamp) {
