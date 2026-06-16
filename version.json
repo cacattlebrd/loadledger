@@ -1,7 +1,7 @@
 {
   "version": "2.6.23",
-  "min_version": "2.6.23",
+  "min_version": "2.6.22",
   "released": "2026-06-16",
-  "forceUpdate": true,
-  "notes": "Fixes admin Sync Config to All Devices (trailers/customers now save and propagate). Nothing else changes for drivers."
+  "forceUpdate": false,
+  "notes": "Fixes admin Sync Config to All Devices (trailers/customers now save and propagate)."
 }
