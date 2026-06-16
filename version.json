@@ -1,7 +1,7 @@
 {
-  "version": "2.6.22",
-  "min_version": "2.6.21",
-  "released": "2026-06-09",
+  "version": "2.6.23",
+  "min_version": "2.6.23",
+  "released": "2026-06-16",
   "forceUpdate": true,
-  "notes": "Behind-the-scenes security cleanup. Nothing changes for drivers."
+  "notes": "Fixes admin Sync Config to All Devices (trailers/customers now save and propagate). Nothing else changes for drivers."
 }
