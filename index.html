@@ -27,7 +27,7 @@
     var qs = window.location.search || '';
     if (qs.indexOf('v=') !== -1) return; // already cache-busted this load, don't loop
 
-    var BOOT_VERSION_HINT = '2.6.6'; // injected during build below
+    var BOOT_VERSION_HINT = '2.6.23'; // injected during build below
     var url = './version.json?_=' + Date.now();
     var xhr = new XMLHttpRequest();
     xhr.open('GET', url, true);
@@ -4258,7 +4258,7 @@ const configSync = (() => {
       const resp = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain' },
-        body: JSON.stringify({ type: 'configSync', category: category, data: data })
+        body: JSON.stringify({ type: 'configSync', category: category, data: data, token: sheetsSync.getToken() }) // v2.6.23: token required since ENFORCE_TOKEN flipped Jun 11
       });
       if (!resp.ok) throw new Error('HTTP ' + resp.status);
       const body = await resp.json();
@@ -4287,7 +4287,7 @@ const configSync = (() => {
       const resp = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain' },
-        body: JSON.stringify({ type: 'configSyncAll', config: allConfig })
+        body: JSON.stringify({ type: 'configSyncAll', config: allConfig, token: sheetsSync.getToken() }) // v2.6.23: token required since ENFORCE_TOKEN flipped Jun 11
       });
       if (!resp.ok) throw new Error('HTTP ' + resp.status);
       const body = await resp.json();
@@ -4480,7 +4480,7 @@ const sheetsSync = (() => {
     });
   }
 
-  return { send, retryQueue, syncAll, getStatus, isSynced, getWebAppUrl: function() { return WEBAPP_URL; } };
+  return { send, retryQueue, syncAll, getStatus, isSynced, getWebAppUrl: function() { return WEBAPP_URL; }, getToken: function() { return LL_TOKEN; } };
 })();
 
 // v2.6.0: Small pending-sync badge on the LOAD tab. Tells the driver at a
