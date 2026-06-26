@@ -27,7 +27,7 @@
     var qs = window.location.search || '';
     if (qs.indexOf('v=') !== -1) return; // already cache-busted this load, don't loop
 
-    var BOOT_VERSION_HINT = '2.6.23'; // injected during build below
+    var BOOT_VERSION_HINT = '2.6.24'; // injected during build below
     var url = './version.json?_=' + Date.now();
     var xhr = new XMLHttpRequest();
     xhr.open('GET', url, true);
@@ -907,8 +907,8 @@ document.addEventListener('DOMContentLoaded', function(){
       </select>
       <select id="histFilterRange" onchange="renderHistory()">
         <option value="1">Today</option>
-        <option value="7" selected>Last 7 days</option>
-        <option value="30">Last 30 days</option>
+        <option value="7">Last 7 days</option>
+        <option value="30" selected>Last 30 days</option>
         <option value="0">All time</option>
       </select>
       <select id="histFilterType" onchange="renderHistory()">
@@ -932,6 +932,7 @@ document.addEventListener('DOMContentLoaded', function(){
       <span class="sys-toggle">+</span>
     </div>
     <div class="sys-update-body" style="display:none">
+      <div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">Jun 26</div><div class="sys-update-text">v2.6.24 - History fixed. The activity log had quietly stopped saving to the server on Jun 11 because the security token added that day was not attached to activity records - so the History tab only showed whatever was on your own phone. Token now attached: every driver’s logins, loads, fuel and DVIR write to the shared log again. Also bumped the default History window from 7 to 30 days so the full crew’s activity shows up the moment you open the tab.</div></div>
       <div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">May 12</div><div class="sys-update-text">v2.6.6 - Photo upload disabled. Hard copy scale ticket is the system of record. Photos were causing intermittent silent drops on certain suppliers (Maruchan, HEB SNACKS) where the load looked submitted but never reached the sheet. Cutting the photo path eliminates the failure mode entirely - drivers fill the form, hit SUBMIT, load lands every time.</div></div>
       <div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">May 12</div><div class="sys-update-text">v2.6.5 - Fuel/DEF entry simplified. Just enter diesel gallons (off the pump meter) and how many DEF boxes you used. No more cost fields, no more station to type - the office handles all that from bulk diesel/DEF deliveries on the Logistics Tracker. Station auto-stamps to the yard.</div></div>
       <div class="sys-update-item"><div class="sys-update-dot"></div><div class="sys-update-date">May 12</div><div class="sys-update-text">v2.6.4 - Delete unfinished loads. Each unfinished load now has a small red DELETE button below the green RESUME button. Tap DELETE and confirm to remove the load from your unfinished list. Only the driver who started the load (or an admin) can delete it. Once deleted it stays gone - no more piling up.</div></div>
@@ -1698,7 +1699,7 @@ function roundTons(net) {
 }
 
 // ===== AUTO-UPDATE (v2.5.7) =====
-const APP_VERSION = '2.6.23';
+const APP_VERSION = '2.6.24';
 const UPDATE_CHECK_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
 
 async function checkForUpdate() {
@@ -3015,7 +3016,7 @@ function logActivity(action, details) {
       fetch(url, {
         method: "POST",
         headers: {"Content-Type":"text/plain"},
-        body: JSON.stringify(Object.assign({type:"activity"}, entry))
+        body: JSON.stringify(Object.assign({type:"activity", token: (sheetsSync.getToken ? sheetsSync.getToken() : "")}, entry)) // v2.6.24: token required since ENFORCE_TOKEN flipped Jun 11 - fixes frozen History log
       }).catch(function(){});
     }
   } catch(e) {}
@@ -4258,7 +4259,7 @@ const configSync = (() => {
       const resp = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain' },
-        body: JSON.stringify({ type: 'configSync', category: category, data: data, token: sheetsSync.getToken() }) // v2.6.23: token required since ENFORCE_TOKEN flipped Jun 11
+        body: JSON.stringify({ type: 'configSync', category: category, data: data, token: sheetsSync.getToken() }) // v2.6.24: token required since ENFORCE_TOKEN flipped Jun 11
       });
       if (!resp.ok) throw new Error('HTTP ' + resp.status);
       const body = await resp.json();
@@ -4287,7 +4288,7 @@ const configSync = (() => {
       const resp = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain' },
-        body: JSON.stringify({ type: 'configSyncAll', config: allConfig, token: sheetsSync.getToken() }) // v2.6.23: token required since ENFORCE_TOKEN flipped Jun 11
+        body: JSON.stringify({ type: 'configSyncAll', config: allConfig, token: sheetsSync.getToken() }) // v2.6.24: token required since ENFORCE_TOKEN flipped Jun 11
       });
       if (!resp.ok) throw new Error('HTTP ' + resp.status);
       const body = await resp.json();
